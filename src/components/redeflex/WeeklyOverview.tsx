@@ -70,7 +70,8 @@ export function WeeklyOverview() {
 
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-muted px-6 py-3 text-xs text-muted-foreground">
           <span>
-            Semana atual ({atual.dia}): {litros.format(atual.galonagem)} L e {reais.format(atual.produto)} em produtos
+            Semana atual ({atual?.dia}): {litros.format(atual?.galonagem ?? 0)} L e{" "}
+            {reais.format(atual?.produto ?? 0)} em produtos
           </span>
         </p>
       </section>
