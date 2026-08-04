@@ -44,9 +44,9 @@ export function DistributionCard({ title, data, note }: Props) {
     <section className="card-elevated flex flex-col">
       <h2 className="px-7 pt-6 text-base font-bold uppercase tracking-[0.06em]">{title}</h2>
       <div className="flex flex-1 flex-col items-center gap-4 px-7 py-5 sm:flex-row sm:gap-8">
-        <div className="h-[230px] w-full max-w-[240px] shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+        <div className="h-[230px] w-[230px] shrink-0">
+          <ResponsiveContainer width={230} height={230}>
+            <PieChart width={230} height={230}>
               <Pie
                 data={data}
                 dataKey="value"
@@ -64,7 +64,7 @@ export function DistributionCard({ title, data, note }: Props) {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <ul className="w-full space-y-2.5">
+        <ul className="w-full min-w-0 space-y-2.5">
           {data.map((d, i) => (
             <li key={d.name} className="flex items-center gap-3 text-sm">
               <span
