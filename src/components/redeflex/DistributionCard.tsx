@@ -51,8 +51,11 @@ export function DistributionCard({ title, data, note }: Props) {
                 data={data}
                 dataKey="value"
                 nameKey="name"
+                cx={115}
+                cy={115}
                 innerRadius={0}
-                outerRadius="95%"
+                outerRadius={108}
+                isAnimationActive={false}
                 stroke="var(--surface)"
                 strokeWidth={2}
               >
