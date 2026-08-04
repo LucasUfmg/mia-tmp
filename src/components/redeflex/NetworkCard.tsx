@@ -11,8 +11,8 @@ type Props = {
 
 export function NetworkCard({ title, icon, rb, metrics, note }: Props) {
   return (
-    <section className="card-elevated overflow-hidden">
-      <div className="flex gap-5 border-l-4 border-brand p-7">
+    <section className="card-elevated flex h-full flex-col overflow-hidden">
+      <div className="flex flex-1 gap-5 border-l-4 border-brand p-7">
         <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
           {icon}
         </span>
