@@ -1,10 +1,4 @@
-import {
-  DATA_REFERENCIA,
-  calcFuelsByDate,
-  calcProductsByDate,
-  getItensTotaisPorPosto,
-  getVolumePorPosto,
-} from "./redeflex-datasource";
+import { getFuelSeries, getPostos, getProductSeries } from "./redeflex.functions";
 import {
   REDE_ID,
   extractPostoIds,
@@ -32,6 +26,16 @@ export type DashboardData = {
   postos: string[];
 };
 
+/** Data de referência = hoje no fuso de São Paulo. */
+export function dataReferencia(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 function formatDia(data: string): string {
   const [, mes, dia] = data.split("-");
   return `${dia}/${mes}`;
@@ -44,7 +48,7 @@ function formatReferencia(data: string): string {
 
 export async function loadDashboardData(
   selecao: Selecao,
-  referencia = DATA_REFERENCIA,
+  referencia = dataReferencia(),
 ): Promise<DashboardData> {
   const porPosto = selecao !== REDE_ID;
   const datasSemana = sameWeekdayDates(referencia, 4);
@@ -52,8 +56,8 @@ export async function loadDashboardData(
   const datas = [...new Set([...datasSemana, ...datasMes])];
 
   const [combustivelBruto, produtoBruto] = await Promise.all([
-    porPosto ? getVolumePorPosto(datas) : calcFuelsByDate(datas),
-    porPosto ? getItensTotaisPorPosto(datas) : calcProductsByDate(datas),
+    getFuelSeries({ data: { dates: datas, porPosto } }),
+    getProductSeries({ data: { dates: datas, porPosto } }),
   ]);
 
   const pontosCombustivel = parseKeyedSeries(combustivelBruto);
@@ -90,8 +94,8 @@ export async function loadDashboardData(
   };
 }
 
-/** IBMs disponíveis, derivados dos dados por posto na data de referência. */
-export async function loadPostos(referencia = DATA_REFERENCIA): Promise<string[]> {
-  const bruto = await getVolumePorPosto([referencia]);
-  return extractPostoIds(parseKeyedSeries(bruto));
+/** IBMs disponíveis, derivados dos dados por posto nos últimos dias. */
+export async function loadPostos(referencia = dataReferencia()): Promise<string[]> {
+  const datas = sameWeekdayDates(referencia, 4);
+  return await getPostos({ data: { dates: datas } });
 }
