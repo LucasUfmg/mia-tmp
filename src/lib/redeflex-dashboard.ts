@@ -89,3 +89,9 @@ export async function loadDashboardData(
     postos: extractPostoIds(pontosCombustivel),
   };
 }
+
+/** IBMs disponíveis, derivados dos dados por posto na data de referência. */
+export async function loadPostos(referencia = DATA_REFERENCIA): Promise<string[]> {
+  const bruto = await getVolumePorPosto([referencia]);
+  return extractPostoIds(parseKeyedSeries(bruto));
+}
