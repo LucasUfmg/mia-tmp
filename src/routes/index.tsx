@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Fuel,
   ShoppingBag,
@@ -13,6 +15,9 @@ import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
+import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
+import { loadDashboardData, loadPostos } from "@/lib/redeflex-dashboard";
+import { REDE_ID, formatPostoLabel } from "@/lib/redeflex-transform";
 import {
   combustiveis,
   produtos,
@@ -44,6 +49,20 @@ const kpis = [
 ];
 
 function Index() {
+  const [selecao, setSelecao] = useState<string>(REDE_ID);
+
+  const { data: postos = [] } = useQuery({
+    queryKey: ["redeflex", "postos"],
+    queryFn: () => loadPostos(),
+  });
+
+  const { data, isPending } = useQuery({
+    queryKey: ["redeflex", "dashboard", selecao],
+    queryFn: () => loadDashboardData(selecao),
+  });
+
+  const escopo = selecao === REDE_ID ? "Rede" : formatPostoLabel(selecao);
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -52,6 +71,8 @@ function Index() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
+            <NetworkFilter value={selecao} onChange={setSelecao} postos={postos} />
+            <span className="hidden h-5 w-px bg-border sm:block" />
             <span className="flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />
               Última atualização: 23/05/2025 08:30
@@ -65,7 +86,12 @@ function Index() {
         </header>
 
         <div className="mt-6">
-          <WeeklyOverview />
+          <WeeklyOverview
+            comparativo={data?.comparativo ?? []}
+            projecao={data?.projecao ?? { combustivel: 0, produto: 0, referencia: "—" }}
+            escopo={escopo}
+            carregando={isPending}
+          />
         </div>
 
         <section className="card-elevated mt-6 grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">

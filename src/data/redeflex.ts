@@ -52,24 +52,3 @@ export const sliceColors = [
   "var(--chart-4)",
   "var(--chart-5)",
 ];
-// Comparativo semanal (mesmo dia da semana) — galonagem e produto
-export type SemanaComparativo = {
-  dia: string;
-  galonagem: number;
-  galonagemVar: number | null;
-  produto: number;
-  produtoVar: number | null;
-};
-
-export const comparativoSemanal: SemanaComparativo[] = [
-  { dia: "14/07", galonagem: 160574, galonagemVar: null, produto: 7592, produtoVar: null },
-  { dia: "21/07", galonagem: 149508, galonagemVar: -7, produto: 5433, produtoVar: -28 },
-  { dia: "28/07", galonagem: 153566, galonagemVar: 3, produto: 6445, produtoVar: 19 },
-  { dia: "04/08", galonagem: 153551, galonagemVar: -0.4, produto: 6284, produtoVar: -2 },
-];
-
-export const projecaoMensal = {
-  combustivel: 13080312, // litros
-  produto: 551601, // reais
-  referencia: "04/08/2026",
-};

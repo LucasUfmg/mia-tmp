@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight, CalendarRange, Fuel, Minus, ShoppingBag, Target } from "lucide-react";
-import { comparativoSemanal, projecaoMensal } from "@/data/redeflex";
+import type { DashboardData } from "@/lib/redeflex-dashboard";
 
 const litros = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 const reais = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -25,7 +25,16 @@ function Variation({ value }: { value: number | null }) {
   );
 }
 
-export function WeeklyOverview() {
+type Props = {
+  comparativo: DashboardData["comparativo"];
+  projecao: DashboardData["projecao"];
+  escopo: string;
+  carregando?: boolean;
+};
+
+export function WeeklyOverview({ comparativo, projecao, escopo, carregando }: Props) {
+  const comparativoSemanal = comparativo;
+  const projecaoMensal = projecao;
   const atual = comparativoSemanal[comparativoSemanal.length - 1];
 
   return (
@@ -36,7 +45,9 @@ export function WeeklyOverview() {
             <CalendarRange className="h-4 w-4" />
             Comparativo semanal — mesmo dia
           </h2>
-          <p className="text-xs text-muted-foreground">terça-feira · últimas 4 semanas</p>
+          <p className="text-xs text-muted-foreground">
+            {escopo} · mesmo dia · últimas 4 semanas
+          </p>
         </header>
 
         <div className="overflow-x-auto">
@@ -51,6 +62,13 @@ export function WeeklyOverview() {
               </tr>
             </thead>
             <tbody>
+              {carregando && comparativoSemanal.length === 0 ? (
+                <tr className="border-t border-border">
+                  <td className="px-6 py-4 text-muted-foreground" colSpan={5}>
+                    Carregando dados…
+                  </td>
+                </tr>
+              ) : null}
               {comparativoSemanal.map((s) => (
                 <tr key={s.dia} className="border-t border-border">
                   <td className="px-6 py-3 font-semibold">{s.dia}</td>
