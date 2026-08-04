@@ -28,14 +28,44 @@ function uri(fonte: Fonte): string {
   return valor;
 }
 
+function comAuthSource(original: string, authSource: string): string | null {
+  try {
+    const url = new URL(original);
+    if (url.searchParams.get("authSource") === authSource) return null;
+    url.searchParams.set("authSource", authSource);
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function conectar(connectionString: string): Promise<MongoClient> {
+  return await new MongoClient(connectionString, {
+    maxPoolSize: 5,
+    serverSelectionTimeoutMS: 15_000,
+  }).connect();
+}
+
 async function getClient(fonte: Fonte): Promise<MongoClient> {
   const c = cache();
   if (!c.clientes[fonte]) {
-    c.clientes[fonte] = new MongoClient(uri(fonte), {
-      maxPoolSize: 5,
-      serverSelectionTimeoutMS: 15_000,
-    })
-      .connect()
+    const original = uri(fonte);
+    c.clientes[fonte] = conectar(original)
+      .catch(async (erro: unknown) => {
+        // Connection strings do Prisma às vezes omitem o authSource.
+        const mensagem = erro instanceof Error ? erro.message : String(erro);
+        if (!/auth/i.test(mensagem)) throw erro;
+        for (const authSource of ["admin", "$external"]) {
+          const alternativa = comAuthSource(original, authSource);
+          if (!alternativa) continue;
+          try {
+            return await conectar(alternativa);
+          } catch {
+            // tenta a próxima
+          }
+        }
+        throw erro;
+      })
       .catch((erro) => {
         delete c.clientes[fonte];
         throw erro;
