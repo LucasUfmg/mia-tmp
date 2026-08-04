@@ -14,7 +14,7 @@ export const redeProdutos = {
   title: "Rede Produtos",
   rb: 561,
   metrics: [
-    { label: "TMP", value: "0,82" },
+    { label: "TMP", value: "R$ 0,82" },
     { label: "LB", value: "71%" },
   ],
   note: "Dados de produtos vendidos na rede",
@@ -38,11 +38,11 @@ export const combustiveis: Slice[] = [
 ];
 
 export const produtos: Slice[] = [
-  { name: "Aditivo Automóveis", value: 26.05, primaryLabel: "TMP", primaryValue: "0,57", lb: "48%", rb: "R$ 26,05" },
-  { name: "Lubrificantes Automóveis", value: 55.15, primaryLabel: "TMP", primaryValue: "0,49", lb: "57%", rb: "R$ 55,15" },
-  { name: "Aditivo Caminhões/Ônibus/Vans", value: 28.13, primaryLabel: "TMP", primaryValue: "0,88", lb: "44%", rb: "R$ 28,13" },
-  { name: "Lubrificantes Caminhões/Ônibus/Vans", value: 88.12, primaryLabel: "TMP", primaryValue: "0,73", lb: "90%", rb: "R$ 88,12" },
-  { name: "Não encontrado", value: 76.14, primaryLabel: "TMP", primaryValue: "0,92", lb: "76%", rb: "R$ 76,14" },
+  { name: "Aditivo Automóveis", value: 26.05, primaryLabel: "TMP", primaryValue: "R$ 0,57", lb: "48%", rb: "R$ 26,05" },
+  { name: "Lubrificantes Automóveis", value: 55.15, primaryLabel: "TMP", primaryValue: "R$ 0,49", lb: "57%", rb: "R$ 55,15" },
+  { name: "Aditivo Caminhões/Ônibus/Vans", value: 28.13, primaryLabel: "TMP", primaryValue: "R$ 0,88", lb: "44%", rb: "R$ 28,13" },
+  { name: "Lubrificantes Caminhões/Ônibus/Vans", value: 88.12, primaryLabel: "TMP", primaryValue: "R$ 0,73", lb: "90%", rb: "R$ 88,12" },
+  { name: "Não encontrado", value: 76.14, primaryLabel: "TMP", primaryValue: "R$ 0,92", lb: "76%", rb: "R$ 76,14" },
 ];
 
 export const sliceColors = [
