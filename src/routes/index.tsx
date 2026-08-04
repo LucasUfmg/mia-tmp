@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   Fuel,
   ShoppingBag,
-  Percent,
+  DollarSign,
   TrendingUp,
   ShoppingCart,
   CalendarDays,
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/")({
 const kpis = [
   { icon: Fuel, label: "Volume movimentado", value: "2,46 Mi", hint: "litros" },
   { icon: TrendingUp, label: "Rentabilidade da rede", value: "R$ 13.020", hint: "RB médio (combustíveis)" },
-  { icon: Percent, label: "Margem média (M/LT)", value: "R$ 0,66", hint: "Combustíveis" },
+  { icon: DollarSign, label: "Margem média (M/LT)", value: "R$ 0,66", hint: "Combustíveis" },
   { icon: ShoppingCart, label: "Ticket médio", value: "R$ 116,16", hint: "TMC por transação" },
 ];
 
