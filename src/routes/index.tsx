@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Fuel,
   ShoppingBag,
   DollarSign,
   TrendingUp,
   ShoppingCart,
-  CalendarDays,
-  RefreshCw,
   FileText,
 } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
@@ -16,6 +14,7 @@ import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
+import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { loadDashboardData, loadPostos } from "@/lib/redeflex-dashboard";
 import { REDE_ID, formatPostoLabel } from "@/lib/redeflex-transform";
 import {
@@ -54,11 +53,21 @@ function Index() {
   const { data: postos = [] } = useQuery({
     queryKey: ["redeflex", "postos"],
     queryFn: () => loadPostos(),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
-  const { data, isPending } = useQuery({
+  const { data, isPending, isFetching, isError, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["redeflex", "dashboard", selecao],
     queryFn: () => loadDashboardData(selecao),
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    refetchIntervalInBackground: false,
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
   });
 
   const escopo = selecao === REDE_ID ? "Rede" : formatPostoLabel(selecao);
@@ -73,15 +82,12 @@ function Index() {
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
             <NetworkFilter value={selecao} onChange={setSelecao} postos={postos} />
             <span className="hidden h-5 w-px bg-border sm:block" />
-            <span className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4" />
-              Última atualização: 23/05/2025 08:30
-            </span>
-            <span className="hidden h-5 w-px bg-border sm:block" />
-            <button className="flex items-center gap-2 font-medium text-brand transition-opacity hover:opacity-80">
-              <RefreshCw className="h-4 w-4" />
-              Atualizar
-            </button>
+            <LiveStatus
+              atualizadoEm={dataUpdatedAt}
+              atualizando={isFetching}
+              erro={isError}
+              onRefresh={() => void refetch()}
+            />
           </div>
         </header>
 
