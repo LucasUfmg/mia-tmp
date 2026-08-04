@@ -66,7 +66,7 @@ export function DistributionCard({ title, data, note }: Props) {
                       textAnchor="middle"
                       dominantBaseline="middle"
                       className="pointer-events-none text-[13px] font-bold"
-                      fill="white"
+                      fill={s.i === 3 ? "var(--foreground)" : "white"}
                     >
                       {pct(s.value)}
                     </text>
