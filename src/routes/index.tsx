@@ -12,6 +12,7 @@ import {
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
+import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import {
   combustiveis,
   produtos,
@@ -62,6 +63,10 @@ function Index() {
             </button>
           </div>
         </header>
+
+        <div className="mt-6">
+          <WeeklyOverview />
+        </div>
 
         <section className="card-elevated mt-6 grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
           {kpis.map(({ icon: Icon, label, value, hint }) => (
