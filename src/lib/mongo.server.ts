@@ -74,10 +74,27 @@ async function getClient(fonte: Fonte): Promise<MongoClient> {
   return c.clientes[fonte]!;
 }
 
+const DB_FALLBACK: Record<Fonte, string> = {
+  gasMonitor: "GasMonitor",
+  sales: "Sales",
+};
+
+function nomeDoBanco(fonte: Fonte): string | undefined {
+  const explicito = process.env[fonte === "gasMonitor" ? "MONGODB_DB_GAS_MONITOR" : "MONGODB_DB_SALES"];
+  if (explicito) return explicito;
+  try {
+    const path = new URL(uri(fonte)).pathname.replace(/^\//, "");
+    if (path) return decodeURIComponent(path);
+  } catch {
+    // segue para o fallback
+  }
+  return DB_FALLBACK[fonte];
+}
+
 async function getDb(fonte: Fonte): Promise<Db> {
   const client = await getClient(fonte);
-  // O nome do banco vem do path da connection string.
-  return client.db();
+  // O nome do banco vem do path da connection string (ou do env explícito).
+  return client.db(nomeDoBanco(fonte));
 }
 
 /**
