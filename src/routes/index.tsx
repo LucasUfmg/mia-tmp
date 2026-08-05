@@ -72,7 +72,7 @@ function Index() {
     placeholderData: keepPreviousData,
   });
 
-  const { data, isPending, isFetching, isError, dataUpdatedAt, refetch } = useQuery({
+  const { data, isPending, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["redeflex", "dashboard", selecao, periodo],
     queryFn: () => {
       const fresh = forcar.current;
@@ -138,7 +138,7 @@ function Index() {
             <LiveStatus
               atualizadoEm={dataUpdatedAt}
               atualizando={isFetching}
-              erro={isError}
+              erro={error}
               onRefresh={() => {
                 forcar.current = true;
                 void refetch();

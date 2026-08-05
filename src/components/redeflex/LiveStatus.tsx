@@ -13,9 +13,29 @@ const horario = new Intl.DateTimeFormat("pt-BR", {
 type Props = {
   atualizadoEm: number;
   atualizando: boolean;
-  erro: boolean;
+  erro: unknown;
   onRefresh: () => void;
 };
+
+function formatarErro(error: unknown): string {
+  if (error instanceof Error) {
+    return [
+      `${error.name}: ${error.message}`,
+      error.stack,
+      error.cause ? `Causa: ${formatarErro(error.cause)}` : undefined,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
+  if (typeof error === "string") return error;
+
+  try {
+    return JSON.stringify(error, null, 2);
+  } catch {
+    return String(error);
+  }
+}
 
 export function LiveStatus({ atualizadoEm, atualizando, erro, onRefresh }: Props) {
   return (
@@ -36,10 +56,15 @@ export function LiveStatus({ atualizadoEm, atualizando, erro, onRefresh }: Props
       </span>
 
       {erro ? (
-        <span className="flex items-center gap-1.5 text-xs font-medium text-destructive">
-          <TriangleAlert className="h-3.5 w-3.5" />
-          Falha ao atualizar — tentando novamente
-        </span>
+        <div className="basis-full border-l-2 border-destructive pl-3 text-destructive">
+          <span className="flex items-center gap-1.5 text-xs font-semibold">
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0" />
+            Erro completo da atualização
+          </span>
+          <pre className="mt-2 max-h-72 max-w-full overflow-auto whitespace-pre-wrap break-all font-mono text-xs leading-relaxed">
+            {formatarErro(erro)}
+          </pre>
+        </div>
       ) : null}
 
       <span className="hidden h-5 w-px bg-border sm:block" />
