@@ -5,11 +5,12 @@ type Props = {
   title: string;
   icon: ReactNode;
   rb: string;
+  rbLabel?: string;
   metrics: { label: string; value: string }[];
   note: string;
 };
 
-export function NetworkCard({ title, icon, rb, metrics, note }: Props) {
+export function NetworkCard({ title, icon, rb, rbLabel = "RB Médio", metrics, note }: Props) {
   return (
     <section className="card-elevated flex h-full flex-col overflow-hidden">
       <div className="flex flex-1 gap-5 border-l-4 border-brand p-7">
@@ -18,7 +19,7 @@ export function NetworkCard({ title, icon, rb, metrics, note }: Props) {
         </span>
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-bold uppercase tracking-[0.12em] text-brand">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">RB Médio</p>
+          <p className="mt-1 text-sm text-muted-foreground">{rbLabel}</p>
           <p className="mt-2 text-4xl font-extrabold tracking-tight md:text-5xl">{rb}</p>
 
           <dl className="mt-6 grid grid-cols-2 gap-x-8 gap-y-5 border-t border-border pt-5">
