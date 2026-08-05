@@ -76,6 +76,42 @@ export function daysInMonth(referencia: string): number {
   return new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, 0)).getUTCDate();
 }
 
+export type MonthRange = {
+  label: string;
+  diasCompletos: string[];
+  diaParcial: string;
+};
+
+/**
+ * Intervalos "mesmo período" do mês da referência e dos meses anteriores:
+ * dia 1 até o mesmo dia (limitado ao último dia daquele mês).
+ */
+export function monthRanges(referencia: string, count = 4): MonthRange[] {
+  const base = new Date(`${referencia}T00:00:00Z`);
+  const dia = base.getUTCDate();
+
+  return [...Array(count).keys()]
+    .map((i) => {
+      const ano = base.getUTCFullYear();
+      const mes = base.getUTCMonth() - i;
+      const primeiro = new Date(Date.UTC(ano, mes, 1));
+      const ultimoDia = new Date(
+        Date.UTC(primeiro.getUTCFullYear(), primeiro.getUTCMonth() + 1, 0),
+      ).getUTCDate();
+      const fim = Math.min(dia, ultimoDia);
+      const datas = [...Array(fim).keys()].map((d) =>
+        toISODate(new Date(Date.UTC(primeiro.getUTCFullYear(), primeiro.getUTCMonth(), d + 1))),
+      );
+      const diaParcial = datas[datas.length - 1] ?? toISODate(primeiro);
+      return {
+        label: `${String(primeiro.getUTCMonth() + 1).padStart(2, "0")}/${primeiro.getUTCFullYear()}`,
+        diasCompletos: datas.slice(0, -1),
+        diaParcial,
+      };
+    })
+    .reverse();
+}
+
 /** Projeta o total do mês a partir do acumulado até a data de referência. */
 export function projectMonth(acumulado: number, referencia: string): number {
   const base = new Date(`${referencia}T00:00:00Z`);
