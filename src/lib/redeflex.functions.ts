@@ -12,6 +12,8 @@ const indicatorsSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(120),
   ibm: z.string().min(1).optional(),
   cutoffMinutes: z.number().int().min(0).max(1439).optional(),
+  /** Início de um intervalo contínuo (visão mensal: 1º dia do mês). */
+  desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   fresh: z.boolean().default(false),
 });
 
@@ -19,6 +21,54 @@ const postosSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31),
   fresh: z.boolean().default(false),
 });
+
+const monthsSchema = z.object({
+  referencia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  count: z.number().int().min(1).max(12).default(4),
+  cutoffMinutes: z.number().int().min(0).max(1439),
+  porPosto: z.boolean().default(false),
+  fresh: z.boolean().default(false),
+});
+
+/** Galonagem por mês (mesmo período acumulado): `{ "2026-08": 123 }`. */
+export const getFuelMonths = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => monthsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
+    try {
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("fuelMonths", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { calcFuelByMonths } = await import("./redeflex-mongo.server");
+        return await comSessao(async () =>
+          calcFuelByMonths(escopo.referencia, escopo.count, escopo.cutoffMinutes, escopo.porPosto),
+        );
+      });
+    } catch (error) {
+      console.error("[RedeFlex:getFuelMonths]", error);
+      throw error;
+    }
+  });
+
+/** Produto (R$) por mês (mesmo período acumulado). */
+export const getProductMonths = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => monthsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
+    try {
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("productMonths", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { calcProductByMonths } = await import("./redeflex-mongo.server");
+        return await comSessao(async () =>
+          calcProductByMonths(escopo.referencia, escopo.count, escopo.cutoffMinutes, escopo.porPosto),
+        );
+      });
+    } catch (error) {
+      console.error("[RedeFlex:getProductMonths]", error);
+      throw error;
+    }
+  });
 
 // [MENSAL DESATIVADO] Acumulado do mês (consulta pesada — suspensa):
 // const monthToDateSchema = z.object({
@@ -127,7 +177,8 @@ export const getIndicators = createServerFn({ method: "POST" })
         const { comSessao } = await import("./mongo.server");
         const { getIndicadores } = await import("./redeflex-mongo.server");
         return await comSessao(
-          async () => await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+          async () =>
+            await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
         );
       });
     } catch (error) {
@@ -165,8 +216,8 @@ export const getCategorias = createServerFn({ method: "POST" })
         );
         return await comSessao(async () => {
           const [combustiveis, produtos] = await Promise.all([
-            getCategoriasCombustivel(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
-            getCategoriasProduto(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+            getCategoriasCombustivel(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
+            getCategoriasProduto(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
           ]);
           return { combustiveis, produtos };
         });

@@ -1,20 +1,21 @@
 import {
   getCategorias,
   getFuelSeries,
+  getFuelMonths,
   getIndicators,
   getLojas,
   getProductSeries,
+  getProductMonths,
 } from "./redeflex.functions";
-// [MENSAL DESATIVADO] import { getMonthToDate } from "./redeflex.functions";
 import {
   REDE_ID,
   extractPostoIds,
   groupByDate,
   parseKeyedSeries,
+  projectMonth,
   sameWeekdayDates,
   variacao,
 } from "./redeflex-transform";
-// [MENSAL DESATIVADO] monthRanges, monthToDateDates, projectMonth
 
 export type Selecao = string; // REDE_ID ou o IBM do posto
 
@@ -97,6 +98,18 @@ function formatDia(data: string): string {
   return `${dia}/${mes}`;
 }
 
+/** "2026-08" → "08/2026" */
+function formatMes(mes: string): string {
+  const [ano, m] = mes.split("-");
+  return `${m}/${ano}`;
+}
+
+/** Primeiro dia do mês da referência (para o acumulado mensal). */
+function primeiroDiaDoMes(referencia: string): string {
+  const [ano, mes] = referencia.split("-");
+  return `${ano}-${mes}-01`;
+}
+
 function formatReferencia(data: string): string {
   const [ano, mes, dia] = data.split("-");
   return `${dia}/${mes}/${ano}`;
@@ -108,41 +121,76 @@ export async function loadDashboardData(
   referencia = dataReferencia(),
   fresh = false,
 ): Promise<DashboardData> {
-  void periodo; // [MENSAL DESATIVADO] só a visão diária está ativa
   const porPosto = selecao !== REDE_ID;
-  const datasSemana = sameWeekdayDates(referencia, 4);
   const corte = cutoffMinutes();
-  // [MENSAL DESATIVADO] visão mensal suspensa: consultas acumuladas do mês eram
-  // muito pesadas e derrubavam o carregamento em produção.
-  // const datasMes = monthToDateDates(referencia);
-  // const meses = monthRanges(referencia, 4);
-  // const mesesCompletos = [...new Set(meses.flatMap((m) => m.diasCompletos))];
-  // const mesesParciais = meses.map((m) => m.diaParcial);
-  const datasEscopo = [referencia];
-  const corteEscopo = { cutoffMinutes: corte };
+  const mensal = periodo === "mensal";
+  const filtro = porPosto ? selecao : undefined;
+
+  // Escopo dos indicadores/categorias: o dia (on-time) ou o acumulado do mês.
+  const escopoIndices = {
+    dates: [referencia],
+    cutoffMinutes: corte,
+    ...(mensal ? { desde: primeiroDiaDoMes(referencia) } : {}),
+    ...(porPosto ? { ibm: selecao } : {}),
+  };
+
+  if (mensal) {
+    const [combustivelMeses, produtoMeses, indicadores, categorias] = await Promise.all([
+      getFuelMonths({ data: { referencia, count: 4, cutoffMinutes: corte, porPosto, fresh } }),
+      getProductMonths({ data: { referencia, count: 4, cutoffMinutes: corte, porPosto, fresh } }),
+      getIndicators({ data: { ...escopoIndices, fresh } }),
+      getCategorias({ data: { ...escopoIndices, fresh } }),
+    ]);
+
+    const pontosCombustivelMes = parseKeyedSeries(combustivelMeses);
+    const pontosProdutoMes = parseKeyedSeries(produtoMeses);
+    const combustivelPorMes = groupByDate(pontosCombustivelMes, filtro);
+    const produtoPorMes = groupByDate(pontosProdutoMes, filtro);
+    const meses = [...new Set([...Object.keys(combustivelPorMes), ...Object.keys(produtoPorMes)])]
+      .sort()
+      .slice(-4);
+
+    const comparativo = meses.map((mes, index) => {
+      const anterior = index > 0 ? meses[index - 1] : undefined;
+      const galonagem = combustivelPorMes[mes] ?? 0;
+      const produto = produtoPorMes[mes] ?? 0;
+      return {
+        dia: formatMes(mes),
+        galonagem,
+        galonagemVar: variacao(galonagem, anterior ? (combustivelPorMes[anterior] ?? 0) : undefined),
+        produto,
+        produtoVar: variacao(produto, anterior ? (produtoPorMes[anterior] ?? 0) : undefined),
+      };
+    });
+
+    return {
+      comparativo,
+      projecao: {
+        combustivel: Math.round(projectMonth(indicadores.combustivel.litros, referencia)),
+        produto: Math.round(projectMonth(indicadores.produto.receita, referencia)),
+        referencia: formatReferencia(referencia),
+      },
+      periodo: "mensal",
+      postos: extractPostoIds(pontosCombustivelMes),
+      indicadores,
+      categorias,
+      corte: formatCorte(corte),
+    };
+  }
+
+  const datasSemana = sameWeekdayDates(referencia, 4);
 
   // Comparativo on-time: todos os dias cortados no mesmo horário.
   const [combustivelSemana, produtoSemana, indicadores, categorias] = await Promise.all([
     getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte, fresh } }),
     getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte, fresh } }),
-    getIndicators({
-      data: { dates: datasEscopo, fresh, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
-    }),
-    getCategorias({
-      data: { dates: datasEscopo, fresh, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
-    }),
-    // [MENSAL DESATIVADO] getMonthToDate + séries de meses cheios/parciais
-    // getMonthToDate({ data: { referencia, fresh, ...(porPosto ? { ibm: selecao } : {}) } }),
-    // getFuelSeries({ data: { dates: mesesCompletos, porPosto, fresh } }),
-    // getProductSeries({ data: { dates: mesesCompletos, porPosto, fresh } }),
-    // getFuelSeries({ data: { dates: mesesParciais, porPosto, cutoffMinutes: corte, fresh } }),
-    // getProductSeries({ data: { dates: mesesParciais, porPosto, cutoffMinutes: corte, fresh } }),
+    getIndicators({ data: { ...escopoIndices, fresh } }),
+    getCategorias({ data: { ...escopoIndices, fresh } }),
   ]);
 
   const pontosCombustivel = parseKeyedSeries(combustivelSemana);
   const pontosProduto = parseKeyedSeries(produtoSemana);
 
-  const filtro = porPosto ? selecao : undefined;
   const combustivelPorData = groupByDate(pontosCombustivel, filtro);
   const produtoPorData = groupByDate(pontosProduto, filtro);
 
@@ -159,34 +207,6 @@ export async function loadDashboardData(
     };
   });
 
-  // [MENSAL DESATIVADO] Comparativo mensal (mesmo período acumulado dos meses anteriores):
-  // const combustivelMesPorData = {
-  //   ...groupByDate(parseKeyedSeries(combustivelMesesCheios), filtro),
-  //   ...groupByDate(parseKeyedSeries(combustivelMesesParciais), filtro),
-  // };
-  // const produtoMesPorData = {
-  //   ...groupByDate(parseKeyedSeries(produtoMesesCheios), filtro),
-  //   ...groupByDate(parseKeyedSeries(produtoMesesParciais), filtro),
-  // };
-  // const somaMes = (mes: (typeof meses)[number], fonte: Record<string, number>) =>
-  //   [...mes.diasCompletos, mes.diaParcial].reduce((acc, d) => acc + (fonte[d] ?? 0), 0);
-  // const totaisMensais = meses.map((mes) => ({
-  //   label: mes.label,
-  //   galonagem: somaMes(mes, combustivelMesPorData),
-  //   produto: somaMes(mes, produtoMesPorData),
-  // }));
-  // const comparativoMensal: LinhaComparativo[] = totaisMensais.map((mes, index) => {
-  //   const anterior = index > 0 ? totaisMensais[index - 1] : undefined;
-  //   return {
-  //     dia: mes.label,
-  //     galonagem: mes.galonagem,
-  //     galonagemVar: variacao(mes.galonagem, anterior?.galonagem),
-  //     produto: mes.produto,
-  //     produtoVar: variacao(mes.produto, anterior?.produto),
-  //   };
-  // });
-  // const acumuladoCombustivel = acumuladoMes.combustivel.litros;
-  // const acumuladoProduto = acumuladoMes.produto.receita;
   const comparativo = comparativoSemanal;
 
   const fatorDia = corte > 0 ? 1440 / corte : 0;
@@ -195,10 +215,6 @@ export async function loadDashboardData(
     produto: Math.round((produtoPorData[referencia] ?? 0) * fatorDia),
     referencia: `${formatReferencia(referencia)} ${formatCorte(corte)}`,
   };
-  // [MENSAL DESATIVADO] projeção mensal:
-  // { combustivel: Math.round(projectMonth(acumuladoCombustivel, referencia)),
-  //   produto: Math.round(projectMonth(acumuladoProduto, referencia)),
-  //   referencia: formatReferencia(referencia) }
 
   return {
     comparativo,

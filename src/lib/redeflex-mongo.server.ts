@@ -51,6 +51,62 @@ function filtroDatas(dates: string[], toEndOfDay: boolean, cutoffMinutes?: numbe
   return { $or: dates.map((data) => ({ dtHr: limites(data, toEndOfDay, cutoffMinutes) })) };
 }
 
+/**
+ * Quando `desde` é informado, o filtro passa a ser um único intervalo contínuo
+ * (`desde` 00:00 → corte da última data). Isso mantém a visão mensal leve: uma
+ * faixa em vez de dezenas de `$or` sobre `dtHr`.
+ */
+function filtroPeriodo(
+  dates: string[],
+  toEndOfDay: boolean,
+  cutoffMinutes?: number,
+  desde?: string,
+) {
+  if (!desde) return filtroDatas(dates, toEndOfDay, cutoffMinutes);
+  const ultima = dates[dates.length - 1] ?? desde;
+  const fim = limites(ultima, toEndOfDay, cutoffMinutes);
+  return { dtHr: { $gte: new Date(`${desde}T00:00:00.000Z`), $lte: fim.$lte } };
+}
+
+/** Primeiro dia do mês `count - 1` meses antes da referência. */
+export function primeiroDiaMesesAtras(referencia: string, count: number): string {
+  const base = new Date(`${referencia}T00:00:00.000Z`);
+  const inicio = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - (count - 1), 1));
+  return inicio.toISOString().slice(0, 10);
+}
+
+const mesFormatado = {
+  $dateToString: { format: "%Y-%m", date: "$dtHr", timezone: "-00:00" },
+};
+
+/**
+ * Recorte "mesmo período" em todos os meses da faixa: dia 1 até o dia atual do
+ * mês, e no dia atual até o mesmo horário (comparativo on-time mês a mês).
+ */
+function matchMesesMesmoPeriodo(referencia: string, count: number, cutoffMinutes: number) {
+  const base = new Date(`${referencia}T00:00:00.000Z`);
+  const dia = base.getUTCDate();
+  const diaDoMes = { $dayOfMonth: { date: "$dtHr", timezone: "-00:00" } };
+  const minutoDoDia = {
+    $add: [
+      { $multiply: [{ $hour: { date: "$dtHr", timezone: "-00:00" } }, 60] },
+      { $minute: { date: "$dtHr", timezone: "-00:00" } },
+    ],
+  };
+  return {
+    dtHr: {
+      $gte: new Date(`${primeiroDiaMesesAtras(referencia, count)}T00:00:00.000Z`),
+      $lte: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    },
+    $expr: {
+      $or: [
+        { $lt: [diaDoMes, dia] },
+        { $and: [{ $eq: [diaDoMes, dia] }, { $lte: [minutoDoDia, cutoffMinutes] }] },
+      ],
+    },
+  };
+}
+
 // [MENSAL DESATIVADO] agregações acumuladas do mês (consultas pesadas) suspensas.
 // /**
 //  * Faixa contínua do primeiro dia do mês (00:00) até o instante atual — usada
@@ -224,6 +280,64 @@ export async function listarPostos(dates: string[]): Promise<string[]> {
   return (ibms as unknown[]).filter((v): v is string => typeof v === "string").sort();
 }
 
+type LinhaMesPosto = { _id: { mes: string; ibm: string }; total: number };
+
+/** Galonagem por mês (mesmo período acumulado) — chave `YYYY-MM` ou `IBM_YYYY-MM`. */
+export async function calcFuelByMonths(
+  referencia: string,
+  count: number,
+  cutoffMinutes: number,
+  agruparPorPosto = false,
+) {
+  const match = matchMesesMesmoPeriodo(referencia, count, cutoffMinutes);
+  if (!agruparPorPosto) {
+    const linhas = await agregar<LinhaData>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+      { $match: { ori: { $in: ["0", "1"] }, ...match } },
+      { $group: { _id: mesFormatado, total: { $sum: num("$vol") } } },
+      { $sort: { _id: 1 } },
+    ]);
+    return porData(linhas);
+  }
+  const linhas = await agregar<LinhaMesPosto>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+    { $match: { ori: { $in: ["0", "1"] }, ...match } },
+    { $group: { _id: { mes: mesFormatado, ibm: "$ibm" }, total: { $sum: num("$vol") } } },
+    { $sort: { "_id.mes": 1 } },
+  ]);
+  return porMesPosto(linhas);
+}
+
+/** Produto (R$) por mês (mesmo período acumulado). */
+export async function calcProductByMonths(
+  referencia: string,
+  count: number,
+  cutoffMinutes: number,
+  agruparPorPosto = false,
+) {
+  const match = matchMesesMesmoPeriodo(referencia, count, cutoffMinutes);
+  const base: Document[] = [{ $match: match }, { $unwind: "$items" }, { $match: { "items.iTip": { $eq: "0" } } }];
+  if (!agruparPorPosto) {
+    const linhas = await agregar<LinhaData>("sales", COLECAO_VENDAS, [
+      ...base,
+      { $group: { _id: mesFormatado, total: { $sum: num("$items.tot") } } },
+      { $sort: { _id: 1 } },
+    ]);
+    return porData(linhas);
+  }
+  const linhas = await agregar<LinhaMesPosto>("sales", COLECAO_VENDAS, [
+    ...base,
+    { $group: { _id: { mes: mesFormatado, ibm: "$ibm" }, total: { $sum: num("$items.tot") } } },
+    { $sort: { "_id.mes": 1 } },
+  ]);
+  return porMesPosto(linhas);
+}
+
+function porMesPosto(linhas: LinhaMesPosto[]): Record<string, number> {
+  return linhas.reduce<Record<string, number>>((acc, item) => {
+    acc[`${item._id.ibm}_${item._id.mes}`] = item.total;
+    return acc;
+  }, {});
+}
+
 /** Cadastro de lojas: IBM → nome fantasia (banco LBCBi). */
 export async function listarLojas(): Promise<{ ibm: string; nome: string }[]> {
   const col = await colecao("lbc", COLECAO_LOJAS);
@@ -277,6 +391,7 @@ export async function getIndicadores(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<Indicadores> {
   const filtroIbm = ibm ? { ibm } : {};
 
@@ -290,7 +405,7 @@ export async function getIndicadores(
       $match: {
         ori: { $in: ["0", "1"] },
         ...filtroIbm,
-        ...filtroDatas(dates, true, cutoffMinutes),
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
       },
     },
     {
@@ -308,7 +423,7 @@ export async function getIndicadores(
     "sales",
     COLECAO_VENDAS,
     [
-      { $match: { ...filtroIbm, ...filtroDatas(dates, true, cutoffMinutes) } },
+      { $match: { ...filtroIbm, ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
       { $unwind: "$items" },
       { $match: { "items.iTip": { $eq: "0" } } },
       {
@@ -373,6 +488,7 @@ export async function getCategoriasCombustivel(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<CategoriaIndicador[]> {
   const linhas = await agregar<{
     _id: string | null;
@@ -384,7 +500,7 @@ export async function getCategoriasCombustivel(
       $match: {
         ori: { $in: ["0", "1"] },
         ...(ibm ? { ibm } : {}),
-        ...filtroDatas(dates, true, cutoffMinutes),
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
       },
     },
     {
@@ -424,6 +540,7 @@ export async function getCategoriasProduto(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<CategoriaIndicador[]> {
   const linhas = await agregar<{
     _id: { ibm: string | null; grupo: string | null };
@@ -431,7 +548,7 @@ export async function getCategoriasProduto(
     custo: number;
     cupons: number;
   }>("sales", COLECAO_VENDAS, [
-    { $match: { ...(ibm ? { ibm } : {}), ...filtroDatas(dates, true, cutoffMinutes) } },
+    { $match: { ...(ibm ? { ibm } : {}), ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
     { $unwind: "$items" },
     { $match: { "items.iTip": { $eq: "0" } } },
     {
