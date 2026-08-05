@@ -1,4 +1,10 @@
-import { getFuelSeries, getIndicators, getLojas, getProductSeries } from "./redeflex.functions";
+import {
+  getCategorias,
+  getFuelSeries,
+  getIndicators,
+  getLojas,
+  getProductSeries,
+} from "./redeflex.functions";
 import {
   REDE_ID,
   extractPostoIds,
@@ -36,11 +42,20 @@ export type Indicadores = {
   produto: { receita: number; lucroBruto: number; cupons: number; tmp: number; lb: number };
 };
 
+export type Categoria = {
+  nome: string;
+  receita: number;
+  lucroBruto: number;
+  lb: number;
+  indice: number;
+};
+
 export type DashboardData = {
   comparativo: LinhaComparativo[];
   projecao: { combustivel: number; produto: number; referencia: string };
   postos: string[];
   indicadores: Indicadores;
+  categorias: { combustiveis: Categoria[]; produtos: Categoria[] };
   corte: string;
 };
 
@@ -95,13 +110,14 @@ export async function loadDashboardData(
   const corte = cutoffMinutes();
 
   // Comparativo on-time: todos os dias cortados no mesmo horário.
-  const [combustivelSemana, produtoSemana, combustivelMes, produtoMes, indicadores] =
+  const [combustivelSemana, produtoSemana, combustivelMes, produtoMes, indicadores, categorias] =
     await Promise.all([
       getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
       getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
       getFuelSeries({ data: { dates: datasMes, porPosto } }),
       getProductSeries({ data: { dates: datasMes, porPosto } }),
       getIndicators({ data: { dates: datasMes, ...(porPosto ? { ibm: selecao } : {}) } }),
+      getCategorias({ data: { dates: datasMes, ...(porPosto ? { ibm: selecao } : {}) } }),
     ]);
   void datas;
 
@@ -141,6 +157,7 @@ export async function loadDashboardData(
     },
     postos: extractPostoIds(pontosCombustivelMes),
     indicadores,
+    categorias,
     corte: formatCorte(corte),
   };
 }
