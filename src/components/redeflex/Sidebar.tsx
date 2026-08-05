@@ -29,7 +29,7 @@ export function Sidebar() {
           <SlidersHorizontal className="h-4 w-4 text-brand" />
           Filtros aplicados
         </p>
-        <p className="mt-1.5 text-xs text-sidebar-foreground/60">Período: Mês atual</p>
+        <p className="mt-1.5 text-xs text-sidebar-foreground/60">Período: Hoje (on-time)</p>
       </div>
     </aside>
   );
