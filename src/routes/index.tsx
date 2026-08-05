@@ -8,12 +8,11 @@ import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
-// [MENSAL DESATIVADO] import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
+import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
 import { usePersistedQueryCache } from "@/lib/query-persist";
 import { REDE_ID } from "@/lib/redeflex-transform";
-import type { Categoria } from "@/lib/redeflex-dashboard";
-// [MENSAL DESATIVADO] import type { Periodo } from "@/lib/redeflex-dashboard";
+import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
 import type { Slice } from "@/data/redeflex";
 
 const title = "RedeFlex — Visão Geral da Rede de Postos";
@@ -59,8 +58,7 @@ function toSlices(
 
 function Index() {
   const [selecao, setSelecao] = useState<string>(REDE_ID);
-  // [MENSAL DESATIVADO] const [periodo, setPeriodo] = useState<Periodo>("mensal");
-  const periodo = "diario" as const;
+  const [periodo, setPeriodo] = useState<Periodo>("diario");
   const forcar = useRef(false);
 
   usePersistedQueryCache();
@@ -130,7 +128,7 @@ function Index() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
             <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
-            {/* [MENSAL DESATIVADO] <PeriodTabs value={periodo} onChange={setPeriodo} /> */}
+            <PeriodTabs value={periodo} onChange={setPeriodo} />
           </div>
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
             <NetworkFilter value={selecao} onChange={setSelecao} lojas={lojas} />
