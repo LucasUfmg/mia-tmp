@@ -338,13 +338,6 @@ function porMesPosto(linhas: LinhaMesPosto[]): Record<string, number> {
   }, {});
 }
 
-/** IBMs distintos (mantido para compatibilidade). */
-export async function listarPostosLegado(dates: string[]): Promise<string[]> {
-  const col = await colecao("gasMonitor", COLECAO_ABASTECIMENTOS);
-  const ibms = await col.distinct("ibm", filtroDatas(dates, true) as Document);
-  return (ibms as unknown[]).filter((v): v is string => typeof v === "string").sort();
-}
-
 /** Cadastro de lojas: IBM → nome fantasia (banco LBCBi). */
 export async function listarLojas(): Promise<{ ibm: string; nome: string }[]> {
   const col = await colecao("lbc", COLECAO_LOJAS);
