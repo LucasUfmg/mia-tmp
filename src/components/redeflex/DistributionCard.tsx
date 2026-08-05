@@ -22,7 +22,18 @@ function arc(startAngle: number, endAngle: number, radius: number) {
 export function DistributionCard({ title, data, note }: Props) {
   const [active, setActive] = useState<number | null>(null);
   const total = data.reduce((s, d) => s + d.value, 0);
-  const pct = (v: number) => `${Math.round((v / total) * 100)}%`;
+  const pct = (v: number) => (total > 0 ? `${Math.round((v / total) * 100)}%` : "—");
+
+  if (data.length === 0 || total <= 0) {
+    return (
+      <section className="card-elevated flex h-full flex-col">
+        <h2 className="px-7 pt-6 text-base font-bold uppercase tracking-[0.06em]">{title}</h2>
+        <p className="flex flex-1 items-center justify-center px-7 py-16 text-sm text-muted-foreground">
+          Carregando dados…
+        </p>
+      </section>
+    );
+  }
 
   let cursor = 0;
   const slices = data.map((d, i) => {
