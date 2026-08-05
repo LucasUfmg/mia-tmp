@@ -87,13 +87,13 @@ function Index() {
   const kpis = [
     {
       icon: Fuel,
-      label: "Volume movimentado",
+      label: "Volume vendido",
       value: ind ? `${litros0.format(ind.combustivel.litros)} L` : "—",
       hint: `litros ${sufixo}`,
     },
     {
       icon: TrendingUp,
-      label: "Lucro bruto combustível",
+      label: "Resultado Bruto",
       value: ind ? brl0.format(ind.combustivel.lucroBruto) : "—",
       hint: ind ? `LB ${pct(ind.combustivel.lb)}` : "—",
     },
@@ -186,7 +186,7 @@ function Index() {
               { label: "TMP", value: ind ? brl.format(ind.produto.tmp) : "—" },
               { label: "LB", value: ind ? pct(ind.produto.lb) : "—" },
               {
-                label: "Lucro bruto",
+                label: "Resultado Bruto",
                 value: ind ? brl0.format(ind.produto.lucroBruto) : "—",
               },
               { label: "Cupons", value: ind ? litros0.format(ind.produto.cupons) : "—" },
