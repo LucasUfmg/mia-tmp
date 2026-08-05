@@ -46,6 +46,13 @@ export function WeeklyOverview({
   const projecaoMensal = projecao;
   const atual = comparativoSemanal[comparativoSemanal.length - 1];
   const diario = periodo === "diario";
+  const tituloComparativo = diario
+    ? "Comparativo semanal — mesmo dia"
+    : "Comparativo mensal — mesmo período";
+  const notaComparativo = diario
+    ? `${escopo} · mesmo dia da semana · acumulado até ${corte ?? "--:--"} em todos os dias`
+    : `${escopo} · dia 1 até hoje · dia corrente acumulado até ${corte ?? "--:--"}`;
+  const colunaPeriodo = diario ? "Dia" : "Mês";
   const tituloProjecao = diario ? "Projeção do dia" : "Projeção mensal";
   const notaCombustivel = diario ? "litros projetados hoje" : "litros projetados no mês";
   const notaProduto = diario ? "receita projetada hoje" : "receita projetada no mês";
@@ -56,18 +63,16 @@ export function WeeklyOverview({
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-6 py-4">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <CalendarRange className="h-4 w-4" />
-            Comparativo semanal — mesmo dia
+            {tituloComparativo}
           </h2>
-          <p className="text-xs text-muted-foreground">
-            {escopo} · mesmo dia da semana · acumulado até {corte ?? "--:--"} em todos os dias
-          </p>
+          <p className="text-xs text-muted-foreground">{notaComparativo}</p>
         </header>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                <th className="px-6 py-2.5">Dia</th>
+                <th className="px-6 py-2.5">{colunaPeriodo}</th>
                 <th className="px-6 py-2.5">Galonagem (L)</th>
                 <th className="px-6 py-2.5">Variação</th>
                 <th className="px-6 py-2.5">Produto (R$)</th>
@@ -101,7 +106,8 @@ export function WeeklyOverview({
 
         <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-muted px-6 py-3 text-xs text-muted-foreground">
           <span>
-            Semana atual ({atual?.dia}): {litros.format(atual?.galonagem ?? 0)} L e{" "}
+            {diario ? "Semana atual" : "Mês atual"} ({atual?.dia}):{" "}
+            {litros.format(atual?.galonagem ?? 0)} L e{" "}
             {reais.format(atual?.produto ?? 0)} em produtos
           </span>
         </p>
