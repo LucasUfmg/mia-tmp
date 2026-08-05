@@ -127,7 +127,9 @@ function Index() {
       <main className="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-4">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+              {diario ? "Painel de Dados Diário" : "Painel de Dados Mensal"}
+            </h1>
             <PeriodTabs value={periodo} onChange={setPeriodo} />
           </div>
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
