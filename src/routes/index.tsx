@@ -211,9 +211,12 @@ function Index() {
           <p className="flex items-center gap-3 text-sm">
             <TrendingUp className="h-5 w-5 shrink-0 text-brand" />
             <span>
-              <span className="font-semibold">Insights da rede:&nbsp;</span>
-              Óleo Diesel Comum lidera a rentabilidade em combustíveis, enquanto Lubrificantes
-              Caminhões/Ônibus/Vans concentram o maior RB entre os produtos.
+              <span className="font-semibold">Insights ({escopo}):&nbsp;</span>
+              {data
+                ? `${data.categorias.combustiveis[0]?.nome ?? "—"} lidera o faturamento em combustíveis e ${
+                    data.categorias.produtos[0]?.nome ?? "—"
+                  } concentra o maior volume entre os produtos. Comparativo e índices calculados direto da base, com corte às ${data.corte}.`
+                : "Carregando indicadores…"}
             </span>
           </p>
           <button className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90">
