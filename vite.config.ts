@@ -12,4 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  vite: {
+    resolve: {
+      alias: [
+        // O driver do MongoDB (tr46) faz require("punycode/"), que o runtime do
+        // Worker não resolve. Aponta para o pacote npm puro-JS.
+        { find: /^punycode\/$/, replacement: "punycode/punycode.js" },
+      ],
+    },
+  },
 });
