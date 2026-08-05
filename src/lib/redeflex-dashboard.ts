@@ -1,4 +1,4 @@
-import { getFuelSeries, getPostos, getProductSeries } from "./redeflex.functions";
+import { getFuelSeries, getIndicators, getLojas, getProductSeries } from "./redeflex.functions";
 import {
   REDE_ID,
   extractPostoIds,
@@ -20,10 +20,28 @@ export type LinhaComparativo = {
   produtoVar: number | null;
 };
 
+export type Loja = { ibm: string; nome: string };
+
+export type Indicadores = {
+  combustivel: {
+    litros: number;
+    receita: number;
+    lucroBruto: number;
+    atendimentos: number;
+    mlt: number;
+    tmv: number;
+    tmc: number;
+    lb: number;
+  };
+  produto: { receita: number; lucroBruto: number; cupons: number; tmp: number; lb: number };
+};
+
 export type DashboardData = {
   comparativo: LinhaComparativo[];
   projecao: { combustivel: number; produto: number; referencia: string };
   postos: string[];
+  indicadores: Indicadores;
+  corte: string;
 };
 
 /** Data de referência = hoje no fuso de São Paulo. */
@@ -34,6 +52,26 @@ export function dataReferencia(): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+/** Minutos decorridos do dia no fuso de São Paulo (corte on-time). */
+export function cutoffMinutes(): number {
+  const [hora, minuto] = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date())
+    .split(":")
+    .map(Number);
+  return (hora ?? 0) * 60 + (minuto ?? 0);
+}
+
+function formatCorte(minutos: number): string {
+  const h = String(Math.floor(minutos / 60)).padStart(2, "0");
+  const m = String(minutos % 60).padStart(2, "0");
+  return `${h}:${m}`;
 }
 
 function formatDia(data: string): string {
@@ -54,18 +92,29 @@ export async function loadDashboardData(
   const datasSemana = sameWeekdayDates(referencia, 4);
   const datasMes = monthToDateDates(referencia);
   const datas = [...new Set([...datasSemana, ...datasMes])];
+  const corte = cutoffMinutes();
 
-  const [combustivelBruto, produtoBruto] = await Promise.all([
-    getFuelSeries({ data: { dates: datas, porPosto } }),
-    getProductSeries({ data: { dates: datas, porPosto } }),
-  ]);
+  // Comparativo on-time: todos os dias cortados no mesmo horário.
+  const [combustivelSemana, produtoSemana, combustivelMes, produtoMes, indicadores] =
+    await Promise.all([
+      getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
+      getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
+      getFuelSeries({ data: { dates: datasMes, porPosto } }),
+      getProductSeries({ data: { dates: datasMes, porPosto } }),
+      getIndicators({ data: { dates: datasMes, ...(porPosto ? { ibm: selecao } : {}) } }),
+    ]);
+  void datas;
 
-  const pontosCombustivel = parseKeyedSeries(combustivelBruto);
-  const pontosProduto = parseKeyedSeries(produtoBruto);
+  const pontosCombustivel = parseKeyedSeries(combustivelSemana);
+  const pontosProduto = parseKeyedSeries(produtoSemana);
+  const pontosCombustivelMes = parseKeyedSeries(combustivelMes);
+  const pontosProdutoMes = parseKeyedSeries(produtoMes);
 
   const filtro = porPosto ? selecao : undefined;
   const combustivelPorData = groupByDate(pontosCombustivel, filtro);
   const produtoPorData = groupByDate(pontosProduto, filtro);
+  const combustivelMesPorData = groupByDate(pontosCombustivelMes, filtro);
+  const produtoMesPorData = groupByDate(pontosProdutoMes, filtro);
 
   const comparativo = datasSemana.map((data, index) => {
     const anterior = index > 0 ? datasSemana[index - 1] : undefined;
@@ -80,8 +129,8 @@ export async function loadDashboardData(
     };
   });
 
-  const acumuladoCombustivel = datasMes.reduce((s, d) => s + (combustivelPorData[d] ?? 0), 0);
-  const acumuladoProduto = datasMes.reduce((s, d) => s + (produtoPorData[d] ?? 0), 0);
+  const acumuladoCombustivel = datasMes.reduce((s, d) => s + (combustivelMesPorData[d] ?? 0), 0);
+  const acumuladoProduto = datasMes.reduce((s, d) => s + (produtoMesPorData[d] ?? 0), 0);
 
   return {
     comparativo,
@@ -90,12 +139,13 @@ export async function loadDashboardData(
       produto: Math.round(projectMonth(acumuladoProduto, referencia)),
       referencia: formatReferencia(referencia),
     },
-    postos: extractPostoIds(pontosCombustivel),
+    postos: extractPostoIds(pontosCombustivelMes),
+    indicadores,
+    corte: formatCorte(corte),
   };
 }
 
-/** IBMs disponíveis, derivados dos dados por posto nos últimos dias. */
-export async function loadPostos(referencia = dataReferencia()): Promise<string[]> {
-  const datas = sameWeekdayDates(referencia, 4);
-  return await getPostos({ data: { dates: datas } });
+/** Lojas disponíveis para o filtro: IBM + nome fantasia. */
+export async function loadLojas(): Promise<Loja[]> {
+  return await getLojas();
 }
