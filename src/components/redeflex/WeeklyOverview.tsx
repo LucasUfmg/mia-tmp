@@ -31,12 +31,24 @@ type Props = {
   escopo: string;
   carregando?: boolean;
   corte?: string;
+  periodo?: DashboardData["periodo"];
 };
 
-export function WeeklyOverview({ comparativo, projecao, escopo, carregando, corte }: Props) {
+export function WeeklyOverview({
+  comparativo,
+  projecao,
+  escopo,
+  carregando,
+  corte,
+  periodo = "mensal",
+}: Props) {
   const comparativoSemanal = comparativo;
   const projecaoMensal = projecao;
   const atual = comparativoSemanal[comparativoSemanal.length - 1];
+  const diario = periodo === "diario";
+  const tituloProjecao = diario ? "Projeção do dia" : "Projeção mensal";
+  const notaCombustivel = diario ? "litros projetados hoje" : "litros projetados no mês";
+  const notaProduto = diario ? "receita projetada hoje" : "receita projetada no mês";
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
@@ -99,7 +111,7 @@ export function WeeklyOverview({ comparativo, projecao, escopo, carregando, cort
         <header className="flex items-center gap-2 border-b border-border px-6 py-4">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <Target className="h-4 w-4" />
-            Projeção mensal
+            {tituloProjecao}
           </h2>
         </header>
 
@@ -115,7 +127,7 @@ export function WeeklyOverview({ comparativo, projecao, escopo, carregando, cort
               <p className="mt-0.5 text-3xl font-extrabold tracking-tight tabular-nums">
                 {litros.format(projecaoMensal.combustivel)}
               </p>
-              <p className="text-xs text-muted-foreground">litros projetados no mês</p>
+              <p className="text-xs text-muted-foreground">{notaCombustivel}</p>
             </div>
           </div>
           <div className="flex items-center gap-4 px-6 py-6">
@@ -129,7 +141,7 @@ export function WeeklyOverview({ comparativo, projecao, escopo, carregando, cort
               <p className="mt-0.5 text-3xl font-extrabold tracking-tight tabular-nums">
                 {reais.format(projecaoMensal.produto)}
               </p>
-              <p className="text-xs text-muted-foreground">receita projetada no mês</p>
+              <p className="text-xs text-muted-foreground">{notaProduto}</p>
             </div>
           </div>
         </div>

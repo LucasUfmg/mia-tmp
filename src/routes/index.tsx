@@ -15,9 +15,10 @@ import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
+import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
 import { REDE_ID } from "@/lib/redeflex-transform";
-import type { Categoria } from "@/lib/redeflex-dashboard";
+import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
 import type { Slice } from "@/data/redeflex";
 
 const title = "RedeFlex — Visão Geral da Rede de Postos";
@@ -63,6 +64,7 @@ function toSlices(
 
 function Index() {
   const [selecao, setSelecao] = useState<string>(REDE_ID);
+  const [periodo, setPeriodo] = useState<Periodo>("mensal");
 
   const { data: lojas = [] } = useQuery({
     queryKey: ["redeflex", "lojas"],
@@ -72,8 +74,8 @@ function Index() {
   });
 
   const { data, isPending, isFetching, isError, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ["redeflex", "dashboard", selecao],
-    queryFn: () => loadDashboardData(selecao),
+    queryKey: ["redeflex", "dashboard", selecao, periodo],
+    queryFn: () => loadDashboardData(selecao, periodo),
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: false,
@@ -87,12 +89,14 @@ function Index() {
       : (lojas.find((l) => l.ibm === selecao)?.nome ?? `Posto ${selecao}`);
 
   const ind = data?.indicadores;
+  const diario = periodo === "diario";
+  const sufixo = diario ? "hoje" : "no mês até hoje";
   const kpis = [
     {
       icon: Fuel,
       label: "Volume movimentado",
       value: ind ? `${litros0.format(ind.combustivel.litros)} L` : "—",
-      hint: "litros no mês até hoje",
+      hint: `litros ${sufixo}`,
     },
     {
       icon: TrendingUp,
@@ -120,7 +124,10 @@ function Index() {
 
       <main className="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
+          <div className="flex flex-wrap items-center gap-4">
+            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
+            <PeriodTabs value={periodo} onChange={setPeriodo} />
+          </div>
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
             <NetworkFilter value={selecao} onChange={setSelecao} lojas={lojas} />
             <span className="hidden h-5 w-px bg-border sm:block" />
@@ -140,6 +147,7 @@ function Index() {
             escopo={escopo}
             carregando={isPending}
             corte={data?.corte ?? "--:--"}
+            periodo={periodo}
           />
         </div>
 
@@ -172,7 +180,7 @@ function Index() {
               { label: "TMV", value: ind ? `${litros2.format(ind.combustivel.tmv)} L` : "—" },
               { label: "TMC", value: ind ? brl.format(ind.combustivel.tmc) : "—" },
             ]}
-            note={`${escopo} · calculado dos abastecimentos do mês${
+            note={`${escopo} · abastecimentos ${diario ? `de hoje até ${data?.corte ?? "--:--"}` : "do mês"}${
               ind ? ` · ${litros0.format(ind.combustivel.atendimentos)} atendimentos` : ""
             }`}
           />
@@ -190,7 +198,7 @@ function Index() {
               },
               { label: "Cupons", value: ind ? litros0.format(ind.produto.cupons) : "—" },
             ]}
-            note={`${escopo} · calculado das vendas de produto do mês`}
+            note={`${escopo} · vendas de produto ${diario ? `de hoje até ${data?.corte ?? "--:--"}` : "do mês"}`}
           />
         </div>
 
