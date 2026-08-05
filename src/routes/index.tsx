@@ -126,7 +126,7 @@ function Index() {
             projecao={data?.projecao ?? { combustivel: 0, produto: 0, referencia: "—" }}
             escopo={escopo}
             carregando={isPending}
-            corte={data?.corte}
+            corte={data?.corte ?? "--:--"}
           />
         </div>
 
