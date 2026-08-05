@@ -40,7 +40,7 @@ export function WeeklyOverview({
   escopo,
   carregando,
   corte,
-  periodo = "mensal",
+  periodo = "diario", // [MENSAL DESATIVADO] default era "mensal"
 }: Props) {
   const comparativoSemanal = comparativo;
   const projecaoMensal = projecao;
