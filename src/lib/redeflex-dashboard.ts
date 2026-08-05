@@ -3,6 +3,7 @@ import {
   getFuelSeries,
   getIndicators,
   getLojas,
+  getMonthToDate,
   getProductSeries,
 } from "./redeflex.functions";
 import {
@@ -117,12 +118,11 @@ export async function loadDashboardData(
   const corteEscopo = diario ? { cutoffMinutes: corte } : {};
 
   // Comparativo on-time: todos os dias cortados no mesmo horário.
-  const [combustivelSemana, produtoSemana, combustivelMes, produtoMes, indicadores, categorias] =
+  const [combustivelSemana, produtoSemana, acumuladoMes, indicadores, categorias] =
     await Promise.all([
       getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
       getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
-      getFuelSeries({ data: { dates: datasMes, porPosto } }),
-      getProductSeries({ data: { dates: datasMes, porPosto } }),
+      getMonthToDate({ data: { referencia, ...(porPosto ? { ibm: selecao } : {}) } }),
       getIndicators({
         data: { dates: datasEscopo, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
       }),
@@ -134,14 +134,10 @@ export async function loadDashboardData(
 
   const pontosCombustivel = parseKeyedSeries(combustivelSemana);
   const pontosProduto = parseKeyedSeries(produtoSemana);
-  const pontosCombustivelMes = parseKeyedSeries(combustivelMes);
-  const pontosProdutoMes = parseKeyedSeries(produtoMes);
 
   const filtro = porPosto ? selecao : undefined;
   const combustivelPorData = groupByDate(pontosCombustivel, filtro);
   const produtoPorData = groupByDate(pontosProduto, filtro);
-  const combustivelMesPorData = groupByDate(pontosCombustivelMes, filtro);
-  const produtoMesPorData = groupByDate(pontosProdutoMes, filtro);
 
   const comparativo = datasSemana.map((data, index) => {
     const anterior = index > 0 ? datasSemana[index - 1] : undefined;
@@ -156,8 +152,8 @@ export async function loadDashboardData(
     };
   });
 
-  const acumuladoCombustivel = datasMes.reduce((s, d) => s + (combustivelMesPorData[d] ?? 0), 0);
-  const acumuladoProduto = datasMes.reduce((s, d) => s + (produtoMesPorData[d] ?? 0), 0);
+  const acumuladoCombustivel = acumuladoMes.combustivel.litros;
+  const acumuladoProduto = acumuladoMes.produto.receita;
 
   const fatorDia = corte > 0 ? 1440 / corte : 0;
   const projecao = diario
@@ -176,7 +172,7 @@ export async function loadDashboardData(
     comparativo,
     projecao,
     periodo,
-    postos: extractPostoIds(pontosCombustivelMes),
+    postos: extractPostoIds(pontosCombustivel),
     indicadores,
     categorias,
     corte: formatCorte(corte),

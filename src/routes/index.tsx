@@ -1,14 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  Fuel,
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  ShoppingCart,
-  FileText,
-} from "lucide-react";
+import { Fuel, ShoppingBag, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
@@ -214,24 +207,6 @@ function Index() {
             note="Participação por faturamento — passe o mouse para ver TMP, LB e RB"
           />
         </div>
-
-        <section className="card-elevated mt-6 flex flex-wrap items-center justify-between gap-4 border-l-4 border-brand px-6 py-5">
-          <p className="flex items-center gap-3 text-sm">
-            <TrendingUp className="h-5 w-5 shrink-0 text-brand" />
-            <span>
-              <span className="font-semibold">Insights ({escopo}):&nbsp;</span>
-              {data
-                ? `${data.categorias.combustiveis[0]?.nome ?? "—"} lidera o faturamento em combustíveis e ${
-                    data.categorias.produtos[0]?.nome ?? "—"
-                  } concentra o maior volume entre os produtos. Comparativo e índices calculados direto da base, com corte às ${data.corte}.`
-                : "Carregando indicadores…"}
-            </span>
-          </p>
-          <button className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90">
-            <FileText className="h-4 w-4" />
-            Ver relatório completo
-          </button>
-        </section>
       </main>
     </div>
   );
