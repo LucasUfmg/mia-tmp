@@ -51,6 +51,62 @@ function filtroDatas(dates: string[], toEndOfDay: boolean, cutoffMinutes?: numbe
   return { $or: dates.map((data) => ({ dtHr: limites(data, toEndOfDay, cutoffMinutes) })) };
 }
 
+/**
+ * Quando `desde` é informado, o filtro passa a ser um único intervalo contínuo
+ * (`desde` 00:00 → corte da última data). Isso mantém a visão mensal leve: uma
+ * faixa em vez de dezenas de `$or` sobre `dtHr`.
+ */
+function filtroPeriodo(
+  dates: string[],
+  toEndOfDay: boolean,
+  cutoffMinutes?: number,
+  desde?: string,
+) {
+  if (!desde) return filtroDatas(dates, toEndOfDay, cutoffMinutes);
+  const ultima = dates[dates.length - 1] ?? desde;
+  const fim = limites(ultima, toEndOfDay, cutoffMinutes);
+  return { dtHr: { $gte: new Date(`${desde}T00:00:00.000Z`), $lte: fim.$lte } };
+}
+
+/** Primeiro dia do mês `count - 1` meses antes da referência. */
+export function primeiroDiaMesesAtras(referencia: string, count: number): string {
+  const base = new Date(`${referencia}T00:00:00.000Z`);
+  const inicio = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - (count - 1), 1));
+  return inicio.toISOString().slice(0, 10);
+}
+
+const mesFormatado = {
+  $dateToString: { format: "%Y-%m", date: "$dtHr", timezone: "-00:00" },
+};
+
+/**
+ * Recorte "mesmo período" em todos os meses da faixa: dia 1 até o dia atual do
+ * mês, e no dia atual até o mesmo horário (comparativo on-time mês a mês).
+ */
+function matchMesesMesmoPeriodo(referencia: string, count: number, cutoffMinutes: number) {
+  const base = new Date(`${referencia}T00:00:00.000Z`);
+  const dia = base.getUTCDate();
+  const diaDoMes = { $dayOfMonth: { date: "$dtHr", timezone: "-00:00" } };
+  const minutoDoDia = {
+    $add: [
+      { $multiply: [{ $hour: { date: "$dtHr", timezone: "-00:00" } }, 60] },
+      { $minute: { date: "$dtHr", timezone: "-00:00" } },
+    ],
+  };
+  return {
+    dtHr: {
+      $gte: new Date(`${primeiroDiaMesesAtras(referencia, count)}T00:00:00.000Z`),
+      $lte: new Date(Date.now() - 3 * 60 * 60 * 1000),
+    },
+    $expr: {
+      $or: [
+        { $lt: [diaDoMes, dia] },
+        { $and: [{ $eq: [diaDoMes, dia] }, { $lte: [minutoDoDia, cutoffMinutes] }] },
+      ],
+    },
+  };
+}
+
 // [MENSAL DESATIVADO] agregações acumuladas do mês (consultas pesadas) suspensas.
 // /**
 //  * Faixa contínua do primeiro dia do mês (00:00) até o instante atual — usada
