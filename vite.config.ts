@@ -16,14 +16,26 @@ const require_ = createRequire(import.meta.url);
  * para o pacote npm puro-JS.
  */
 function punycodeShim(): Plugin {
+  const real = require_.resolve("punycode/punycode.js");
   return {
     name: "redeflex-punycode-shim",
     enforce: "pre",
     resolveId(source) {
       if (source === "punycode/" || source === "punycode") {
-        return require_.resolve("punycode/punycode.js");
+        return real;
       }
       return null;
+    },
+    transform(code, id) {
+      if (!id.includes("tr46") && !id.includes("whatwg-url")) return null;
+      if (!code.includes('"punycode/"') && !code.includes("'punycode/'")) return null;
+      return {
+        code: code
+          .replaceAll('require("punycode/")', `require(${JSON.stringify(real)})`)
+          .replaceAll("require('punycode/')", `require(${JSON.stringify(real)})`)
+          .replaceAll('from "punycode/"', `from ${JSON.stringify(real)}`),
+        map: null,
+      };
     },
   };
 }
