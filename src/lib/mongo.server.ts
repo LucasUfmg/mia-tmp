@@ -1,3 +1,5 @@
+import { AsyncLocalStorage } from "node:async_hooks";
+
 import { MongoClient, type Collection, type Db, type Document } from "mongodb";
 
 type Fonte = "gasMonitor" | "sales" | "lbc";
@@ -9,18 +11,42 @@ const ENV_POR_FONTE: Record<Fonte, string> = {
   lbc: "DATABASE_URL_GAS_MONITOR",
 };
 
-type Cache = {
-  clientes: Partial<Record<Fonte, Promise<MongoClient>>>;
-  colecoes: Record<string, Promise<string>>;
+/**
+ * Sessão por requisição. No runtime de produção (Cloudflare Workers) não é
+ * permitido reaproveitar I/O entre requisições — conexões guardadas em
+ * `globalThis` disparam "Disallowed operation called within global scope".
+ */
+type Sessao = {
+  clientes: Map<Fonte, Promise<MongoClient>>;
+  colecoes: Map<string, Promise<string>>;
 };
 
-const globalCache = globalThis as unknown as { __redeflexMongo?: Cache };
+const sessaoAtual = new AsyncLocalStorage<Sessao>();
 
-function cache(): Cache {
-  if (!globalCache.__redeflexMongo) {
-    globalCache.__redeflexMongo = { clientes: {}, colecoes: {} };
+function cache(): Sessao {
+  const sessao = sessaoAtual.getStore();
+  if (!sessao) {
+    throw new Error("Sessão Mongo não iniciada — envolva a chamada em comSessao()");
   }
-  return globalCache.__redeflexMongo;
+  return sessao;
+}
+
+/** Abre uma sessão de banco para a requisição atual e fecha tudo no final. */
+export async function comSessao<T>(fn: () => Promise<T>): Promise<T> {
+  const sessao: Sessao = { clientes: new Map(), colecoes: new Map() };
+  try {
+    return await sessaoAtual.run(sessao, fn);
+  } finally {
+    await Promise.allSettled(
+      [...sessao.clientes.values()].map(async (promessa) => {
+        try {
+          await (await promessa).close();
+        } catch {
+          // conexão já encerrada
+        }
+      }),
+    );
+  }
 }
 
 function uri(fonte: Fonte): string {
@@ -43,16 +69,16 @@ function comAuthSource(original: string, authSource: string): string | null {
 
 async function conectar(connectionString: string): Promise<MongoClient> {
   return await new MongoClient(connectionString, {
-    maxPoolSize: 5,
-    serverSelectionTimeoutMS: 15_000,
+    maxPoolSize: 1,
+    serverSelectionTimeoutMS: 8_000,
   }).connect();
 }
 
 async function getClient(fonte: Fonte): Promise<MongoClient> {
   const c = cache();
-  if (!c.clientes[fonte]) {
+  if (!c.clientes.has(fonte)) {
     const original = uri(fonte);
-    c.clientes[fonte] = conectar(original)
+    const promessa = conectar(original)
       .catch(async (erro: unknown) => {
         // Connection strings do Prisma às vezes omitem o authSource.
         const mensagem = erro instanceof Error ? erro.message : String(erro);
@@ -69,11 +95,12 @@ async function getClient(fonte: Fonte): Promise<MongoClient> {
         throw erro;
       })
       .catch((erro) => {
-        delete c.clientes[fonte];
+        c.clientes.delete(fonte);
         throw erro;
       });
+    c.clientes.set(fonte, promessa);
   }
-  return c.clientes[fonte]!;
+  return await c.clientes.get(fonte)!;
 }
 
 const DB_FALLBACK: Record<Fonte, string> = {
@@ -114,8 +141,8 @@ async function getDb(fonte: Fonte): Promise<Db> {
 async function resolveColecao(fonte: Fonte, candidatos: string[]): Promise<string> {
   const chave = `${fonte}:${candidatos.join("|")}`;
   const c = cache();
-  if (!c.colecoes[chave]) {
-    c.colecoes[chave] = (async () => {
+  if (!c.colecoes.has(chave)) {
+    const promessa = (async () => {
       const db = await getDb(fonte);
       const existentes = (await db.listCollections({}, { nameOnly: true }).toArray()).map(
         (col) => col.name,
@@ -126,11 +153,12 @@ async function resolveColecao(fonte: Fonte, candidatos: string[]): Promise<strin
       }
       return candidatos[0]!;
     })().catch((erro) => {
-      delete c.colecoes[chave];
+      c.colecoes.delete(chave);
       throw erro;
     });
+    c.colecoes.set(chave, promessa);
   }
-  return c.colecoes[chave]!;
+  return await c.colecoes.get(chave)!;
 }
 
 export async function colecao<T extends Document = Document>(
