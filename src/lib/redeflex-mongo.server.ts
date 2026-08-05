@@ -13,6 +13,13 @@ import { colecao } from "./mongo.server";
 const COLECAO_ABASTECIMENTOS = ["Abastecimentos", "abastecimentos"];
 const COLECAO_VENDAS = ["Vendas", "vendas"];
 const COLECAO_LOJAS = ["Lojas", "lojas"];
+const COLECAO_COMBUSTIVEIS = ["Combustiveis", "combustiveis"];
+const COLECAO_GRUPOS = ["Produtos_Grupos", "produtos_grupos"];
+
+/** Alguns documentos gravam números como string — normaliza para double. */
+function num(campo: string) {
+  return { $convert: { input: campo, to: "double", onError: 0, onNull: 0 } };
+}
 
 /**
  * Minutos decorridos do dia "agora" — no relógio usado pelo banco (São Paulo,
@@ -204,9 +211,9 @@ export async function getIndicadores(
     {
       $group: {
         _id: null,
-        litros: { $sum: "$vol" },
-        receita: { $sum: "$val" },
-        custo: { $sum: { $multiply: [{ $ifNull: ["$cus", 0] }, { $ifNull: ["$vol", 0] }] } },
+        litros: { $sum: num("$vol") },
+        receita: { $sum: num("$val") },
+        custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
         atendimentos: { $sum: 1 },
       },
     },
@@ -222,15 +229,8 @@ export async function getIndicadores(
       {
         $group: {
           _id: "$_id",
-          receita: { $sum: { $toDouble: "$items.tot" } },
-          custo: {
-            $sum: {
-              $multiply: [
-                { $toDouble: { $ifNull: ["$items.pC", 0] } },
-                { $toDouble: { $ifNull: ["$items.qd", 0] } },
-              ],
-            },
-          },
+          receita: { $sum: num("$items.tot") },
+          custo: { $sum: { $multiply: [num("$items.pC"), num("$items.qd")] } },
         },
       },
       {
@@ -272,4 +272,156 @@ export async function getIndicadores(
       lb: div(lbProd, receitaProd) * 100,
     },
   };
+}
+
+export type CategoriaIndicador = {
+  nome: string;
+  receita: number;
+  lucroBruto: number;
+  lb: number;
+  /** M/LT para combustíveis, TMP para produtos. */
+  indice: number;
+};
+
+/** Distribuição por combustível (sigla → descrição do cadastro). */
+export async function getCategoriasCombustivel(
+  dates: string[],
+  ibm?: string,
+  cutoffMinutes?: number,
+): Promise<CategoriaIndicador[]> {
+  const linhas = await agregar<{
+    _id: string | null;
+    litros: number;
+    receita: number;
+    custo: number;
+  }>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+    {
+      $match: {
+        ori: { $in: ["0", "1"] },
+        ...(ibm ? { ibm } : {}),
+        ...filtroDatas(dates, true, cutoffMinutes),
+      },
+    },
+    {
+      $group: {
+        _id: "$sig",
+        litros: { $sum: num("$vol") },
+        receita: { $sum: num("$val") },
+        custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
+      },
+    },
+  ]);
+
+  const cadastro = await colecao("lbc", COLECAO_COMBUSTIVEIS);
+  const docs = (await cadastro
+    .find({}, { projection: { sig: 1, des: 1 } })
+    .toArray()) as unknown as Record<string, unknown>[];
+  const nomePorSig = new Map<string, string>();
+  for (const doc of docs) {
+    const sig = typeof doc["sig"] === "string" ? doc["sig"] : null;
+    const des = typeof doc["des"] === "string" ? doc["des"] : null;
+    if (sig && des && !nomePorSig.has(sig)) nomePorSig.set(sig, des);
+  }
+
+  return consolidar(
+    linhas.map((l) => ({
+      nome: nomePorSig.get(l._id ?? "") ?? l._id ?? "OUTROS",
+      receita: l.receita,
+      lucroBruto: l.receita - l.custo,
+      base: l.litros,
+    })),
+  );
+}
+
+/** Distribuição por grupo de produto (codG do item + ibm → descrição). */
+export async function getCategoriasProduto(
+  dates: string[],
+  ibm?: string,
+  cutoffMinutes?: number,
+): Promise<CategoriaIndicador[]> {
+  const linhas = await agregar<{
+    _id: { ibm: string | null; grupo: string | null };
+    receita: number;
+    custo: number;
+    cupons: number;
+  }>("sales", COLECAO_VENDAS, [
+    { $match: { ...(ibm ? { ibm } : {}), ...filtroDatas(dates, true, cutoffMinutes) } },
+    { $unwind: "$items" },
+    { $match: { "items.iTip": { $eq: "0" } } },
+    {
+      $group: {
+        _id: { ibm: "$ibm", grupo: "$items.codG", venda: "$_id" },
+        receita: { $sum: num("$items.tot") },
+        custo: { $sum: { $multiply: [num("$items.pC"), num("$items.qd")] } },
+      },
+    },
+    {
+      $group: {
+        _id: { ibm: "$_id.ibm", grupo: "$_id.grupo" },
+        receita: { $sum: "$receita" },
+        custo: { $sum: "$custo" },
+        cupons: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const cadastro = await colecao("lbc", COLECAO_GRUPOS);
+  const docs = (await cadastro
+    .find({}, { projection: { ibm: 1, id: 1, des: 1 } })
+    .toArray()) as unknown as Record<string, unknown>[];
+  const nomePorChave = new Map<string, string>();
+  for (const doc of docs) {
+    const chave = `${String(doc["ibm"] ?? "")}_${String(doc["id"] ?? "")}`;
+    const des = typeof doc["des"] === "string" ? doc["des"] : null;
+    if (des && !nomePorChave.has(chave)) nomePorChave.set(chave, des);
+  }
+
+  return consolidar(
+    linhas.map((l) => ({
+      nome: nomePorChave.get(`${l._id.ibm ?? ""}_${l._id.grupo ?? ""}`) ?? "OUTROS",
+      receita: l.receita,
+      lucroBruto: l.receita - l.custo,
+      base: l.cupons,
+    })),
+  );
+}
+
+/** Agrupa por nome, descarta valores negativos/nulos e mantém as 6 maiores. */
+function consolidar(
+  itens: { nome: string; receita: number; lucroBruto: number; base: number }[],
+): CategoriaIndicador[] {
+  const mapa = new Map<string, { receita: number; lucroBruto: number; base: number }>();
+  for (const item of itens) {
+    const atual = mapa.get(item.nome) ?? { receita: 0, lucroBruto: 0, base: 0 };
+    atual.receita += item.receita;
+    atual.lucroBruto += item.lucroBruto;
+    atual.base += item.base;
+    mapa.set(item.nome, atual);
+  }
+
+  const todas = [...mapa.entries()]
+    .map(([nome, v]) => ({
+      nome,
+      receita: v.receita,
+      lucroBruto: v.lucroBruto,
+      lb: div(v.lucroBruto, v.receita) * 100,
+      indice: div(v.lucroBruto, v.base),
+    }))
+    .filter((c) => c.receita > 0)
+    .sort((a, b) => b.receita - a.receita);
+
+  const principais = todas.slice(0, 6);
+  const resto = todas.slice(6);
+  if (resto.length > 0) {
+    const receita = resto.reduce((s, c) => s + c.receita, 0);
+    const lucroBruto = resto.reduce((s, c) => s + c.lucroBruto, 0);
+    principais.push({
+      nome: "OUTROS",
+      receita,
+      lucroBruto,
+      lb: div(lucroBruto, receita) * 100,
+      indice: 0,
+    });
+  }
+  return principais;
 }
