@@ -1,10 +1,12 @@
 import { MongoClient, type Collection, type Db, type Document } from "mongodb";
 
-type Fonte = "gasMonitor" | "sales";
+type Fonte = "gasMonitor" | "sales" | "lbc";
 
 const ENV_POR_FONTE: Record<Fonte, string> = {
   gasMonitor: "DATABASE_URL_GAS_MONITOR",
   sales: "DATABASE_URLSALES",
+  // Cadastros (lojas, combustíveis, grupos de produto) vivem no mesmo cluster.
+  lbc: "DATABASE_URL_GAS_MONITOR",
 };
 
 type Cache = {
@@ -77,11 +79,19 @@ async function getClient(fonte: Fonte): Promise<MongoClient> {
 const DB_FALLBACK: Record<Fonte, string> = {
   gasMonitor: "GasMonitor",
   sales: "SalesMonitor",
+  lbc: "LBCBi",
 };
 
 function nomeDoBanco(fonte: Fonte): string | undefined {
-  const explicito = process.env[fonte === "gasMonitor" ? "MONGODB_DB_GAS_MONITOR" : "MONGODB_DB_SALES"];
+  const ENV_DB: Record<Fonte, string> = {
+    gasMonitor: "MONGODB_DB_GAS_MONITOR",
+    sales: "MONGODB_DB_SALES",
+    lbc: "MONGODB_DB_LBC",
+  };
+  const explicito = process.env[ENV_DB[fonte]];
   if (explicito) return explicito;
+  // O cadastro sempre mora no banco LBCBi, independente do path da URI.
+  if (fonte === "lbc") return DB_FALLBACK.lbc;
   try {
     const path = new URL(uri(fonte)).pathname.replace(/^\//, "");
     if (path) return decodeURIComponent(path);

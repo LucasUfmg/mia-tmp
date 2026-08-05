@@ -15,14 +15,10 @@ import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
-import { loadDashboardData, loadPostos } from "@/lib/redeflex-dashboard";
-import { REDE_ID, formatPostoLabel } from "@/lib/redeflex-transform";
-import {
-  combustiveis,
-  produtos,
-  redeCombustiveis,
-  redeProdutos,
-} from "@/data/redeflex";
+import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
+import { REDE_ID } from "@/lib/redeflex-transform";
+import type { Categoria } from "@/lib/redeflex-dashboard";
+import type { Slice } from "@/data/redeflex";
 
 const title = "RedeFlex — Visão Geral da Rede de Postos";
 const description =
@@ -40,23 +36,38 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-const kpis = [
-  { icon: Fuel, label: "Volume movimentado", value: "2,46 Mi", hint: "litros" },
-  { icon: TrendingUp, label: "Rentabilidade da rede", value: "R$ 13.020", hint: "RB médio (combustíveis)" },
-  { icon: DollarSign, label: "Margem média (M/LT)", value: "R$ 0,66", hint: "Combustíveis" },
-  { icon: ShoppingCart, label: "Ticket médio", value: "R$ 116,16", hint: "TMC por transação" },
-];
+const litros0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+const litros2 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brl0 = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  maximumFractionDigits: 0,
+});
+const pct = (v: number) => `${litros2.format(v)}%`;
+
+function toSlices(
+  categorias: Categoria[] | undefined,
+  indiceLabel: string,
+  formatIndice: (v: number) => string,
+): Slice[] {
+  return (categorias ?? []).map((c) => ({
+    name: c.nome,
+    value: Math.max(c.receita, 0),
+    primaryLabel: indiceLabel,
+    primaryValue: formatIndice(c.indice),
+    lb: pct(c.lb),
+    rb: brl0.format(c.lucroBruto),
+  }));
+}
 
 function Index() {
   const [selecao, setSelecao] = useState<string>(REDE_ID);
 
-  const { data: postos = [] } = useQuery({
-    queryKey: ["redeflex", "postos"],
-    queryFn: () => loadPostos(),
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    refetchIntervalInBackground: false,
-    staleTime: 30_000,
+  const { data: lojas = [] } = useQuery({
+    queryKey: ["redeflex", "lojas"],
+    queryFn: () => loadLojas(),
+    staleTime: 30 * 60_000,
     placeholderData: keepPreviousData,
   });
 
@@ -70,7 +81,38 @@ function Index() {
     placeholderData: keepPreviousData,
   });
 
-  const escopo = selecao === REDE_ID ? "Rede" : formatPostoLabel(selecao);
+  const escopo =
+    selecao === REDE_ID
+      ? "Rede"
+      : (lojas.find((l) => l.ibm === selecao)?.nome ?? `Posto ${selecao}`);
+
+  const ind = data?.indicadores;
+  const kpis = [
+    {
+      icon: Fuel,
+      label: "Volume movimentado",
+      value: ind ? `${litros0.format(ind.combustivel.litros)} L` : "—",
+      hint: "litros no mês até hoje",
+    },
+    {
+      icon: TrendingUp,
+      label: "Lucro bruto combustível",
+      value: ind ? brl0.format(ind.combustivel.lucroBruto) : "—",
+      hint: ind ? `LB ${pct(ind.combustivel.lb)}` : "—",
+    },
+    {
+      icon: DollarSign,
+      label: "Margem média (M/LT)",
+      value: ind ? brl.format(ind.combustivel.mlt) : "—",
+      hint: "por litro vendido",
+    },
+    {
+      icon: ShoppingCart,
+      label: "Ticket médio (TMC)",
+      value: ind ? brl.format(ind.combustivel.tmc) : "—",
+      hint: ind ? `${litros2.format(ind.combustivel.tmv)} L por atendimento (TMV)` : "—",
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -80,7 +122,7 @@ function Index() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Visão Geral da Rede</h1>
           <div className="flex items-center gap-5 text-sm text-muted-foreground">
-            <NetworkFilter value={selecao} onChange={setSelecao} postos={postos} />
+            <NetworkFilter value={selecao} onChange={setSelecao} lojas={lojas} />
             <span className="hidden h-5 w-px bg-border sm:block" />
             <LiveStatus
               atualizadoEm={dataUpdatedAt}
@@ -97,6 +139,7 @@ function Index() {
             projecao={data?.projecao ?? { combustivel: 0, produto: 0, referencia: "—" }}
             escopo={escopo}
             carregando={isPending}
+            corte={data?.corte ?? "--:--"}
           />
         </div>
 
@@ -121,29 +164,46 @@ function Index() {
           <NetworkCard
             title="Rede Combustíveis"
             icon={<Fuel className="h-7 w-7" />}
-            rb="R$ 13.020,32"
-            metrics={redeCombustiveis.metrics}
-            note={redeCombustiveis.note}
+            rb={ind ? brl0.format(ind.combustivel.receita) : "—"}
+            rbLabel="Faturamento combustíveis"
+            metrics={[
+              { label: "M/LT", value: ind ? brl.format(ind.combustivel.mlt) : "—" },
+              { label: "LB", value: ind ? pct(ind.combustivel.lb) : "—" },
+              { label: "TMV", value: ind ? `${litros2.format(ind.combustivel.tmv)} L` : "—" },
+              { label: "TMC", value: ind ? brl.format(ind.combustivel.tmc) : "—" },
+            ]}
+            note={`${escopo} · calculado dos abastecimentos do mês${
+              ind ? ` · ${litros0.format(ind.combustivel.atendimentos)} atendimentos` : ""
+            }`}
           />
           <NetworkCard
             title="Rede Produtos"
             icon={<ShoppingBag className="h-7 w-7" />}
-            rb="R$ 561,00"
-            metrics={redeProdutos.metrics}
-            note={redeProdutos.note}
+            rb={ind ? brl0.format(ind.produto.receita) : "—"}
+            rbLabel="Faturamento produtos"
+            metrics={[
+              { label: "TMP", value: ind ? brl.format(ind.produto.tmp) : "—" },
+              { label: "LB", value: ind ? pct(ind.produto.lb) : "—" },
+              {
+                label: "Lucro bruto",
+                value: ind ? brl0.format(ind.produto.lucroBruto) : "—",
+              },
+              { label: "Cupons", value: ind ? litros0.format(ind.produto.cupons) : "—" },
+            ]}
+            note={`${escopo} · calculado das vendas de produto do mês`}
           />
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <DistributionCard
             title="Distribuição dos Combustíveis"
-            data={combustiveis}
-            note="Participação por RB — passe o mouse para ver M/LT, LB e RB"
+            data={toSlices(data?.categorias.combustiveis, "M/LT", (v) => brl.format(v))}
+            note="Participação por faturamento — passe o mouse para ver M/LT, LB e RB"
           />
           <DistributionCard
             title="Distribuição dos Produtos"
-            data={produtos}
-            note="Participação por RB — passe o mouse para ver TMP, LB e RB"
+            data={toSlices(data?.categorias.produtos, "TMP", (v) => brl.format(v))}
+            note="Participação por faturamento — passe o mouse para ver TMP, LB e RB"
           />
         </div>
 
@@ -151,9 +211,12 @@ function Index() {
           <p className="flex items-center gap-3 text-sm">
             <TrendingUp className="h-5 w-5 shrink-0 text-brand" />
             <span>
-              <span className="font-semibold">Insights da rede:&nbsp;</span>
-              Óleo Diesel Comum lidera a rentabilidade em combustíveis, enquanto Lubrificantes
-              Caminhões/Ônibus/Vans concentram o maior RB entre os produtos.
+              <span className="font-semibold">Insights ({escopo}):&nbsp;</span>
+              {data
+                ? `${data.categorias.combustiveis[0]?.nome ?? "—"} lidera o faturamento em combustíveis e ${
+                    data.categorias.produtos[0]?.nome ?? "—"
+                  } concentra o maior volume entre os produtos. Comparativo e índices calculados direto da base, com corte às ${data.corte}.`
+                : "Carregando indicadores…"}
             </span>
           </p>
           <button className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground transition-opacity hover:opacity-90">

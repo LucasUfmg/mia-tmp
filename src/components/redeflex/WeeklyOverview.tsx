@@ -30,9 +30,10 @@ type Props = {
   projecao: DashboardData["projecao"];
   escopo: string;
   carregando?: boolean;
+  corte?: string;
 };
 
-export function WeeklyOverview({ comparativo, projecao, escopo, carregando }: Props) {
+export function WeeklyOverview({ comparativo, projecao, escopo, carregando, corte }: Props) {
   const comparativoSemanal = comparativo;
   const projecaoMensal = projecao;
   const atual = comparativoSemanal[comparativoSemanal.length - 1];
@@ -46,7 +47,7 @@ export function WeeklyOverview({ comparativo, projecao, escopo, carregando }: Pr
             Comparativo semanal — mesmo dia
           </h2>
           <p className="text-xs text-muted-foreground">
-            {escopo} · mesmo dia · últimas 4 semanas
+            {escopo} · mesmo dia da semana · acumulado até {corte ?? "--:--"} em todos os dias
           </p>
         </header>
 
