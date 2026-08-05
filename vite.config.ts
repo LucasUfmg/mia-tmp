@@ -40,8 +40,37 @@ function punycodeShim(): Plugin {
   };
 }
 
+/**
+ * O bson (usado pelo driver do MongoDB) gera bytes aleatórios no inicializador
+ * estático de `ObjectId`, ou seja, durante a avaliação do módulo. No runtime do
+ * Cloudflare isso conta como "escopo global" e derruba a requisição com
+ * "Disallowed operation called within global scope". Aqui a inicialização passa
+ * a ser tolerante a falha e é refeita sob demanda, já dentro do handler.
+ */
+function bsonLazyRandomShim(): Plugin {
+  return {
+    name: "redeflex-bson-lazy-random",
+    enforce: "pre",
+    transform(code, id) {
+      if (!id.includes("bson")) return null;
+      if (!code.includes("static resetState")) return null;
+      let out = code;
+      out = out.replace(
+        /static\s*\{\s*this\.resetState\(\);/,
+        "static {\n        try { this.resetState(); } catch { /* escopo global: refeito sob demanda */ }",
+      );
+      out = out.replace(
+        /const PROCESS_UNIQUE = this\.PROCESS_UNIQUE;/,
+        "if (this.PROCESS_UNIQUE == null) this.resetState();\n        const PROCESS_UNIQUE = this.PROCESS_UNIQUE;",
+      );
+      if (out === code) return null;
+      return { code: out, map: null };
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [punycodeShim()],
+  plugins: [punycodeShim(), bsonLazyRandomShim()],
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
