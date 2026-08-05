@@ -60,3 +60,17 @@ export const getLojas = createServerFn({ method: "GET" }).handler(async () => {
   const { listarLojas } = await import("./redeflex-mongo.server");
   return await listarLojas();
 });
+
+/** Distribuição por combustível e por grupo de produto. */
+export const getCategorias = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => indicatorsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { getCategoriasCombustivel, getCategoriasProduto } = await import(
+      "./redeflex-mongo.server"
+    );
+    const [combustiveis, produtos] = await Promise.all([
+      getCategoriasCombustivel(data.dates, data.ibm, data.cutoffMinutes),
+      getCategoriasProduto(data.dates, data.ibm, data.cutoffMinutes),
+    ]);
+    return { combustiveis, produtos };
+  });
