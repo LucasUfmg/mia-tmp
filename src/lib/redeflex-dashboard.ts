@@ -18,6 +18,8 @@ import {
 
 export type Selecao = string; // REDE_ID ou o IBM do posto
 
+export type Periodo = "diario" | "mensal";
+
 export type LinhaComparativo = {
   dia: string;
   galonagem: number;
@@ -53,6 +55,7 @@ export type Categoria = {
 export type DashboardData = {
   comparativo: LinhaComparativo[];
   projecao: { combustivel: number; produto: number; referencia: string };
+  periodo: Periodo;
   postos: string[];
   indicadores: Indicadores;
   categorias: { combustiveis: Categoria[]; produtos: Categoria[] };
@@ -101,6 +104,7 @@ function formatReferencia(data: string): string {
 
 export async function loadDashboardData(
   selecao: Selecao,
+  periodo: Periodo = "mensal",
   referencia = dataReferencia(),
 ): Promise<DashboardData> {
   const porPosto = selecao !== REDE_ID;
@@ -108,6 +112,9 @@ export async function loadDashboardData(
   const datasMes = monthToDateDates(referencia);
   const datas = [...new Set([...datasSemana, ...datasMes])];
   const corte = cutoffMinutes();
+  const diario = periodo === "diario";
+  const datasEscopo = diario ? [referencia] : datasMes;
+  const corteEscopo = diario ? { cutoffMinutes: corte } : {};
 
   // Comparativo on-time: todos os dias cortados no mesmo horário.
   const [combustivelSemana, produtoSemana, combustivelMes, produtoMes, indicadores, categorias] =
@@ -116,8 +123,12 @@ export async function loadDashboardData(
       getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
       getFuelSeries({ data: { dates: datasMes, porPosto } }),
       getProductSeries({ data: { dates: datasMes, porPosto } }),
-      getIndicators({ data: { dates: datasMes, ...(porPosto ? { ibm: selecao } : {}) } }),
-      getCategorias({ data: { dates: datasMes, ...(porPosto ? { ibm: selecao } : {}) } }),
+      getIndicators({
+        data: { dates: datasEscopo, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
+      }),
+      getCategorias({
+        data: { dates: datasEscopo, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
+      }),
     ]);
   void datas;
 
@@ -148,13 +159,23 @@ export async function loadDashboardData(
   const acumuladoCombustivel = datasMes.reduce((s, d) => s + (combustivelMesPorData[d] ?? 0), 0);
   const acumuladoProduto = datasMes.reduce((s, d) => s + (produtoMesPorData[d] ?? 0), 0);
 
+  const fatorDia = corte > 0 ? 1440 / corte : 0;
+  const projecao = diario
+    ? {
+        combustivel: Math.round((combustivelPorData[referencia] ?? 0) * fatorDia),
+        produto: Math.round((produtoPorData[referencia] ?? 0) * fatorDia),
+        referencia: `${formatReferencia(referencia)} ${formatCorte(corte)}`,
+      }
+    : {
+        combustivel: Math.round(projectMonth(acumuladoCombustivel, referencia)),
+        produto: Math.round(projectMonth(acumuladoProduto, referencia)),
+        referencia: formatReferencia(referencia),
+      };
+
   return {
     comparativo,
-    projecao: {
-      combustivel: Math.round(projectMonth(acumuladoCombustivel, referencia)),
-      produto: Math.round(projectMonth(acumuladoProduto, referencia)),
-      referencia: formatReferencia(referencia),
-    },
+    projecao,
+    periodo,
     postos: extractPostoIds(pontosCombustivelMes),
     indicadores,
     categorias,
