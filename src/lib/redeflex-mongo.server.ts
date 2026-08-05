@@ -330,6 +330,7 @@ export async function getCategoriasCombustivel(
       lucroBruto: l.receita - l.custo,
       base: l.litros,
     })),
+    "lucro",
   );
 }
 
@@ -383,12 +384,14 @@ export async function getCategoriasProduto(
       lucroBruto: l.receita - l.custo,
       base: l.cupons,
     })),
+    "receita",
   );
 }
 
 /** Agrupa por nome, descarta valores negativos/nulos e mantém as 6 maiores. */
 function consolidar(
   itens: { nome: string; receita: number; lucroBruto: number; base: number }[],
+  indiceDe: "lucro" | "receita",
 ): CategoriaIndicador[] {
   const mapa = new Map<string, { receita: number; lucroBruto: number; base: number }>();
   for (const item of itens) {
@@ -405,7 +408,7 @@ function consolidar(
       receita: v.receita,
       lucroBruto: v.lucroBruto,
       lb: div(v.lucroBruto, v.receita) * 100,
-      indice: div(v.lucroBruto, v.base),
+      indice: div(indiceDe === "lucro" ? v.lucroBruto : v.receita, v.base),
     }))
     .filter((c) => c.receita > 0)
     .sort((a, b) => b.receita - a.receita);
