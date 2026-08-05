@@ -108,6 +108,7 @@ export async function loadDashboardData(
   referencia = dataReferencia(),
   fresh = false,
 ): Promise<DashboardData> {
+  void periodo; // [MENSAL DESATIVADO] só a visão diária está ativa
   const porPosto = selecao !== REDE_ID;
   const datasSemana = sameWeekdayDates(referencia, 4);
   const corte = cutoffMinutes();
