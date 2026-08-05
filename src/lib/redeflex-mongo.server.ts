@@ -51,89 +51,90 @@ function filtroDatas(dates: string[], toEndOfDay: boolean, cutoffMinutes?: numbe
   return { $or: dates.map((data) => ({ dtHr: limites(data, toEndOfDay, cutoffMinutes) })) };
 }
 
-/**
- * Faixa contínua do primeiro dia do mês (00:00) até o instante atual — usada
- * para o acumulado mensal em uma única consulta.
- */
-function limitesMesAteAgora(referencia: string) {
-  const [ano, mes] = referencia.split("-");
-  const start = new Date(`${ano}-${mes}-01T00:00:00.000Z`);
-  const agora = new Date(Date.now() - 3 * 60 * 60 * 1000);
-  return { $gte: start, $lt: agora };
-}
-
-export type AcumuladoMes = {
-  combustivel: { litros: number; receita: number; lucroBruto: number; atendimentos: number };
-  produto: { receita: number; lucroBruto: number; cupons: number };
-};
-
-/** Acumulado de galonagem do 1º dia do mês até agora (uma única agregação). */
-export async function calcFuelMonthToDate(referencia: string, ibm?: string) {
-  const [linha] = await agregar<{
-    litros: number;
-    receita: number;
-    custo: number;
-    atendimentos: number;
-  }>("gasMonitor", COLECAO_ABASTECIMENTOS, [
-    {
-      $match: {
-        ori: { $in: ["0", "1"] },
-        ...(ibm ? { ibm } : {}),
-        dtHr: limitesMesAteAgora(referencia),
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        litros: { $sum: num("$vol") },
-        receita: { $sum: num("$val") },
-        custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
-        atendimentos: { $sum: 1 },
-      },
-    },
-  ]);
-  const receita = linha?.receita ?? 0;
-  return {
-    litros: linha?.litros ?? 0,
-    receita,
-    lucroBruto: receita - (linha?.custo ?? 0),
-    atendimentos: linha?.atendimentos ?? 0,
-  };
-}
-
-/** Acumulado de produto (R$) do 1º dia do mês até agora. */
-export async function calcProductMonthToDate(referencia: string, ibm?: string) {
-  const [linha] = await agregar<{ receita: number; custo: number; cupons: number }>(
-    "sales",
-    COLECAO_VENDAS,
-    [
-      { $match: { ...(ibm ? { ibm } : {}), dtHr: limitesMesAteAgora(referencia) } },
-      { $unwind: "$items" },
-      { $match: { "items.iTip": { $eq: "0" } } },
-      {
-        $group: {
-          _id: "$_id",
-          receita: { $sum: num("$items.tot") },
-          custo: { $sum: { $multiply: [num("$items.pC"), num("$items.qd")] } },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          receita: { $sum: "$receita" },
-          custo: { $sum: "$custo" },
-          cupons: { $sum: 1 },
-        },
-      },
-    ],
-  );
-  const receita = linha?.receita ?? 0;
-  return {
-    receita,
-    lucroBruto: receita - (linha?.custo ?? 0),
-    cupons: linha?.cupons ?? 0,
-  };
-}
+// [MENSAL DESATIVADO] agregações acumuladas do mês (consultas pesadas) suspensas.
+// /**
+//  * Faixa contínua do primeiro dia do mês (00:00) até o instante atual — usada
+//  * para o acumulado mensal em uma única consulta.
+//  */
+// function limitesMesAteAgora(referencia: string) {
+//   const [ano, mes] = referencia.split("-");
+//   const start = new Date(`${ano}-${mes}-01T00:00:00.000Z`);
+//   const agora = new Date(Date.now() - 3 * 60 * 60 * 1000);
+//   return { $gte: start, $lt: agora };
+// }
+//
+// export type AcumuladoMes = {
+//   combustivel: { litros: number; receita: number; lucroBruto: number; atendimentos: number };
+//   produto: { receita: number; lucroBruto: number; cupons: number };
+// };
+//
+// /** Acumulado de galonagem do 1º dia do mês até agora (uma única agregação). */
+// export async function calcFuelMonthToDate(referencia: string, ibm?: string) {
+//   const [linha] = await agregar<{
+//     litros: number;
+//     receita: number;
+//     custo: number;
+//     atendimentos: number;
+//   }>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+//     {
+//       $match: {
+//         ori: { $in: ["0", "1"] },
+//         ...(ibm ? { ibm } : {}),
+//         dtHr: limitesMesAteAgora(referencia),
+//       },
+//     },
+//     {
+//       $group: {
+//         _id: null,
+//         litros: { $sum: num("$vol") },
+//         receita: { $sum: num("$val") },
+//         custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
+//         atendimentos: { $sum: 1 },
+//       },
+//     },
+//   ]);
+//   const receita = linha?.receita ?? 0;
+//   return {
+//     litros: linha?.litros ?? 0,
+//     receita,
+//     lucroBruto: receita - (linha?.custo ?? 0),
+//     atendimentos: linha?.atendimentos ?? 0,
+//   };
+// }
+//
+// /** Acumulado de produto (R$) do 1º dia do mês até agora. */
+// export async function calcProductMonthToDate(referencia: string, ibm?: string) {
+//   const [linha] = await agregar<{ receita: number; custo: number; cupons: number }>(
+//     "sales",
+//     COLECAO_VENDAS,
+//     [
+//       { $match: { ...(ibm ? { ibm } : {}), dtHr: limitesMesAteAgora(referencia) } },
+//       { $unwind: "$items" },
+//       { $match: { "items.iTip": { $eq: "0" } } },
+//       {
+//         $group: {
+//           _id: "$_id",
+//           receita: { $sum: num("$items.tot") },
+//           custo: { $sum: { $multiply: [num("$items.pC"), num("$items.qd")] } },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: null,
+//           receita: { $sum: "$receita" },
+//           custo: { $sum: "$custo" },
+//           cupons: { $sum: 1 },
+//         },
+//       },
+//     ],
+//   );
+//   const receita = linha?.receita ?? 0;
+//   return {
+//     receita,
+//     lucroBruto: receita - (linha?.custo ?? 0),
+//     cupons: linha?.cupons ?? 0,
+//   };
+// }
 
 const dataFormatada = {
   $dateToString: { format: "%Y-%m-%d", date: "$dtHr", timezone: "-00:00" },

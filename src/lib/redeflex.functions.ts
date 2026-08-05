@@ -20,37 +20,37 @@ const postosSchema = z.object({
   fresh: z.boolean().default(false),
 });
 
-const monthToDateSchema = z.object({
-  referencia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  ibm: z.string().min(1).optional(),
-  fresh: z.boolean().default(false),
-});
-
-/** Acumulado do 1º dia do mês até agora, direto do banco. */
-export const getMonthToDate = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => monthToDateSchema.parse(input))
-  .handler(async ({ data }) => {
-    const { fresh, ...escopo } = data;
-    try {
-      const { comCache, chaveDeCache } = await import("./cache.server");
-      return await comCache(chaveDeCache("monthToDate", escopo), fresh, async () => {
-        const { comSessao } = await import("./mongo.server");
-        const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
-          "./redeflex-mongo.server"
-        );
-        return await comSessao(async () => {
-          const [combustivel, produto] = await Promise.all([
-            calcFuelMonthToDate(escopo.referencia, escopo.ibm),
-            calcProductMonthToDate(escopo.referencia, escopo.ibm),
-          ]);
-          return { combustivel, produto };
-        });
-      });
-    } catch (error) {
-      console.error("[RedeFlex:getMonthToDate]", error);
-      throw error;
-    }
-  });
+// [MENSAL DESATIVADO] Acumulado do mês (consulta pesada — suspensa):
+// const monthToDateSchema = z.object({
+//   referencia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+//   ibm: z.string().min(1).optional(),
+//   fresh: z.boolean().default(false),
+// });
+//
+// export const getMonthToDate = createServerFn({ method: "POST" })
+//   .inputValidator((input: unknown) => monthToDateSchema.parse(input))
+//   .handler(async ({ data }) => {
+//     const { fresh, ...escopo } = data;
+//     try {
+//       const { comCache, chaveDeCache } = await import("./cache.server");
+//       return await comCache(chaveDeCache("monthToDate", escopo), fresh, async () => {
+//         const { comSessao } = await import("./mongo.server");
+//         const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
+//           "./redeflex-mongo.server"
+//         );
+//         return await comSessao(async () => {
+//           const [combustivel, produto] = await Promise.all([
+//             calcFuelMonthToDate(escopo.referencia, escopo.ibm),
+//             calcProductMonthToDate(escopo.referencia, escopo.ibm),
+//           ]);
+//           return { combustivel, produto };
+//         });
+//       });
+//     } catch (error) {
+//       console.error("[RedeFlex:getMonthToDate]", error);
+//       throw error;
+//     }
+//   });
 
 /** Galonagem: `{ "2025-11-28": 8489.5 }` ou `{ "IBM_2025-11-28": 8489.5 }`. */
 export const getFuelSeries = createServerFn({ method: "POST" })
