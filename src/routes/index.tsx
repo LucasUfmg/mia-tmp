@@ -137,7 +137,10 @@ function Index() {
               atualizadoEm={dataUpdatedAt}
               atualizando={isFetching}
               erro={isError}
-              onRefresh={() => void refetch()}
+              onRefresh={() => {
+                forcar.current = true;
+                void refetch();
+              }}
             />
           </div>
         </header>
