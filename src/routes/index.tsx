@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Fuel, ShoppingBag, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
@@ -10,6 +10,7 @@ import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
+import { usePersistedQueryCache } from "@/lib/query-persist";
 import { REDE_ID } from "@/lib/redeflex-transform";
 import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
 import type { Slice } from "@/data/redeflex";
@@ -58,6 +59,9 @@ function toSlices(
 function Index() {
   const [selecao, setSelecao] = useState<string>(REDE_ID);
   const [periodo, setPeriodo] = useState<Periodo>("mensal");
+  const forcar = useRef(false);
+
+  usePersistedQueryCache();
 
   const { data: lojas = [] } = useQuery({
     queryKey: ["redeflex", "lojas"],
@@ -68,11 +72,16 @@ function Index() {
 
   const { data, isPending, isFetching, isError, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["redeflex", "dashboard", selecao, periodo],
-    queryFn: () => loadDashboardData(selecao, periodo),
+    queryFn: () => {
+      const fresh = forcar.current;
+      forcar.current = false;
+      return loadDashboardData(selecao, periodo, undefined, fresh);
+    },
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: false,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
     placeholderData: keepPreviousData,
   });
 
