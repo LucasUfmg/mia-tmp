@@ -78,6 +78,11 @@ async function conectar(connectionString: string): Promise<MongoClientType> {
   // então o construtor pode vir em `default` em vez do export nomeado.
   const MongoClient = mod.MongoClient ?? mod.default?.MongoClient;
   if (typeof MongoClient !== "function") {
+    console.error("[RedeFlex:driver]", {
+      keys: Object.keys(mod as object).slice(0, 12),
+      tipoDefault: typeof (mod as { default?: unknown }).default,
+      keysDefault: Object.keys(((mod as { default?: object }).default ?? {}) as object).slice(0, 12),
+    });
     throw new Error("Driver do MongoDB indisponível: construtor MongoClient não encontrado");
   }
   return await new MongoClient(connectionString, {
