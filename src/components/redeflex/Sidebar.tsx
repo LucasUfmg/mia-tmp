@@ -12,7 +12,7 @@ export function Sidebar() {
             REDE<span className="text-brand">FLEX</span>
           </span>
           <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
-            Inteligência em rede
+            Inteligência em postos de combustíveis
           </span>
         </span>
       </div>
