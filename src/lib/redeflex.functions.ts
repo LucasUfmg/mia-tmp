@@ -26,70 +26,87 @@ const monthToDateSchema = z.object({
 export const getMonthToDate = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => monthToDateSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
       "./redeflex-mongo.server"
     );
-    const [combustivel, produto] = await Promise.all([
-      calcFuelMonthToDate(data.referencia, data.ibm),
-      calcProductMonthToDate(data.referencia, data.ibm),
-    ]);
-    return { combustivel, produto };
+    return await comSessao(async () => {
+      const [combustivel, produto] = await Promise.all([
+        calcFuelMonthToDate(data.referencia, data.ibm),
+        calcProductMonthToDate(data.referencia, data.ibm),
+      ]);
+      return { combustivel, produto };
+    });
   });
 
 /** Galonagem: `{ "2025-11-28": 8489.5 }` ou `{ "IBM_2025-11-28": 8489.5 }`. */
 export const getFuelSeries = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => seriesSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { calcFuelByDates, getVolumePorPosto } = await import("./redeflex-mongo.server");
-    return data.porPosto
-      ? await getVolumePorPosto(data.dates, true, data.cutoffMinutes)
-      : await calcFuelByDates(data.dates, true, data.cutoffMinutes);
+    return await comSessao(async () =>
+      data.porPosto
+        ? await getVolumePorPosto(data.dates, true, data.cutoffMinutes)
+        : await calcFuelByDates(data.dates, true, data.cutoffMinutes),
+    );
   });
 
 /** Produto (R$) no mesmo formato de chaves. */
 export const getProductSeries = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => seriesSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { calcProductByDates, getItensTotaisPorPosto } = await import(
       "./redeflex-mongo.server"
     );
-    return data.porPosto
-      ? await getItensTotaisPorPosto(data.dates, true, data.cutoffMinutes)
-      : await calcProductByDates(data.dates, true, data.cutoffMinutes);
+    return await comSessao(async () =>
+      data.porPosto
+        ? await getItensTotaisPorPosto(data.dates, true, data.cutoffMinutes)
+        : await calcProductByDates(data.dates, true, data.cutoffMinutes),
+    );
   });
 
 /** IBMs disponíveis para o filtro do topo. */
 export const getPostos = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => postosSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { listarPostos } = await import("./redeflex-mongo.server");
-    return await listarPostos(data.dates);
+    return await comSessao(async () => await listarPostos(data.dates));
   });
 
 /** Índices calculados (M/LT, TMV, TMC, TMP, LB %). */
 export const getIndicators = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => indicatorsSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { getIndicadores } = await import("./redeflex-mongo.server");
-    return await getIndicadores(data.dates, data.ibm, data.cutoffMinutes);
+    return await comSessao(
+      async () => await getIndicadores(data.dates, data.ibm, data.cutoffMinutes),
+    );
   });
 
 /** Cadastro de lojas (IBM → nome fantasia). */
 export const getLojas = createServerFn({ method: "GET" }).handler(async () => {
+  const { comSessao } = await import("./mongo.server");
   const { listarLojas } = await import("./redeflex-mongo.server");
-  return await listarLojas();
+  return await comSessao(async () => await listarLojas());
 });
 
 /** Distribuição por combustível e por grupo de produto. */
 export const getCategorias = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => indicatorsSchema.parse(input))
   .handler(async ({ data }) => {
+    const { comSessao } = await import("./mongo.server");
     const { getCategoriasCombustivel, getCategoriasProduto } = await import(
       "./redeflex-mongo.server"
     );
-    const [combustiveis, produtos] = await Promise.all([
-      getCategoriasCombustivel(data.dates, data.ibm, data.cutoffMinutes),
-      getCategoriasProduto(data.dates, data.ibm, data.cutoffMinutes),
-    ]);
-    return { combustiveis, produtos };
+    return await comSessao(async () => {
+      const [combustiveis, produtos] = await Promise.all([
+        getCategoriasCombustivel(data.dates, data.ibm, data.cutoffMinutes),
+        getCategoriasProduto(data.dates, data.ibm, data.cutoffMinutes),
+      ]);
+      return { combustiveis, produtos };
+    });
   });
