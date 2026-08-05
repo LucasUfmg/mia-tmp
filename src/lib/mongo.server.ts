@@ -76,7 +76,7 @@ async function getClient(fonte: Fonte): Promise<MongoClient> {
 
 const DB_FALLBACK: Record<Fonte, string> = {
   gasMonitor: "GasMonitor",
-  sales: "Sales",
+  sales: "SalesMonitor",
 };
 
 function nomeDoBanco(fonte: Fonte): string | undefined {
