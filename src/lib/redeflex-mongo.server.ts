@@ -391,6 +391,7 @@ export async function getIndicadores(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<Indicadores> {
   const filtroIbm = ibm ? { ibm } : {};
 
@@ -404,7 +405,7 @@ export async function getIndicadores(
       $match: {
         ori: { $in: ["0", "1"] },
         ...filtroIbm,
-        ...filtroDatas(dates, true, cutoffMinutes),
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
       },
     },
     {
@@ -422,7 +423,7 @@ export async function getIndicadores(
     "sales",
     COLECAO_VENDAS,
     [
-      { $match: { ...filtroIbm, ...filtroDatas(dates, true, cutoffMinutes) } },
+      { $match: { ...filtroIbm, ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
       { $unwind: "$items" },
       { $match: { "items.iTip": { $eq: "0" } } },
       {
@@ -487,6 +488,7 @@ export async function getCategoriasCombustivel(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<CategoriaIndicador[]> {
   const linhas = await agregar<{
     _id: string | null;
@@ -498,7 +500,7 @@ export async function getCategoriasCombustivel(
       $match: {
         ori: { $in: ["0", "1"] },
         ...(ibm ? { ibm } : {}),
-        ...filtroDatas(dates, true, cutoffMinutes),
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
       },
     },
     {
@@ -538,6 +540,7 @@ export async function getCategoriasProduto(
   dates: string[],
   ibm?: string,
   cutoffMinutes?: number,
+  desde?: string,
 ): Promise<CategoriaIndicador[]> {
   const linhas = await agregar<{
     _id: { ibm: string | null; grupo: string | null };
@@ -545,7 +548,7 @@ export async function getCategoriasProduto(
     custo: number;
     cupons: number;
   }>("sales", COLECAO_VENDAS, [
-    { $match: { ...(ibm ? { ibm } : {}), ...filtroDatas(dates, true, cutoffMinutes) } },
+    { $match: { ...(ibm ? { ibm } : {}), ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
     { $unwind: "$items" },
     { $match: { "items.iTip": { $eq: "0" } } },
     {
