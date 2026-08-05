@@ -177,7 +177,8 @@ export const getIndicators = createServerFn({ method: "POST" })
         const { comSessao } = await import("./mongo.server");
         const { getIndicadores } = await import("./redeflex-mongo.server");
         return await comSessao(
-          async () => await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+          async () =>
+            await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
         );
       });
     } catch (error) {
@@ -215,8 +216,8 @@ export const getCategorias = createServerFn({ method: "POST" })
         );
         return await comSessao(async () => {
           const [combustiveis, produtos] = await Promise.all([
-            getCategoriasCombustivel(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
-            getCategoriasProduto(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+            getCategoriasCombustivel(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
+            getCategoriasProduto(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
           ]);
           return { combustiveis, produtos };
         });
