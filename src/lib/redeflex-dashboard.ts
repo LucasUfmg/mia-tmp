@@ -108,6 +108,7 @@ export async function loadDashboardData(
   selecao: Selecao,
   periodo: Periodo = "mensal",
   referencia = dataReferencia(),
+  fresh = false,
 ): Promise<DashboardData> {
   const porPosto = selecao !== REDE_ID;
   const datasSemana = sameWeekdayDates(referencia, 4);
@@ -134,27 +135,29 @@ export async function loadDashboardData(
     produtoMesesParciais,
   ] =
     await Promise.all([
-      getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
-      getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte } }),
-      getMonthToDate({ data: { referencia, ...(porPosto ? { ibm: selecao } : {}) } }),
+      getFuelSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte, fresh } }),
+      getProductSeries({ data: { dates: datasSemana, porPosto, cutoffMinutes: corte, fresh } }),
+      getMonthToDate({ data: { referencia, fresh, ...(porPosto ? { ibm: selecao } : {}) } }),
       getIndicators({
-        data: { dates: datasEscopo, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
+        data: { dates: datasEscopo, fresh, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
       }),
       getCategorias({
-        data: { dates: datasEscopo, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
+        data: { dates: datasEscopo, fresh, ...corteEscopo, ...(porPosto ? { ibm: selecao } : {}) },
       }),
       diario
         ? Promise.resolve({})
-        : getFuelSeries({ data: { dates: mesesCompletos, porPosto } }),
+        : getFuelSeries({ data: { dates: mesesCompletos, porPosto, fresh } }),
       diario
         ? Promise.resolve({})
-        : getProductSeries({ data: { dates: mesesCompletos, porPosto } }),
+        : getProductSeries({ data: { dates: mesesCompletos, porPosto, fresh } }),
       diario
         ? Promise.resolve({})
-        : getFuelSeries({ data: { dates: mesesParciais, porPosto, cutoffMinutes: corte } }),
+        : getFuelSeries({ data: { dates: mesesParciais, porPosto, cutoffMinutes: corte, fresh } }),
       diario
         ? Promise.resolve({})
-        : getProductSeries({ data: { dates: mesesParciais, porPosto, cutoffMinutes: corte } }),
+        : getProductSeries({
+            data: { dates: mesesParciais, porPosto, cutoffMinutes: corte, fresh },
+          }),
     ]);
   void datas;
 

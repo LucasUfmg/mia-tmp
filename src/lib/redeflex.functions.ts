@@ -5,38 +5,46 @@ const seriesSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(120),
   porPosto: z.boolean().default(false),
   cutoffMinutes: z.number().int().min(0).max(1439).optional(),
+  fresh: z.boolean().default(false),
 });
 
 const indicatorsSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(120),
   ibm: z.string().min(1).optional(),
   cutoffMinutes: z.number().int().min(0).max(1439).optional(),
+  fresh: z.boolean().default(false),
 });
 
 const postosSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31),
+  fresh: z.boolean().default(false),
 });
 
 const monthToDateSchema = z.object({
   referencia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   ibm: z.string().min(1).optional(),
+  fresh: z.boolean().default(false),
 });
 
 /** Acumulado do 1º dia do mês até agora, direto do banco. */
 export const getMonthToDate = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => monthToDateSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
-        "./redeflex-mongo.server"
-      );
-      return await comSessao(async () => {
-        const [combustivel, produto] = await Promise.all([
-          calcFuelMonthToDate(data.referencia, data.ibm),
-          calcProductMonthToDate(data.referencia, data.ibm),
-        ]);
-        return { combustivel, produto };
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("monthToDate", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
+          "./redeflex-mongo.server"
+        );
+        return await comSessao(async () => {
+          const [combustivel, produto] = await Promise.all([
+            calcFuelMonthToDate(escopo.referencia, escopo.ibm),
+            calcProductMonthToDate(escopo.referencia, escopo.ibm),
+          ]);
+          return { combustivel, produto };
+        });
       });
     } catch (error) {
       console.error("[RedeFlex:getMonthToDate]", error);
@@ -48,14 +56,18 @@ export const getMonthToDate = createServerFn({ method: "POST" })
 export const getFuelSeries = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => seriesSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { calcFuelByDates, getVolumePorPosto } = await import("./redeflex-mongo.server");
-      return await comSessao(async () =>
-        data.porPosto
-          ? await getVolumePorPosto(data.dates, true, data.cutoffMinutes)
-          : await calcFuelByDates(data.dates, true, data.cutoffMinutes),
-      );
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("fuelSeries", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { calcFuelByDates, getVolumePorPosto } = await import("./redeflex-mongo.server");
+        return await comSessao(async () =>
+          escopo.porPosto
+            ? await getVolumePorPosto(escopo.dates, true, escopo.cutoffMinutes)
+            : await calcFuelByDates(escopo.dates, true, escopo.cutoffMinutes),
+        );
+      });
     } catch (error) {
       console.error("[RedeFlex:getFuelSeries]", error);
       throw error;
@@ -66,16 +78,20 @@ export const getFuelSeries = createServerFn({ method: "POST" })
 export const getProductSeries = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => seriesSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { calcProductByDates, getItensTotaisPorPosto } = await import(
-        "./redeflex-mongo.server"
-      );
-      return await comSessao(async () =>
-        data.porPosto
-          ? await getItensTotaisPorPosto(data.dates, true, data.cutoffMinutes)
-          : await calcProductByDates(data.dates, true, data.cutoffMinutes),
-      );
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("productSeries", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { calcProductByDates, getItensTotaisPorPosto } = await import(
+          "./redeflex-mongo.server"
+        );
+        return await comSessao(async () =>
+          escopo.porPosto
+            ? await getItensTotaisPorPosto(escopo.dates, true, escopo.cutoffMinutes)
+            : await calcProductByDates(escopo.dates, true, escopo.cutoffMinutes),
+        );
+      });
     } catch (error) {
       console.error("[RedeFlex:getProductSeries]", error);
       throw error;
@@ -86,10 +102,14 @@ export const getProductSeries = createServerFn({ method: "POST" })
 export const getPostos = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => postosSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { listarPostos } = await import("./redeflex-mongo.server");
-      return await comSessao(async () => await listarPostos(data.dates));
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("postos", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { listarPostos } = await import("./redeflex-mongo.server");
+        return await comSessao(async () => await listarPostos(escopo.dates));
+      });
     } catch (error) {
       console.error("[RedeFlex:getPostos]", error);
       throw error;
@@ -100,12 +120,16 @@ export const getPostos = createServerFn({ method: "POST" })
 export const getIndicators = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => indicatorsSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { getIndicadores } = await import("./redeflex-mongo.server");
-      return await comSessao(
-        async () => await getIndicadores(data.dates, data.ibm, data.cutoffMinutes),
-      );
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("indicators", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { getIndicadores } = await import("./redeflex-mongo.server");
+        return await comSessao(
+          async () => await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+        );
+      });
     } catch (error) {
       console.error("[RedeFlex:getIndicators]", error);
       throw error;
@@ -115,9 +139,12 @@ export const getIndicators = createServerFn({ method: "POST" })
 /** Cadastro de lojas (IBM → nome fantasia). */
 export const getLojas = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const { comSessao } = await import("./mongo.server");
-    const { listarLojas } = await import("./redeflex-mongo.server");
-    return await comSessao(async () => await listarLojas());
+    const { comCache, chaveDeCache } = await import("./cache.server");
+    return await comCache(chaveDeCache("lojas", null), false, async () => {
+      const { comSessao } = await import("./mongo.server");
+      const { listarLojas } = await import("./redeflex-mongo.server");
+      return await comSessao(async () => await listarLojas());
+    });
   } catch (error) {
     console.error("[RedeFlex:getLojas]", error);
     throw error;
@@ -128,17 +155,21 @@ export const getLojas = createServerFn({ method: "GET" }).handler(async () => {
 export const getCategorias = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => indicatorsSchema.parse(input))
   .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
     try {
-      const { comSessao } = await import("./mongo.server");
-      const { getCategoriasCombustivel, getCategoriasProduto } = await import(
-        "./redeflex-mongo.server"
-      );
-      return await comSessao(async () => {
-        const [combustiveis, produtos] = await Promise.all([
-          getCategoriasCombustivel(data.dates, data.ibm, data.cutoffMinutes),
-          getCategoriasProduto(data.dates, data.ibm, data.cutoffMinutes),
-        ]);
-        return { combustiveis, produtos };
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("categorias", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { getCategoriasCombustivel, getCategoriasProduto } = await import(
+          "./redeflex-mongo.server"
+        );
+        return await comSessao(async () => {
+          const [combustiveis, produtos] = await Promise.all([
+            getCategoriasCombustivel(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+            getCategoriasProduto(escopo.dates, escopo.ibm, escopo.cutoffMinutes),
+          ]);
+          return { combustiveis, produtos };
+        });
       });
     } catch (error) {
       console.error("[RedeFlex:getCategorias]", error);
