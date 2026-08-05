@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-import { MongoClient, type Collection, type Db, type Document } from "mongodb";
+import type { Collection, Db, Document, MongoClient as MongoClientType } from "mongodb";
 
 type Fonte = "gasMonitor" | "sales" | "lbc";
 
@@ -17,7 +17,7 @@ const ENV_POR_FONTE: Record<Fonte, string> = {
  * `globalThis` disparam "Disallowed operation called within global scope".
  */
 type Sessao = {
-  clientes: Map<Fonte, Promise<MongoClient>>;
+  clientes: Map<Fonte, Promise<MongoClientType>>;
   colecoes: Map<string, Promise<string>>;
 };
 
@@ -67,14 +67,17 @@ function comAuthSource(original: string, authSource: string): string | null {
   }
 }
 
-async function conectar(connectionString: string): Promise<MongoClient> {
+async function conectar(connectionString: string): Promise<MongoClientType> {
+  // A importação runtime precisa acontecer dentro da requisição. Importar o
+  // driver no topo do módulo inicializa I/O durante o bootstrap do Worker.
+  const { MongoClient } = await import("mongodb");
   return await new MongoClient(connectionString, {
     maxPoolSize: 1,
     serverSelectionTimeoutMS: 8_000,
   }).connect();
 }
 
-async function getClient(fonte: Fonte): Promise<MongoClient> {
+async function getClient(fonte: Fonte): Promise<MongoClientType> {
   const c = cache();
   if (!c.clientes.has(fonte)) {
     const original = uri(fonte);
@@ -100,7 +103,9 @@ async function getClient(fonte: Fonte): Promise<MongoClient> {
       });
     c.clientes.set(fonte, promessa);
   }
-  return await c.clientes.get(fonte)!;
+  const cliente = c.clientes.get(fonte);
+  if (!cliente) throw new Error(`Cliente Mongo não inicializado para ${fonte}`);
+  return await cliente;
 }
 
 const DB_FALLBACK: Record<Fonte, string> = {
