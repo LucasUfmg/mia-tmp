@@ -17,6 +17,25 @@ const postosSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31),
 });
 
+const monthToDateSchema = z.object({
+  referencia: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  ibm: z.string().min(1).optional(),
+});
+
+/** Acumulado do 1º dia do mês até agora, direto do banco. */
+export const getMonthToDate = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => monthToDateSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { calcFuelMonthToDate, calcProductMonthToDate } = await import(
+      "./redeflex-mongo.server"
+    );
+    const [combustivel, produto] = await Promise.all([
+      calcFuelMonthToDate(data.referencia, data.ibm),
+      calcProductMonthToDate(data.referencia, data.ibm),
+    ]);
+    return { combustivel, produto };
+  });
+
 /** Galonagem: `{ "2025-11-28": 8489.5 }` ou `{ "IBM_2025-11-28": 8489.5 }`. */
 export const getFuelSeries = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => seriesSchema.parse(input))
