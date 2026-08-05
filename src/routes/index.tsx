@@ -17,10 +17,8 @@ import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
 import { REDE_ID } from "@/lib/redeflex-transform";
-import {
-  combustiveis,
-  produtos,
-} from "@/data/redeflex";
+import type { Categoria } from "@/lib/redeflex-dashboard";
+import type { Slice } from "@/data/redeflex";
 
 const title = "RedeFlex — Visão Geral da Rede de Postos";
 const description =
@@ -47,6 +45,21 @@ const brl0 = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 0,
 });
 const pct = (v: number) => `${litros2.format(v)}%`;
+
+function toSlices(
+  categorias: Categoria[] | undefined,
+  indiceLabel: string,
+  formatIndice: (v: number) => string,
+): Slice[] {
+  return (categorias ?? []).map((c) => ({
+    name: c.nome,
+    value: Math.max(c.receita, 0),
+    primaryLabel: indiceLabel,
+    primaryValue: formatIndice(c.indice),
+    lb: pct(c.lb),
+    rb: brl0.format(c.lucroBruto),
+  }));
+}
 
 function Index() {
   const [selecao, setSelecao] = useState<string>(REDE_ID);
@@ -184,13 +197,13 @@ function Index() {
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <DistributionCard
             title="Distribuição dos Combustíveis"
-            data={combustiveis}
-            note="Participação por RB — passe o mouse para ver M/LT, LB e RB"
+            data={toSlices(data?.categorias.combustiveis, "M/LT", (v) => brl.format(v))}
+            note="Participação por faturamento — passe o mouse para ver M/LT, LB e RB"
           />
           <DistributionCard
             title="Distribuição dos Produtos"
-            data={produtos}
-            note="Participação por RB — passe o mouse para ver TMP, LB e RB"
+            data={toSlices(data?.categorias.produtos, "TMP", (v) => brl.format(v))}
+            note="Participação por faturamento — passe o mouse para ver TMP, LB e RB"
           />
         </div>
 
