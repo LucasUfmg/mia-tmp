@@ -70,7 +70,16 @@ function comAuthSource(original: string, authSource: string): string | null {
 async function conectar(connectionString: string): Promise<MongoClientType> {
   // A importação runtime precisa acontecer dentro da requisição. Importar o
   // driver no topo do módulo inicializa I/O durante o bootstrap do Worker.
-  const { MongoClient } = await import("mongodb");
+  const mod = (await import("mongodb")) as unknown as {
+    MongoClient?: typeof MongoClientType;
+    default?: { MongoClient?: typeof MongoClientType };
+  };
+  // No bundle do runtime publicado o driver chega como CommonJS interoperado,
+  // então o construtor pode vir em `default` em vez do export nomeado.
+  const MongoClient = mod.MongoClient ?? mod.default?.MongoClient;
+  if (typeof MongoClient !== "function") {
+    throw new Error("Driver do MongoDB indisponível: construtor MongoClient não encontrado");
+  }
   return await new MongoClient(connectionString, {
     maxPoolSize: 1,
     serverSelectionTimeoutMS: 8_000,
