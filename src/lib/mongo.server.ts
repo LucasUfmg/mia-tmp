@@ -4,7 +4,7 @@ import type { Collection, Db, Document, MongoClient as MongoClientType } from "m
 
 type Fonte = "gasMonitor" | "sales" | "lbc";
 
-const DRIVER_REVISION = "mongo-interop-v2";
+const DRIVER_REVISION = "mongo-explicit-bridge-v3";
 
 const ENV_POR_FONTE: Record<Fonte, string> = {
   gasMonitor: "DATABASE_URL_GAS_MONITOR",
@@ -70,50 +70,15 @@ function comAuthSource(original: string, authSource: string): string | null {
 }
 
 async function conectar(connectionString: string): Promise<MongoClientType> {
-  // A importação runtime precisa acontecer dentro da requisição. Importar o
-  // driver no topo do módulo inicializa I/O durante o bootstrap do Worker.
-  const mod = (await import("mongodb")) as unknown as {
-    MongoClient?: typeof MongoClientType;
-    default?: typeof MongoClientType | { MongoClient?: typeof MongoClientType };
-  };
-  // No bundle do runtime publicado o driver chega como CommonJS interoperado,
-  // então o construtor pode vir nomeado, dentro de `default`, ou ser o próprio
-  // `default`. Não basta testar typeof: uma função pode não ser construtível.
-  const defaultExport = mod.default;
-  const defaultMongoClient =
-    typeof defaultExport === "object" && defaultExport !== null
-      ? defaultExport.MongoClient
-      : undefined;
-  const candidato = mod.MongoClient ?? defaultMongoClient ?? defaultExport;
-  let construtivel = typeof candidato === "function";
-  if (construtivel) {
-    try {
-      Reflect.construct(Function, [], candidato as Function);
-    } catch {
-      construtivel = false;
-    }
-  }
-  if (!construtivel) {
-    console.error("[RedeFlex:driver]", {
-      revision: DRIVER_REVISION,
-      keys: Object.keys(mod as object).slice(0, 12),
-      tipoNomeado: typeof mod.MongoClient,
-      tipoDefault: typeof defaultExport,
-      keysDefault:
-        typeof defaultExport === "object" && defaultExport !== null
-          ? Object.keys(defaultExport).slice(0, 12)
-          : [],
-    });
-    throw new Error(
-      `Driver do MongoDB indisponível: construtor MongoClient não encontrado (${DRIVER_REVISION})`,
-    );
-  }
-  const MongoClient = candidato as typeof MongoClientType;
-  console.info("[RedeFlex:driver]", { revision: DRIVER_REVISION, status: "constructor-ready" });
-  return await new MongoClient(connectionString, {
+  // O módulo-ponte é carregado somente durante a requisição. O import nomeado
+  // dentro dele mantém o construtor no bundle de produção, sem inicializar o
+  // driver no bootstrap do Worker.
+  const { conectarMongo } = await import("./mongo-driver.server");
+  console.info("[RedeFlex:driver]", { revision: DRIVER_REVISION, status: "bridge-ready" });
+  return await conectarMongo(connectionString, {
     maxPoolSize: 1,
     serverSelectionTimeoutMS: 8_000,
-  }).connect();
+  });
 }
 
 async function getClient(fonte: Fonte): Promise<MongoClientType> {
