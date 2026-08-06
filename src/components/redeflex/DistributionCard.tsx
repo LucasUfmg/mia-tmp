@@ -99,8 +99,8 @@ export function DistributionCard({ title, data, note }: Props) {
               <dl className="mt-3 space-y-1.5 text-sm">
                 {[
                   { k: hovered.primaryLabel, v: hovered.primaryValue },
-                  { k: "LB", v: hovered.lb },
-                  { k: "RB", v: hovered.rb },
+                  ...(hovered.lb ? [{ k: "LB", v: hovered.lb }] : []),
+                  ...(hovered.rb ? [{ k: "RB", v: hovered.rb }] : []),
                 ].map((row) => (
                   <div key={row.k} className="flex justify-between gap-6">
                     <dt className="text-muted-foreground">{row.k}</dt>

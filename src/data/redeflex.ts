@@ -25,8 +25,8 @@ export type Slice = {
   value: number;
   primaryLabel: string;
   primaryValue: string;
-  lb: string;
-  rb: string;
+  lb: string | null;
+  rb: string | null;
 };
 
 export const combustiveis: Slice[] = [
