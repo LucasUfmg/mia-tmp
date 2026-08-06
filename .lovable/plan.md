@@ -3,7 +3,8 @@
 ## Diagnóstico (verificado na base)
 - A fórmula está correta: por item de mercadoria (`items.iTip = "0"`), `receita = Σ items.tot` e `custo = Σ (items.pC × items.qd)`; `Resultado Bruto = receita − custo` e `LB% = RB / receita × 100`.
 - `items.pC` é custo **unitário**: em toda a amostra `tot = pUn × qd` e `pC` fica logo abaixo de `pUn`. Multiplicar por `qd` está certo.
-- O problema está no dado: em agosto/2026 (mercadoria) receita R$ 93.410 contra custo R$ 91.387 → LB 2,17%, porque o `pC` cadastrado está quase igual ao preço de venda. 28 itens no mês têm custo maior que o valor vendido (margem negativa).
+- Trocar a fonte para `LBCBi.Produtos` não muda nada: é cadastro (chave `ibm` + `id`, `dtHr` = data de sincronização, quase toda em `2026-08-06T04:00`), sem data de venda nem quantidade. E o `cus`/`vda` do cadastro é idêntico ao `pC`/`pUn` do cupom (TECH VISION 12/13, LUBRAX ESSENCIAL 38/39, RN COOLANT 28,50/29).
+- O problema está no cadastro de custo: de 43.090 produtos com `cus` e `vda`, 5.894 têm `cus >= vda`, e a margem média cadastrada é negativa (registros com escala errada, ex.: `cus: "1.990"`). Em agosto/2026 isso dá receita R$ 93.410 contra custo R$ 91.387 → LB 2,17%.
 
 ## O que fazer
 Nenhuma mudança na fórmula. Acrescentar transparência de qualidade de dado, para que o número baixo não pareça erro do BI:
