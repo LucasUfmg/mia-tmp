@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight, Bot, MessageCircle, PieChart, Sparkle, Zap } from "lucide-react";
+import { ArrowUpRight, Bot, MessageCircle, Sparkle, Zap } from "lucide-react";
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
 import { capacidades, insights, passos } from "@/data/flexia";
 
-const title = "Flex IA — o agente de IA para postos de combustíveis | RedeFlex";
+const title = "Mia — a agente de IA para postos de combustíveis";
 const description =
-  "Pergunte no WhatsApp e receba na hora os números do seu posto: galonagem, margem M/LT, ticket médio, comparativo semanal e projeção do mês. Conheça o Flex IA da RedeFlex.";
+  "Pergunte no WhatsApp e receba na hora os números do seu posto: galonagem, margem M/LT, ticket médio, comparativo semanal e projeção do mês. Conheça a Mia.";
 const url = "https://oficial.redeflexapp.com.br/agente";
 
 export const Route = createFileRoute("/agente")({
@@ -31,11 +31,11 @@ function AgentePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4 md:px-8">
           <span className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-accent">
-              <PieChart className="h-5 w-5 text-brand" strokeWidth={2.4} />
+              <Bot className="h-5 w-5 text-brand" strokeWidth={2.4} />
             </span>
             <span className="leading-tight">
               <span className="block text-lg font-extrabold tracking-tight">
-                REDE<span className="text-brand">FLEX</span>
+                M<span className="text-brand">IA</span>
               </span>
               <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
                 Inteligência em postos de combustíveis
@@ -59,11 +59,11 @@ function AgentePage() {
               Novo produto
             </span>
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-5xl lg:text-6xl">
-              Pergunte. O <span className="text-brand">Flex IA</span> responde com os dados do seu
+              Pergunte. A <span className="text-brand">Mia</span> responde com os dados do seu
               posto.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-sidebar-foreground/70 md:text-lg">
-              O primeiro agente de inteligência artificial que lê o BI da sua rede e responde
+              A primeira agente de inteligência artificial que lê o BI da sua rede e responde
               qualquer pergunta no WhatsApp — em segundos, com número, comparação e o próximo passo.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -150,7 +150,7 @@ function AgentePage() {
               Ele avisa antes de você perguntar
             </h2>
             <p className="mt-4 text-muted-foreground">
-              O Flex IA acompanha o ritmo de cada posto e manda mensagem quando algo sai do padrão.
+              A Mia acompanha o ritmo de cada posto e manda mensagem quando algo sai do padrão.
             </p>
           </div>
           <div className="grid gap-4">
@@ -167,7 +167,7 @@ function AgentePage() {
       <section id="lista" className="bg-sidebar py-16 text-sidebar-foreground lg:py-24">
         <div className="mx-auto max-w-3xl px-5 text-center md:px-8">
           <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-            Quer o Flex IA na sua rede?
+            Quer a Mia na sua rede?
           </h2>
           <p className="mt-4 text-sidebar-foreground/70">
             Estamos abrindo o lançamento para um grupo pequeno de redes. Fale com a gente e receba a
@@ -185,9 +185,9 @@ function AgentePage() {
 
       <footer className="border-t border-border bg-surface py-8">
         <div className="mx-auto max-w-6xl px-5 text-xs text-muted-foreground md:px-8">
-          <p className="font-semibold">RedeFlex — Inteligência em postos de combustíveis</p>
+          <p className="font-semibold">Mia — Inteligência em postos de combustíveis</p>
           <p className="mt-1">
-            Página de demonstração do Flex IA. A conversa e os números exibidos são fictícios e
+            Página de demonstração da Mia. A conversa e os números exibidos são fictícios e
             servem apenas para ilustrar o produto.
           </p>
         </div>

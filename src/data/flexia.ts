@@ -4,7 +4,7 @@ export type Mensagem = {
   hora: string;
 };
 
-/** Roteiro fictício da conversa de demonstração (nenhum dado real do BI). */
+/** Roteiro fictício da conversa de demonstração (nenhum dado real). */
 export const conversa: Mensagem[] = [
   { autor: "user", texto: "Bom dia! Quanto vendi de combustível hoje?", hora: "09:12" },
   {
@@ -52,7 +52,7 @@ export const conversa: Mensagem[] = [
 export const passos = [
   {
     titulo: "Conecta no seu BI",
-    texto: "O Flex IA lê os mesmos dados do painel RedeFlex — galonagem, produtos, margem e postos.",
+    texto: "A Mia lê os mesmos dados do seu painel — galonagem, produtos, margem e postos.",
   },
   {
     titulo: "Você pergunta no WhatsApp",
