@@ -1,23 +1,37 @@
-# Resultado Bruto de Produtos: fórmula confirmada + aviso de custo suspeito
+# Dados de produto: usar LBCBi.Produtos como fonte de preço e custo
 
-## Diagnóstico (verificado na base)
-- A fórmula está correta: por item de mercadoria (`items.iTip = "0"`), `receita = Σ items.tot` e `custo = Σ (items.pC × items.qd)`; `Resultado Bruto = receita − custo` e `LB% = RB / receita × 100`.
-- `items.pC` é custo **unitário**: em toda a amostra `tot = pUn × qd` e `pC` fica logo abaixo de `pUn`. Multiplicar por `qd` está certo.
-- Trocar a fonte para `LBCBi.Produtos` não muda nada: é cadastro (chave `ibm` + `id`, `dtHr` = data de sincronização, quase toda em `2026-08-06T04:00`), sem data de venda nem quantidade. E o `cus`/`vda` do cadastro é idêntico ao `pC`/`pUn` do cupom (TECH VISION 12/13, LUBRAX ESSENCIAL 38/39, RN COOLANT 28,50/29).
-- O problema está no cadastro de custo: de 43.090 produtos com `cus` e `vda`, 5.894 têm `cus >= vda`, e a margem média cadastrada é negativa (registros com escala errada, ex.: `cus: "1.990"`). Em agosto/2026 isso dá receita R$ 93.410 contra custo R$ 91.387 → LB 2,17%.
+## O que encontrei na base (antes de mudar)
 
-## O que fazer
-Nenhuma mudança na fórmula. Acrescentar transparência de qualidade de dado, para que o número baixo não pareça erro do BI:
+Conferi a coleção `LBCBi.Produtos` no cluster do RedeFlex:
 
-1. Na agregação de produtos, contar também:
-   - `itensProduto`: total de itens de mercadoria no período;
-   - `itensCustoSuspeito`: itens em que `pC × qd >= tot` (custo igual ou acima da venda).
-2. Expor esses dois números pelo server function de indicadores até o dashboard.
-3. No card "Rede Produtos", quando houver itens suspeitos, exibir uma linha discreta no rodapé do card (mesmo estilo do `note` atual), por exemplo: "28 de 1.396 itens com custo cadastrado ≥ preço de venda — LB pode estar subestimado."
+- 74.751 documentos, 41 postos (`ibm`), chave única por `ibm` + `id` (nenhuma duplicidade).
+- Campos: `_id, St, cBar, cNcm, cus, des, dtHr, eDe, eMa, eMi, eOl, ePi, eTo, gr, ibm, icm, id, vda` — tem estoque (`eTo`, `eMi`, `eMa`), grupo (`gr`), código de barras e NCM. É a tabela de cadastro/preço de produto de cada posto.
+- `dtHr` tem apenas **dois valores em toda a coleção**: `2026-08-06T04:00` (74.252 docs) e `2024-08-21T04:00` (499 docs). É a data da última sincronização do cadastro, não a hora de cada venda.
+- Não há quantidade vendida, cupom nem identificador de transação. Com essa coleção sozinha não é possível saber quanto foi vendido em um dia.
+- `cus` e `vda` são strings: 26.564 registros com ponto decimal e 48.187 inteiros.
+
+Ou seja: `des` = nome do produto, `vda` = preço de venda unitário, `cus` = custo unitário, `ibm` = posto — confirma sua descrição. O único ponto diferente é `dtHr`, que não marca a hora da venda; a quantidade e a hora precisam continuar vindo do cupom (`SalesMonitor.Vendas`), único lugar com movimento.
+
+## O que vou mudar
+
+`LBCBi.Produtos` passa a ser a fonte oficial de **nome, preço e custo**, e o cupom fica apenas como fonte de **quantidade e hora**:
+
+1. Para cada item de mercadoria do cupom (`items.iTip = "0"`), fazer o join com `LBCBi.Produtos` por `ibm` + `id` do produto.
+2. `Custo = Σ (Produtos.cus × quantidade vendida)` — hoje vem do `pC` gravado no cupom, passa a vir do `cus` do cadastro.
+3. `Venda = Σ (Produtos.vda × quantidade vendida)`, usando o total do cupom como reserva quando o produto não estiver no cadastro.
+4. `Resultado Bruto = venda − custo`; `LB% = resultado bruto / venda × 100`; `TMP = venda / nº de cupons`.
+5. Nome do produto passa a ser o `des` do cadastro, padronizando descrições divergentes entre postos.
+6. A pizza de produtos continua por grupo (`gr` → `LBCBi.Produtos_Grupos`), agora sempre pelo cadastro em vez do texto do cupom.
+
+## Tratamento de dados inconsistentes
+
+- Converter `cus` e `vda` de string para número dentro do próprio pipeline, com conversão segura (registro inconsistente é ignorado no custo em vez de derrubar o cálculo).
+- Item vendido sem cadastro: usa o valor do cupom e entra numa contagem de "produtos sem cadastro".
+- Aviso discreto no painel de produtos quando parcela relevante da receita vier de itens sem cadastro ou com `cus >= vda`, deixando claro que o número está limitado pela qualidade do cadastro e não pelo cálculo.
 
 ## Detalhes técnicos
-- `src/lib/redeflex-mongo.server.ts`: no segundo `$group` de produtos em `getIndicadores`, somar os contadores com `$cond`; incluir `itens` e `itensSuspeitos` no tipo `Indicadores.produto`.
-- `src/lib/redeflex.functions.ts`: repassar os campos novos (sem mudança no schema de entrada).
-- `src/lib/redeflex-dashboard.ts`: levar os campos até o objeto do card de produtos.
-- `src/routes/index.tsx` + `NetworkCard.tsx`: usar o `note` do card de produtos para o aviso condicional; sem componente novo.
-- Escopo fechado: nada de alteração em combustível, cache ou consultas mensais.
+
+- `src/lib/redeflex-mongo.server.ts`: adicionar `$lookup` de `SalesMonitor.Vendas` para `LBCBi.Produtos` (join `ibm` + `id`) nos pipelines de indicadores e de categorias de produto, com `$convert` em `cus`/`vda` e agregação por `qd`. Manter o cache atual por período.
+- `src/lib/redeflex-dashboard.ts`: repassar os novos contadores de qualidade (`semCadastro`, `custoSuspeito`) para a UI.
+- `src/components/redeflex/NetworkCard.tsx` e `DistributionCard.tsx`: exibir o aviso de qualidade quando presente.
+- Validação: rodar o pipeline contra a base real e comparar Resultado Bruto e LB% antes e depois da troca da fonte de custo.
