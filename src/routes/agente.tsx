@@ -6,7 +6,7 @@ import { capacidades, insights, passos } from "@/data/flexia";
 const title = "Mia — a agente de IA para postos de combustíveis";
 const description =
   "Pergunte no WhatsApp e receba na hora os números do seu posto: galonagem, margem M/LT, ticket médio, comparativo semanal e projeção do mês. Conheça a Mia.";
-const url = "https://mia-ia.lovable.app/agente";
+const url = "https://mia-tmp.lovable.app/agente";
 
 export const Route = createFileRoute("/agente")({
   head: () => ({
