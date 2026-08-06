@@ -1,33 +1,34 @@
-# Corrigir Resultado Bruto e Lucro Bruto de produtos (fat e custo do cupom)
+# Lançamento do Flex IA — landing de mockup com conversa no WhatsApp
 
-## O que o cupom tem hoje (medido em agosto/2026)
+Página nova de apresentação (mockup) para o lançamento do **Flex IA**: o agente de IA que lê os dados do BI RedeFlex e responde qualquer pergunta sobre a operação dos postos, além de entregar insights automáticos.
 
-Fonte: `SalesMonitor.Vendas`, itens de mercadoria (`items.iTip = "0"`), 1.411 itens no mês.
+Como este projeto publica em um único domínio, a página fica em uma rota nova (`/agente`) usando as cores do BI. Quando você quiser um subdomínio próprio (ex.: `ia.redeflexapp.com.br`), a página é duplicada para um projeto separado sem retrabalho.
 
-- Faturamento (`Σ items.tot`): **R$ 94.569,80**
-- Custo pelo `pC` do item (`Σ pC × qd`): **R$ 92.509,72**
-- Resultado Bruto resultante: R$ 2.060,08 → **LB 2,18%**
+## Estrutura da página (referência: treinador.id)
 
-O motivo do número errado: o `pC` gravado no cupom não é custo de aquisição — a margem média por item entre `pUn` e `pC` é de **3,08%**, e em 30 itens o `pC` é maior ou igual ao próprio preço de venda. Não existe nenhum outro campo de custo no cupom: os campos do item são `st, seq, vId, iTip, iId, pTb, pUn, qd, tot, aIcm, isIcSt, isIs, isNI, dtA, bId, bLmc, pC, codG, cB, dI, estF`.
+1. **Hero em duas colunas** — selo "Novo produto", título forte ("Pergunte. O Flex IA responde com os dados do seu posto."), subtítulo, dois botões (Quero conhecer / Ver conversa) e prova social discreta. À direita, o mockup de celular.
+2. **Mockup de WhatsApp** — moldura de celular, cabeçalho verde com avatar "Flex IA · online", fundo de conversa, bolhas do usuário (à direita) e da IA (à esquerda) com horário e checks de leitura. A conversa "digita" em sequência ao carregar a página (animação de entrada + indicador de "digitando…"), depois fica estática.
+3. **Como funciona** — 3 passos: conecta no BI → você pergunta no WhatsApp → recebe resposta e insight.
+4. **O que ele responde** — grade de 6 cartões: volume vendido, margem M/LT, ticket médio (TMC/TMV), comparativo com a semana anterior, projeção do mês e ranking de postos.
+5. **Insights proativos** — bloco mostrando alertas que a IA envia sem ser perguntada (queda de galonagem, margem fora do padrão, posto abaixo da meta).
+6. **CTA final + rodapé** — chamada de contato/lista de espera e rodapé RedeFlex.
 
-Por isso o resultado sai perto de zero em vez de perto do faturamento.
+## Conversa simulada (mistura operacional + resultado)
 
-## Correção
+- "Quanto vendi de combustível hoje?" → volume, faturamento e horário de corte.
+- "Como está minha margem?" → M/LT e LB%, com comparação com a média da rede.
+- "E comparado com a semana passada?" → variação percentual com seta de alta/queda.
+- "Qual posto vendeu menos hoje?" → nome do posto, volume e sugestão de ação.
+- "Projeção do mês?" → valor projetado de combustível e produto.
+- Mensagem final da IA não solicitada: um insight proativo.
 
-Manter faturamento e custo vindos do cupom, mas parar de tratar o `pC` inflado como custo:
-
-1. Faturamento de produto = `Σ items.tot` do cupom (sem mudança).
-2. Custo de produto = `Σ (items.pC × items.qd)` **apenas dos itens em que o `pC` é custo de verdade** — ou seja, quando `pC > 0` e `pC` está bem abaixo do preço de venda. Itens em que o `pC` vem preenchido com o próprio preço de venda (margem menor que ~10%, o caso da grande maioria) entram com custo zero em vez de zerar o resultado.
-3. Resultado Bruto = faturamento − custo válido → passa a ficar próximo do faturamento.
-4. Lucro Bruto (LB%) = Resultado Bruto / faturamento × 100 → passa a ficar próximo de 100%.
-5. TMP segue `faturamento / nº de cupons`.
-
-O mesmo critério vale nas duas abas (diária e mensal) e na pizza de produtos, para o total bater com as categorias.
+Todos os números são fictícios, coerentes com as faixas do BI, e o rodapé da página deixa claro que é uma demonstração.
 
 ## Detalhes técnicos
 
-- `src/lib/redeflex-mongo.server.ts`: no pipeline de produto, trocar o `custo` de `Σ (pC × qd)` por um `$cond` que só acumula o custo quando o `pC` é plausível como custo; recalcular `resultadoBruto` e `lb` a partir daí. Aplicar o mesmo `$cond` no pipeline de categorias.
-- Cache por período e a estrutura de retorno seguem iguais — nada muda em `src/lib/redeflex-dashboard.ts` nem nos componentes.
-- Validação: rodar contra a base real, para a REDE e para um IBM individual, e conferir que o Resultado Bruto fica próximo do faturamento e o LB próximo de 100%.
-
-Se você tiver a regra exata que o sistema de referência usa para o custo do cupom, me diga e eu troco o critério do item 2 por ela.
+- `src/routes/agente.tsx`: rota nova com `head()` próprio (title, description, og:title, og:description, og:type, twitter:card).
+- `src/components/flexia/`: `Hero.tsx`, `WhatsappMockup.tsx`, `ChatBubble.tsx`, `HowItWorks.tsx`, `Capabilities.tsx`, `ProactiveInsights.tsx`, `LaunchCta.tsx`.
+- `src/data/flexia.ts`: roteiro da conversa (`autor`, `texto`, `hora`, `atraso`) e conteúdo das seções — nenhum dado real do Mongo é consultado; a página é 100% estática.
+- Cores via tokens existentes (`brand`, `brand-soft`, `sidebar`, `surface-muted`); tokens novos apenas para o verde do WhatsApp, adicionados em `src/styles.css` em `oklch`.
+- Animação de entrada das bolhas com CSS/Tailwind (delay progressivo) — sem novas dependências.
+- O dashboard atual (`/`) não é alterado.
