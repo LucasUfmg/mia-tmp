@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight, Bot, MessageCircle, PieChart, Sparkle, Zap } from "lucide-react";
+import { ArrowUpRight, Bot, MessageCircle, Sparkle, Zap } from "lucide-react";
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
 import { capacidades, insights, passos } from "@/data/flexia";
 

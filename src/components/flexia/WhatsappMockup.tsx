@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, PieChart, Phone, Video, MoreVertical, Mic, Plus, Smile } from "lucide-react";
+import { Bot, Check, Phone, Video, MoreVertical, Mic, Plus, Smile } from "lucide-react";
 import { conversa } from "@/data/flexia";
 
 function Formatado({ texto }: { texto: string }) {
@@ -57,7 +57,7 @@ export function WhatsappMockup() {
       <div className="overflow-hidden rounded-[2rem] bg-wa-canvas">
         <div className="flex items-center gap-3 bg-wa px-4 py-3 text-wa-foreground">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand">
-            <PieChart className="h-4.5 w-4.5 text-sidebar" strokeWidth={2.6} />
+            <Bot className="h-4.5 w-4.5 text-sidebar" strokeWidth={2.6} />
           </span>
           <div className="min-w-0 flex-1 leading-tight">
             <p className="truncate text-sm font-bold">Mia</p>
