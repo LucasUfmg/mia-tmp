@@ -60,7 +60,7 @@ export function WhatsappMockup() {
             <PieChart className="h-4.5 w-4.5 text-sidebar" strokeWidth={2.6} />
           </span>
           <div className="min-w-0 flex-1 leading-tight">
-            <p className="truncate text-sm font-bold">Flex IA</p>
+            <p className="truncate text-sm font-bold">Mia</p>
             <p className="text-[11px] text-wa-foreground/70">
               {digitando ? "digitando…" : "online"}
             </p>
@@ -118,7 +118,7 @@ export function WhatsappMockup() {
           <Plus className="h-4.5 w-4.5 text-muted-foreground" />
           <span className="flex flex-1 items-center gap-2 rounded-full bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
             <Smile className="h-4 w-4" />
-            Pergunte algo ao Flex IA…
+            Pergunte algo à Mia…
           </span>
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-wa text-wa-foreground">
             <Mic className="h-4 w-4" />
