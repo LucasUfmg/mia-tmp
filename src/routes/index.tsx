@@ -45,14 +45,15 @@ function toSlices(
   categorias: Categoria[] | undefined,
   indiceLabel: string,
   formatIndice: (v: number) => string,
+  mostrarLucro: boolean,
 ): Slice[] {
   return (categorias ?? []).map((c) => ({
     name: c.nome,
     value: Math.max(c.receita, 0),
     primaryLabel: indiceLabel,
     primaryValue: formatIndice(c.indice),
-    lb: pct(c.lb),
-    rb: brl0.format(c.lucroBruto),
+    lb: mostrarLucro ? pct(c.lb) : null,
+    rb: mostrarLucro ? brl0.format(c.lucroBruto) : null,
   }));
 }
 
@@ -198,11 +199,6 @@ function Index() {
             rbLabel="Faturamento produtos"
             metrics={[
               { label: "TMP", value: ind ? brl.format(ind.produto.tmp) : "—" },
-              { label: "LB", value: ind ? pct(ind.produto.lb) : "—" },
-              {
-                label: "Resultado Bruto",
-                value: ind ? brl0.format(ind.produto.lucroBruto) : "—",
-              },
               { label: "Cupons", value: ind ? litros0.format(ind.produto.cupons) : "—" },
             ]}
             note={`${escopo} · vendas de produto ${diario ? `de hoje até ${data?.corte ?? "--:--"}` : "do mês"}`}
@@ -212,13 +208,13 @@ function Index() {
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <DistributionCard
             title="Distribuição dos Combustíveis"
-            data={toSlices(data?.categorias.combustiveis, "M/LT", (v) => brl.format(v))}
+            data={toSlices(data?.categorias.combustiveis, "M/LT", (v) => brl.format(v), true)}
             note="Participação por faturamento — passe o mouse para ver M/LT, LB e RB"
           />
           <DistributionCard
             title="Distribuição dos Produtos"
-            data={toSlices(data?.categorias.produtos, "TMP", (v) => brl.format(v))}
-            note="Participação por faturamento — passe o mouse para ver TMP, LB e RB"
+            data={toSlices(data?.categorias.produtos, "TMP", (v) => brl.format(v), false)}
+            note="Participação por faturamento — passe o mouse para ver TMP"
           />
         </div>
       </main>
