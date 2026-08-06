@@ -30,7 +30,7 @@ export function NetworkFilter({ value, onChange, lojas }: Props) {
           <SelectItem value={REDE_ID}>Rede (todos os postos)</SelectItem>
           {lojas.map((loja) => (
             <SelectItem key={loja.ibm} value={loja.ibm}>
-              {loja.nome} — {loja.ibm}
+              {loja.nome}
             </SelectItem>
           ))}
         </SelectContent>
