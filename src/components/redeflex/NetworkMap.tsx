@@ -183,8 +183,13 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
       const ponto = document.createElement("div");
       ponto.title = `${posto.nome}${local(posto) ? ` — ${local(posto)}` : ""}`;
-      ponto.style.cssText = `width:${TAMANHO_PONTO}px;height:${TAMANHO_PONTO}px;cursor:pointer;transition:transform .15s ease`;
-      ponto.innerHTML = `
+      ponto.style.cssText = `width:${TAMANHO_PONTO}px;height:${TAMANHO_PONTO}px;cursor:pointer`;
+
+      // O transform do elemento raiz é controlado pelo MapLibre para posicionar
+      // o marcador; o efeito de hover vai em um elemento interno.
+      const interno = document.createElement("div");
+      interno.style.cssText = "transition:transform .15s ease;transform-origin:center";
+      interno.innerHTML = `
         <svg viewBox="0 0 24 24" width="${TAMANHO_PONTO}" height="${TAMANHO_PONTO}" style="display:block;filter:drop-shadow(0 2px 4px rgba(15,23,42,.35))">
           <circle cx="12" cy="12" r="11" fill="#fff"/>
           <circle cx="12" cy="12" r="9.5" fill="${cor}"/>
@@ -195,8 +200,9 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
             <path d="M13.4 9.6l2 1.6v3.4a1.1 1.1 0 0 0 2.2 0v-3.6"/>
           </g>
         </svg>`;
-      ponto.addEventListener("mouseenter", () => (ponto.style.transform = "scale(1.15)"));
-      ponto.addEventListener("mouseleave", () => (ponto.style.transform = "scale(1)"));
+      ponto.appendChild(interno);
+      ponto.addEventListener("mouseenter", () => (interno.style.transform = "scale(1.15)"));
+      ponto.addEventListener("mouseleave", () => (interno.style.transform = "scale(1)"));
 
       const popup = new Popup({
         offset: TAMANHO_PONTO / 2 + 6,
