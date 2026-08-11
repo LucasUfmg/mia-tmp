@@ -120,7 +120,7 @@ export function WeeklyOverview({
         </p>
       </section>
 
-      <section className="card-elevated overflow-hidden">
+      <section className="card-elevated min-w-0 overflow-hidden">
         <header className="flex items-center gap-2 border-b border-border px-4 py-4 sm:px-6">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <Target className="h-4 w-4" />

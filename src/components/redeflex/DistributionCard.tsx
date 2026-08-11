@@ -26,7 +26,7 @@ export function DistributionCard({ title, data, note }: Props) {
 
   if (data.length === 0 || total <= 0) {
     return (
-      <section className="card-elevated flex h-full flex-col">
+      <section className="card-elevated flex h-full min-w-0 flex-col">
         <h2 className="px-5 pt-6 text-sm font-bold uppercase tracking-[0.06em] sm:px-7 sm:text-base">
           {title}
         </h2>
@@ -49,7 +49,7 @@ export function DistributionCard({ title, data, note }: Props) {
   const hovered = active !== null ? slices[active] : null;
 
   return (
-    <section className="card-elevated flex h-full flex-col">
+    <section className="card-elevated flex h-full min-w-0 flex-col">
       <h2 className="px-5 pt-6 text-sm font-bold uppercase tracking-[0.06em] sm:px-7 sm:text-base">
         {title}
       </h2>

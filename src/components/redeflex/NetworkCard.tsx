@@ -12,7 +12,7 @@ type Props = {
 
 export function NetworkCard({ title, icon, rb, rbLabel = "RB Médio", metrics, note }: Props) {
   return (
-    <section className="card-elevated flex h-full flex-col overflow-hidden">
+    <section className="card-elevated flex h-full min-w-0 flex-col overflow-hidden">
       <div className="flex flex-1 gap-4 border-l-4 border-brand p-5 sm:gap-5 sm:p-7">
         <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground sm:h-16 sm:w-16 [&>svg]:h-5 [&>svg]:w-5 sm:[&>svg]:h-7 sm:[&>svg]:w-7">
           {icon}
