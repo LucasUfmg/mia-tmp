@@ -238,7 +238,9 @@ export const getLocalizacoes = createServerFn({ method: "GET" }).handler(async (
     });
   } catch (error) {
     console.error("[RedeFlex:getLocalizacoes]", error);
-    throw error;
+    // Cadastro de localização é opcional: o painel usa o arquivo local quando
+    // o Postgres não responde.
+    return [] as Awaited<ReturnType<typeof listarLocalizacoesTipo>>;
   }
 });
 
