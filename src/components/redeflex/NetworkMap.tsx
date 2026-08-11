@@ -54,6 +54,9 @@ const CORES = {
 
 type Faixa = keyof typeof CORES;
 
+/** Todos os postos usam o mesmo tamanho de ícone. */
+const TAMANHO_PONTO = 26;
+
 /** Faixas de M/LT relativas à rede (terços dos postos com movimento). */
 function faixas(postos: PostoMapa[]): { alto: number; medio: number } {
   const valores = postos
@@ -162,18 +165,29 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     marcadoresRef.current = [];
     if (postos.length === 0) return;
 
-    const maxLitros = Math.max(...postos.map((p) => p.litros), 1);
-
     for (const posto of postos) {
       const faixa = classificar(posto, corte);
-      const tamanho = posto.comDados ? 14 + 18 * Math.sqrt(posto.litros / maxLitros) : 12;
+      const cor = CORES[faixa];
 
       const ponto = document.createElement("div");
       ponto.title = `${posto.nome}${local(posto) ? ` — ${local(posto)}` : ""}`;
-      ponto.style.cssText = `width:${tamanho}px;height:${tamanho}px;border-radius:9999px;background:${CORES[faixa]};border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);cursor:pointer`;
+      ponto.style.cssText = `width:${TAMANHO_PONTO}px;height:${TAMANHO_PONTO}px;cursor:pointer;transition:transform .15s ease`;
+      ponto.innerHTML = `
+        <svg viewBox="0 0 24 24" width="${TAMANHO_PONTO}" height="${TAMANHO_PONTO}" style="display:block;filter:drop-shadow(0 2px 4px rgba(15,23,42,.35))">
+          <circle cx="12" cy="12" r="11" fill="#fff"/>
+          <circle cx="12" cy="12" r="9.5" fill="${cor}"/>
+          <g fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.4 16.8V8.4a1.2 1.2 0 0 1 1.2-1.2h2.6a1.2 1.2 0 0 1 1.2 1.2v8.4"/>
+            <path d="M7.4 16.8h7.2"/>
+            <path d="M9.6 10.2h2.6"/>
+            <path d="M13.4 9.6l2 1.6v3.4a1.1 1.1 0 0 0 2.2 0v-3.6"/>
+          </g>
+        </svg>`;
+      ponto.addEventListener("mouseenter", () => (ponto.style.transform = "scale(1.15)"));
+      ponto.addEventListener("mouseleave", () => (ponto.style.transform = "scale(1)"));
 
       const popup = new Popup({
-        offset: tamanho / 2 + 6,
+        offset: TAMANHO_PONTO / 2 + 6,
         closeButton: false,
         maxWidth: "270px",
       }).setHTML(balao(posto, periodoLabel));
@@ -249,7 +263,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
       </div>
 
       <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border bg-surface-muted px-5 py-3 text-xs text-muted-foreground sm:px-7">
-        <span>Tamanho do círculo = volume vendido · cor = M/LT frente à rede</span>
+        <span>Cor do ícone = M/LT frente à rede</span>
         {(
           [
             ["alto", "M/LT alto"],
