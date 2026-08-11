@@ -138,7 +138,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
   selecionarRef.current = onSelecionar;
   postosRef.current = postos;
-  const corte = useMemo(() => faixas(postos), [postos]);
+  const media = useMemo(() => mediaRede(postos), [postos]);
 
   useEffect(() => {
     if (!divRef.current) return;
@@ -178,7 +178,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     if (postos.length === 0) return;
 
     for (const posto of postos) {
-      const faixa = classificar(posto, corte);
+      const faixa = classificar(posto, media);
       const cor = CORES[faixa];
 
       const ponto = document.createElement("div");
@@ -202,7 +202,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
         offset: TAMANHO_PONTO / 2 + 6,
         closeButton: false,
         maxWidth: "270px",
-      }).setHTML(balao(posto, periodoLabel));
+      }).setHTML(balao(posto, periodoLabel, media));
 
       popup.on("open", () => {
         const elemento = popup.getElement();
@@ -275,12 +275,15 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
       </div>
 
       <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border bg-surface-muted px-5 py-3 text-xs text-muted-foreground sm:px-7">
-        <span>Cor do ícone = M/LT frente à rede</span>
+        <span>
+          Cor do ícone = M/LT frente à média da rede
+          {media > 0 ? ` (${brl.format(media)}/L)` : ""}
+        </span>
         {(
           [
-            ["alto", "M/LT alto"],
-            ["medio", "M/LT médio"],
-            ["baixo", "M/LT baixo"],
+            ["alto", "Acima da média"],
+            ["medio", "Na média"],
+            ["baixo", "Abaixo da média"],
             ["sem", "Sem movimento"],
           ] as [Faixa, string][]
         ).map(([faixa, rotulo]) => (
