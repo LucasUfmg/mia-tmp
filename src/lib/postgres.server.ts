@@ -14,8 +14,8 @@ async function novoCliente(ssl: boolean): Promise<ClientType> {
     (pg as unknown as { default: { Client: new (c: unknown) => ClientType } }).default.Client;
   return new Client({
     connectionString: url,
-    connectionTimeoutMillis: 8_000,
-    query_timeout: 10_000,
+    connectionTimeoutMillis: 5_000,
+    query_timeout: 8_000,
     ...(ssl ? { ssl: { rejectUnauthorized: false } } : {}),
   });
 }

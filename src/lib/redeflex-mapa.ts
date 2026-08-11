@@ -30,7 +30,12 @@ export async function loadMapa(periodo: Periodo = "diario", fresh = false): Prom
   const corte = cutoffMinutes();
 
   const [localizacoes, indicadores] = await Promise.all([
-    getLocalizacoes(),
+    // O cadastro de lat/long vive no Postgres do backend; se ele estiver
+    // inacessível o painel continua funcionando, só sem o mapa.
+    getLocalizacoes().catch((erro: unknown) => {
+      console.error("[RedeFlex] localizações indisponíveis", erro);
+      return [] as Awaited<ReturnType<typeof getLocalizacoes>>;
+    }),
     getIndicatorsPorPosto({
       data: {
         dates: [referencia],
