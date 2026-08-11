@@ -39,9 +39,9 @@ function formatarErro(error: unknown): string {
 
 export function LiveStatus({ atualizadoEm, atualizando, erro, onRefresh }: Props) {
   return (
-    <div className="flex flex-wrap items-center gap-5 text-sm text-muted-foreground">
-      <span className="flex items-center gap-2">
-        <CalendarDays className="h-4 w-4" />
+    <div className="flex w-full min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground sm:w-auto sm:gap-5">
+      <span className="flex min-w-0 items-center gap-2">
+        <CalendarDays className="h-4 w-4 shrink-0" />
         <span className="relative flex h-2 w-2">
           {atualizando ? (
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75" />
@@ -52,7 +52,9 @@ export function LiveStatus({ atualizadoEm, atualizando, erro, onRefresh }: Props
             }`}
           />
         </span>
-        Última atualização: {atualizadoEm ? horario.format(new Date(atualizadoEm)) : "—"}
+        <span className="min-w-0 break-words text-xs sm:text-sm">
+          Última atualização: {atualizadoEm ? horario.format(new Date(atualizadoEm)) : "—"}
+        </span>
       </span>
 
       {erro ? (
