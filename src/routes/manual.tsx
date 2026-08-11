@@ -34,34 +34,34 @@ export const Route = createFileRoute("/manual")({
 
 const blocos = [
   {
-    icon: LayoutGrid,
-    titulo: "1. Big Numbers (linha do topo)",
-    texto:
-      "Quatro números-chave do período escolhido: volume vendido em litros, faturamento de combustível, faturamento de produtos e o resultado consolidado da rede. É o resumo rápido: se algo estranho aparecer aqui, os blocos abaixo explicam o porquê.",
-  },
-  {
     icon: CalendarRange,
-    titulo: "2. Comparativo por período",
+    titulo: "1. Comparativo por período",
     texto:
       "Na visão diária, compara cada dia da última semana com o mesmo dia da semana anterior, sempre no mesmo horário. Na visão mensal, compara o acumulado do mês com o mesmo número de dias dos meses anteriores. A seta verde indica alta, a vermelha indica queda.",
   },
   {
     icon: BarChart3,
-    titulo: "3. Projeção",
+    titulo: "2. Projeção do mês",
     texto:
       "Projeta o fechamento do mês para combustível e para produtos, usando o ritmo já realizado. Serve para responder: mantendo esse ritmo, onde a rede chega no último dia do mês?",
+  },
+  {
+    icon: LayoutGrid,
+    titulo: "3. Faixa de indicadores",
+    texto:
+      "Logo abaixo do comparativo, quatro indicadores-resumo do período e do posto selecionados: volume vendido em litros, Resultado Bruto (com o LB% ao lado), margem média M/LT e ticket médio TMC (com o TMV ao lado).",
   },
   {
     icon: Fuel,
     titulo: "4. Rede Combustíveis",
     texto:
-      "Resultado Bruto do combustível em destaque e, abaixo, os índices de eficiência: M/LT (margem por litro), LB%, TMV (litros por abastecimento) e TMC (valor médio por abastecimento).",
+      "Faturamento de combustíveis em destaque e, abaixo, os índices de eficiência: M/LT (margem por litro), LB%, TMV (litros por abastecimento) e TMC (valor médio por abastecimento). O rodapé mostra o número de abastecimentos considerados.",
   },
   {
     icon: ShoppingBag,
     titulo: "5. Rede Produtos",
     texto:
-      "Faturamento da loja de conveniência e o TMP (valor médio por cupom de produtos). É onde se vê se a conveniência acompanha o movimento da pista.",
+      "Faturamento da loja de conveniência, o TMP (valor médio por cupom) e a quantidade de cupons. É onde se vê se a conveniência acompanha o movimento da pista.",
   },
   {
     icon: PieChart,
