@@ -5,7 +5,8 @@ import { cutoffMinutes, dataReferencia, type Periodo } from "./redeflex-dashboar
 export type PostoMapa = {
   ibm: string;
   nome: string;
-  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
   lat: number;
   lng: number;
   /** Métricas do período; nulas quando o posto não teve movimento. */
@@ -50,21 +51,32 @@ export async function loadMapa(periodo: Periodo = "diario", fresh = false): Prom
   const porIbm = new Map(indicadores.map((item) => [item.ibm, item]));
 
   // Cadastro do Postgres tem prioridade; o arquivo buscado por CNPJ cobre o resto.
-  const base = new Map<string, { ibm: string; nome: string; endereco: string | null; lat: number; lng: number }>();
+  type Base = {
+    ibm: string;
+    nome: string;
+    bairro: string | null;
+    cidade: string | null;
+    lat: number;
+    lng: number;
+  };
+  const base = new Map<string, Base>();
   for (const posto of POSTOS_LOCALIZADOS) {
     base.set(posto.ibm, {
       ibm: posto.ibm,
       nome: posto.nome,
-      endereco: posto.endereco,
+      bairro: posto.bairro,
+      cidade: posto.cidade,
       lat: posto.lat,
       lng: posto.lng,
     });
   }
   for (const loja of localizacoes) {
+    const anterior = base.get(loja.ibm);
     base.set(loja.ibm, {
       ibm: loja.ibm,
       nome: loja.nome,
-      endereco: loja.endereco,
+      bairro: loja.bairro ?? anterior?.bairro ?? null,
+      cidade: loja.cidade ?? anterior?.cidade ?? null,
       lat: loja.lat,
       lng: loja.lng,
     });
@@ -77,7 +89,8 @@ export async function loadMapa(periodo: Periodo = "diario", fresh = false): Prom
     return {
       ibm: loja.ibm,
       nome: loja.nome,
-      endereco: loja.endereco,
+      bairro: loja.bairro,
+      cidade: loja.cidade,
       lat: loja.lat,
       lng: loja.lng,
       litros: dados?.litros ?? 0,
