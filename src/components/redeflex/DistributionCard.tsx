@@ -27,8 +27,10 @@ export function DistributionCard({ title, data, note }: Props) {
   if (data.length === 0 || total <= 0) {
     return (
       <section className="card-elevated flex h-full flex-col">
-        <h2 className="px-7 pt-6 text-base font-bold uppercase tracking-[0.06em]">{title}</h2>
-        <p className="flex flex-1 items-center justify-center px-7 py-16 text-sm text-muted-foreground">
+        <h2 className="px-5 pt-6 text-sm font-bold uppercase tracking-[0.06em] sm:px-7 sm:text-base">
+          {title}
+        </h2>
+        <p className="flex flex-1 items-center justify-center px-5 py-16 text-sm text-muted-foreground sm:px-7">
           Carregando dados…
         </p>
       </section>
@@ -48,11 +50,21 @@ export function DistributionCard({ title, data, note }: Props) {
 
   return (
     <section className="card-elevated flex h-full flex-col">
-      <h2 className="px-7 pt-6 text-base font-bold uppercase tracking-[0.06em]">{title}</h2>
+      <h2 className="px-5 pt-6 text-sm font-bold uppercase tracking-[0.06em] sm:px-7 sm:text-base">
+        {title}
+      </h2>
 
-      <div className="flex flex-1 flex-col items-center gap-6 px-7 py-5 sm:flex-row sm:gap-8">
-        <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}>
-          <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={title}>
+      <div className="flex flex-1 flex-col items-center gap-6 px-5 py-5 sm:flex-row sm:gap-8 sm:px-7">
+        <div
+          className="relative w-full max-w-[240px] shrink-0 sm:w-[240px]"
+          style={{ aspectRatio: "1 / 1" }}
+        >
+          <svg
+            viewBox={`0 0 ${SIZE} ${SIZE}`}
+            role="img"
+            aria-label={title}
+            className="h-full w-full"
+          >
             {slices.map((s) => {
               const isActive = active === s.i;
               const offset = isActive ? 6 : 0;
@@ -88,7 +100,7 @@ export function DistributionCard({ title, data, note }: Props) {
           </svg>
 
           {hovered && (
-            <div className="card-elevated pointer-events-none absolute left-1/2 top-full z-10 w-[240px] -translate-x-1/2 -translate-y-6 p-4">
+            <div className="card-elevated pointer-events-none absolute left-1/2 top-full z-10 w-full max-w-[240px] -translate-x-1/2 -translate-y-6 p-4">
               <p className="flex items-center gap-2 text-sm font-semibold">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -133,8 +145,8 @@ export function DistributionCard({ title, data, note }: Props) {
         </ul>
       </div>
 
-      <p className="flex items-center gap-2 border-t border-border bg-surface-muted px-7 py-3 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5" />
+      <p className="flex items-start gap-2 border-t border-border bg-surface-muted px-5 py-3 text-xs text-muted-foreground sm:items-center sm:px-7">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 sm:mt-0" />
         {note}
       </p>
     </section>
