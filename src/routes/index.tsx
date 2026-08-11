@@ -1,7 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Fuel, ShoppingBag, DollarSign, TrendingUp, ShoppingCart, PieChart } from "lucide-react";
+import {
+  Fuel,
+  ShoppingBag,
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  PieChart,
+  BookOpen,
+} from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
@@ -130,7 +138,7 @@ function Index() {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar">
             <PieChart className="h-5 w-5 text-brand" strokeWidth={2.4} />
           </span>
-          <span className="min-w-0 leading-tight">
+          <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-base font-extrabold tracking-tight">
               REDE<span className="text-brand">FLEX</span>
             </span>
@@ -138,6 +146,13 @@ function Index() {
               Inteligência em postos de combustíveis
             </span>
           </span>
+          <Link
+            to="/manual"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold text-brand"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Manual
+          </Link>
         </div>
 
         <header className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
