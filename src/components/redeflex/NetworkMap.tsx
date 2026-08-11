@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
+import { Crosshair, MapPin } from "lucide-react";
 
 import { carregarGoogleMaps } from "@/lib/google-maps";
+import type { MapsApi, MapsInfoWindow, MapsMap, MapsMarker } from "@/lib/google-maps";
 import type { PostoMapa } from "@/lib/redeflex-mapa";
 
 const litros0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
@@ -11,6 +12,10 @@ const brl0 = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
   maximumFractionDigits: 0,
 });
+
+/** Centro inicial do mapa: Belo Horizonte. */
+const BELO_HORIZONTE = { lat: -19.9167, lng: -43.9345 };
+const ZOOM_INICIAL = 11;
 
 const CORES = {
   alto: "#16a34a",
@@ -70,14 +75,17 @@ type Props = {
 
 export default function NetworkMap({ postos, carregando, erro, periodoLabel, onSelecionar }: Props) {
   const divRef = useRef<HTMLDivElement | null>(null);
-  const mapaRef = useRef<google.maps.Map | null>(null);
-  const infoRef = useRef<google.maps.InfoWindow | null>(null);
-  const marcadoresRef = useRef<google.maps.Marker[]>([]);
+  const apiRef = useRef<MapsApi | null>(null);
+  const mapaRef = useRef<MapsMap | null>(null);
+  const infoRef = useRef<MapsInfoWindow | null>(null);
+  const marcadoresRef = useRef<MapsMarker[]>([]);
+  const postosRef = useRef<PostoMapa[]>(postos);
   const selecionarRef = useRef(onSelecionar);
   const [pronto, setPronto] = useState(false);
   const [erroMapa, setErroMapa] = useState<string | null>(null);
 
   selecionarRef.current = onSelecionar;
+  postosRef.current = postos;
   const corte = useMemo(() => faixas(postos), [postos]);
 
   useEffect(() => {
@@ -85,9 +93,10 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     carregarGoogleMaps()
       .then((maps) => {
         if (!ativo || !divRef.current) return;
+        apiRef.current = maps;
         mapaRef.current = new maps.Map(divRef.current, {
-          center: { lat: -15.8, lng: -47.9 },
-          zoom: 4,
+          center: BELO_HORIZONTE,
+          zoom: ZOOM_INICIAL,
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: true,
@@ -105,24 +114,24 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
   useEffect(() => {
     const mapa = mapaRef.current;
-    if (!pronto || !mapa) return;
+    const maps = apiRef.current;
+    if (!pronto || !mapa || !maps) return;
 
     marcadoresRef.current.forEach((m) => m.setMap(null));
     marcadoresRef.current = [];
     if (postos.length === 0) return;
 
     const maxLitros = Math.max(...postos.map((p) => p.litros), 1);
-    const bounds = new google.maps.LatLngBounds();
 
     for (const posto of postos) {
       const faixa = classificar(posto, corte);
       const escala = posto.comDados ? 8 + 10 * Math.sqrt(posto.litros / maxLitros) : 7;
-      const marcador = new google.maps.Marker({
+      const marcador = new maps.Marker({
         map: mapa,
         position: { lat: posto.lat, lng: posto.lng },
         title: posto.nome,
         icon: {
-          path: google.maps.SymbolPath.CIRCLE,
+          path: maps.SymbolPath.CIRCLE,
           scale: escala,
           fillColor: CORES[faixa],
           fillOpacity: 0.85,
@@ -135,7 +144,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
         if (!info) return;
         info.setContent(balao(posto, periodoLabel));
         info.open({ map: mapa, anchor: marcador });
-        google.maps.event.addListenerOnce(info, "domready", () => {
+        maps.event.addListenerOnce(info, "domready", () => {
           const botao = document.querySelector<HTMLButtonElement>(`button[data-ibm="${posto.ibm}"]`);
           botao?.addEventListener("click", () => {
             selecionarRef.current(posto.ibm);
@@ -144,11 +153,20 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
         });
       });
       marcadoresRef.current.push(marcador);
-      bounds.extend({ lat: posto.lat, lng: posto.lng });
     }
-
-    mapa.fitBounds(bounds, 48);
+    // O enquadramento inicial fica em Belo Horizonte; usar "Enquadrar rede"
+    // para ver todos os postos.
   }, [pronto, postos, corte, periodoLabel]);
+
+  function enquadrarRede() {
+    const mapa = mapaRef.current;
+    const maps = apiRef.current;
+    const lista = postosRef.current;
+    if (!mapa || !maps || lista.length === 0) return;
+    const bounds = new maps.LatLngBounds();
+    for (const posto of lista) bounds.extend({ lat: posto.lat, lng: posto.lng });
+    mapa.fitBounds(bounds, 48);
+  }
 
   const mensagem = erroMapa
     ? erroMapa
@@ -163,9 +181,20 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
           <MapPin className="h-4 w-4" />
           Mapa da rede
         </h2>
-        <span className="text-xs text-muted-foreground">
-          {carregando ? "Carregando…" : `${postos.length} postos localizados`}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {carregando ? "Carregando…" : `${postos.length} postos localizados`}
+          </span>
+          <button
+            type="button"
+            onClick={enquadrarRede}
+            disabled={!pronto || postos.length === 0}
+            className="flex items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold text-brand disabled:opacity-50"
+          >
+            <Crosshair className="h-3.5 w-3.5" />
+            Enquadrar rede
+          </button>
+        </div>
       </header>
 
       <div className="relative">
