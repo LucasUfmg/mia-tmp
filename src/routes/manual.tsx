@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarRange,
   Clock,
+  Download,
   Fuel,
   Info,
   LayoutGrid,
@@ -13,6 +14,7 @@ import {
   Store,
 } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
+import { useState } from "react";
 
 const title = "Manual do BI RedeFlex — como ler o painel e os índices";
 const description =
