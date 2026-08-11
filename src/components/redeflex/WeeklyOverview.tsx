@@ -59,7 +59,7 @@ export function WeeklyOverview({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-      <section className="card-elevated overflow-hidden">
+      <section className="card-elevated min-w-0 overflow-hidden">
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-4 sm:px-6">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <CalendarRange className="h-4 w-4" />
@@ -68,8 +68,8 @@ export function WeeklyOverview({
           <p className="text-xs text-muted-foreground">{notaComparativo}</p>
         </header>
 
-        <div className="overflow-x-auto [scrollbar-width:thin]">
-          <table className="w-full text-sm">
+        <div className="w-full max-w-full overflow-x-auto [scrollbar-width:thin]">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
                 <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">{colunaPeriodo}</th>
