@@ -59,8 +59,8 @@ export function WeeklyOverview({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-      <section className="card-elevated overflow-hidden">
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-6 py-4">
+      <section className="card-elevated min-w-0 overflow-hidden">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-4 sm:px-6">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <CalendarRange className="h-4 w-4" />
             {tituloComparativo}
@@ -68,34 +68,38 @@ export function WeeklyOverview({
           <p className="text-xs text-muted-foreground">{notaComparativo}</p>
         </header>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="w-full max-w-full overflow-x-auto [scrollbar-width:thin]">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                <th className="px-6 py-2.5">{colunaPeriodo}</th>
-                <th className="px-6 py-2.5">Galonagem (L)</th>
-                <th className="px-6 py-2.5">Variação</th>
-                <th className="px-6 py-2.5">Produto (R$)</th>
-                <th className="px-6 py-2.5">Variação</th>
+                <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">{colunaPeriodo}</th>
+                <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">Galonagem (L)</th>
+                <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">Variação</th>
+                <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">Produto (R$)</th>
+                <th className="whitespace-nowrap px-3 py-2.5 sm:px-6">Variação</th>
               </tr>
             </thead>
             <tbody>
               {carregando && comparativoSemanal.length === 0 ? (
                 <tr className="border-t border-border">
-                  <td className="px-6 py-4 text-muted-foreground" colSpan={5}>
+                  <td className="px-3 py-4 text-muted-foreground sm:px-6" colSpan={5}>
                     Carregando dados…
                   </td>
                 </tr>
               ) : null}
               {comparativoSemanal.map((s) => (
                 <tr key={s.dia} className="border-t border-border">
-                  <td className="px-6 py-3 font-semibold">{s.dia}</td>
-                  <td className="px-6 py-3 font-bold tabular-nums">{litros.format(s.galonagem)}</td>
-                  <td className="px-6 py-3">
+                  <td className="whitespace-nowrap px-3 py-3 font-semibold sm:px-6">{s.dia}</td>
+                  <td className="whitespace-nowrap px-3 py-3 font-bold tabular-nums sm:px-6">
+                    {litros.format(s.galonagem)}
+                  </td>
+                  <td className="px-3 py-3 sm:px-6">
                     <Variation value={s.galonagemVar} />
                   </td>
-                  <td className="px-6 py-3 font-bold tabular-nums">{reais.format(s.produto)}</td>
-                  <td className="px-6 py-3">
+                  <td className="whitespace-nowrap px-3 py-3 font-bold tabular-nums sm:px-6">
+                    {reais.format(s.produto)}
+                  </td>
+                  <td className="px-3 py-3 sm:px-6">
                     <Variation value={s.produtoVar} />
                   </td>
                 </tr>
@@ -103,8 +107,11 @@ export function WeeklyOverview({
             </tbody>
           </table>
         </div>
+        <p className="border-t border-border px-4 pt-2 text-[11px] text-muted-foreground sm:hidden">
+          Arraste a tabela para o lado para ver Produto e variação.
+        </p>
 
-        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-muted px-6 py-3 text-xs text-muted-foreground">
+        <p className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border bg-surface-muted px-4 py-3 text-xs text-muted-foreground sm:px-6">
           <span>
             {diario ? "Semana atual" : "Mês atual"} ({atual?.dia}):{" "}
             {litros.format(atual?.galonagem ?? 0)} L e{" "}
@@ -113,8 +120,8 @@ export function WeeklyOverview({
         </p>
       </section>
 
-      <section className="card-elevated overflow-hidden">
-        <header className="flex items-center gap-2 border-b border-border px-6 py-4">
+      <section className="card-elevated min-w-0 overflow-hidden">
+        <header className="flex items-center gap-2 border-b border-border px-4 py-4 sm:px-6">
           <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-[0.12em] text-brand">
             <Target className="h-4 w-4" />
             {tituloProjecao}
@@ -122,29 +129,29 @@ export function WeeklyOverview({
         </header>
 
         <div className="grid grid-cols-1 divide-y divide-border">
-          <div className="flex items-center gap-4 px-6 py-6">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+          <div className="flex items-center gap-4 px-4 py-5 sm:px-6 sm:py-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
               <Fuel className="h-5 w-5" />
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Combustível
               </p>
-              <p className="mt-0.5 text-3xl font-extrabold tracking-tight tabular-nums">
+              <p className="mt-0.5 break-words text-2xl font-extrabold tracking-tight tabular-nums sm:text-3xl">
                 {litros.format(projecaoMensal.combustivel)}
               </p>
               <p className="text-xs text-muted-foreground">{notaCombustivel}</p>
             </div>
           </div>
-          <div className="flex items-center gap-4 px-6 py-6">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+          <div className="flex items-center gap-4 px-4 py-5 sm:px-6 sm:py-6">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
               <ShoppingBag className="h-5 w-5" />
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Produto
               </p>
-              <p className="mt-0.5 text-3xl font-extrabold tracking-tight tabular-nums">
+              <p className="mt-0.5 break-words text-2xl font-extrabold tracking-tight tabular-nums sm:text-3xl">
                 {reais.format(projecaoMensal.produto)}
               </p>
               <p className="text-xs text-muted-foreground">{notaProduto}</p>
@@ -152,7 +159,7 @@ export function WeeklyOverview({
           </div>
         </div>
 
-        <p className="border-t border-border bg-surface-muted px-6 py-3 text-xs text-muted-foreground">
+        <p className="border-t border-border bg-surface-muted px-4 py-3 text-xs text-muted-foreground sm:px-6">
           Base: acumulado até {projecaoMensal.referencia}
         </p>
       </section>

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { Fuel, ShoppingBag, DollarSign, TrendingUp, ShoppingCart } from "lucide-react";
+import { Fuel, ShoppingBag, DollarSign, TrendingUp, ShoppingCart, PieChart } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
@@ -125,15 +125,29 @@ function Index() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
 
-      <main className="min-w-0 flex-1 px-5 py-6 md:px-8 md:py-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+      <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
+        <div className="mb-5 flex items-center gap-3 lg:hidden">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar">
+            <PieChart className="h-5 w-5 text-brand" strokeWidth={2.4} />
+          </span>
+          <span className="min-w-0 leading-tight">
+            <span className="block text-base font-extrabold tracking-tight">
+              REDE<span className="text-brand">FLEX</span>
+            </span>
+            <span className="block truncate text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+              Inteligência em postos de combustíveis
+            </span>
+          </span>
+        </div>
+
+        <header className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
               {diario ? "Painel de Dados Diário" : "Painel de Dados Mensal"}
             </h1>
             <PeriodTabs value={periodo} onChange={setPeriodo} />
           </div>
-          <div className="flex items-center gap-5 text-sm text-muted-foreground">
+          <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
             <NetworkFilter value={selecao} onChange={setSelecao} lojas={lojas} />
             <span className="hidden h-5 w-px bg-border sm:block" />
             <LiveStatus
@@ -161,15 +175,17 @@ function Index() {
 
         <section className="card-elevated mt-6 grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
           {kpis.map(({ icon: Icon, label, value, hint }) => (
-            <div key={label} className="flex items-center gap-4 px-6 py-5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+            <div key={label} className="flex items-center gap-4 px-4 py-4 sm:px-6 sm:py-5">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
                 <Icon className="h-5 w-5" />
               </span>
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   {label}
                 </p>
-                <p className="mt-0.5 text-2xl font-extrabold tracking-tight">{value}</p>
+                <p className="mt-0.5 break-words text-xl font-extrabold tracking-tight sm:text-2xl">
+                  {value}
+                </p>
                 <p className="text-xs text-muted-foreground">{hint}</p>
               </div>
             </div>
