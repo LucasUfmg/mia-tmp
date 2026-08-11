@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair, MapPin } from "lucide-react";
-import maplibregl, { type Map as MapaLibre, type Marker as MarcadorLibre } from "maplibre-gl";
+import {
+  LngLatBounds,
+  Map as MapaLibre,
+  Marker as MarcadorLibre,
+  NavigationControl,
+  Popup,
+  type StyleSpecification,
+} from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
 import type { PostoMapa } from "@/lib/redeflex-mapa";
@@ -18,7 +25,7 @@ const BELO_HORIZONTE: [number, number] = [-43.9345, -19.9167];
 const ZOOM_INICIAL = 11;
 
 /** Fundo claro e minimalista (CARTO Positron) — sem chave de API. */
-const ESTILO_CLEAN: maplibregl.StyleSpecification = {
+const ESTILO_CLEAN: StyleSpecification = {
   version: 8,
   sources: {
     base: {
@@ -120,16 +127,16 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
   useEffect(() => {
     if (!divRef.current) return;
-    let mapa: MapaLibre | null = null;
+    let mapa: MapaLibre | undefined;
     try {
-      mapa = new maplibregl.Map({
+      mapa = new MapaLibre({
         container: divRef.current,
         style: ESTILO_CLEAN,
         center: BELO_HORIZONTE,
         zoom: ZOOM_INICIAL,
         attributionControl: { compact: true },
       });
-      mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      mapa.addControl(new NavigationControl({ showCompass: false }), "top-right");
       mapa.on("load", () => setPronto(true));
       mapa.on("error", (evento) => {
         console.warn("[RedeFlex] mapa", evento.error);
@@ -165,7 +172,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
       ponto.title = `${posto.nome}${local(posto) ? ` — ${local(posto)}` : ""}`;
       ponto.style.cssText = `width:${tamanho}px;height:${tamanho}px;border-radius:9999px;background:${CORES[faixa]};border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);cursor:pointer`;
 
-      const popup = new maplibregl.Popup({
+      const popup = new Popup({
         offset: tamanho / 2 + 6,
         closeButton: false,
         maxWidth: "270px",
@@ -180,7 +187,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
         });
       });
 
-      const marcador = new maplibregl.Marker({ element: ponto })
+      const marcador = new MarcadorLibre({ element: ponto })
         .setLngLat([posto.lng, posto.lat])
         .setPopup(popup)
         .addTo(mapa);
@@ -195,7 +202,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     const mapa = mapaRef.current;
     const lista = postosRef.current;
     if (!mapa || lista.length === 0) return;
-    const bounds = new maplibregl.LngLatBounds(
+    const bounds = new LngLatBounds(
       [lista[0]!.lng, lista[0]!.lat],
       [lista[0]!.lng, lista[0]!.lat],
     );
