@@ -1,4 +1,5 @@
 import { getIndicatorsPorPosto, getLocalizacoes } from "./redeflex.functions";
+import { POSTOS_LOCALIZADOS } from "@/data/postos-localizacao";
 import { cutoffMinutes, dataReferencia, type Periodo } from "./redeflex-dashboard";
 
 export type PostoMapa = {
@@ -48,7 +49,30 @@ export async function loadMapa(periodo: Periodo = "diario", fresh = false): Prom
 
   const porIbm = new Map(indicadores.map((item) => [item.ibm, item]));
 
-  return localizacoes.map((loja) => {
+  // Cadastro do Postgres tem prioridade; o arquivo buscado por CNPJ cobre o resto.
+  const base = new Map<string, { ibm: string; nome: string; endereco: string | null; lat: number; lng: number }>();
+  for (const posto of POSTOS_LOCALIZADOS) {
+    base.set(posto.ibm, {
+      ibm: posto.ibm,
+      nome: posto.nome,
+      endereco: posto.endereco,
+      lat: posto.lat,
+      lng: posto.lng,
+    });
+  }
+  for (const loja of localizacoes) {
+    base.set(loja.ibm, {
+      ibm: loja.ibm,
+      nome: loja.nome,
+      endereco: loja.endereco,
+      lat: loja.lat,
+      lng: loja.lng,
+    });
+  }
+
+  return [...base.values()]
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    .map((loja) => {
     const dados = porIbm.get(loja.ibm);
     return {
       ibm: loja.ibm,
