@@ -222,7 +222,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     }
     // O enquadramento inicial fica em Belo Horizonte; usar "Enquadrar rede"
     // para ver todos os postos.
-  }, [pronto, postos, corte, periodoLabel]);
+  }, [pronto, postos, media, periodoLabel]);
 
   function enquadrarRede() {
     const mapa = mapaRef.current;
