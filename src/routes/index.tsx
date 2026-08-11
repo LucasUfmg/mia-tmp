@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
+import { lazy, Suspense, useRef, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Fuel,
@@ -18,10 +18,17 @@ import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
+import { loadMapa } from "@/lib/redeflex-mapa";
 import { usePersistedQueryCache } from "@/lib/query-persist";
 import { REDE_ID } from "@/lib/redeflex-transform";
 import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
 import type { Slice } from "@/data/redeflex";
+
+const NetworkMap = lazy(() => import("@/components/redeflex/NetworkMap"));
+
+const MapaSkeleton = () => (
+  <div className="card-elevated h-[420px] animate-pulse bg-surface-muted" aria-hidden />
+);
 
 const title = "RedeFlex — Visão Geral da Rede de Postos";
 const description =
@@ -76,6 +83,19 @@ function Index() {
     queryKey: ["redeflex", "lojas"],
     queryFn: () => loadLojas(),
     staleTime: 30 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const {
+    data: postosMapa = [],
+    isPending: mapaCarregando,
+    error: mapaErro,
+  } = useQuery({
+    queryKey: ["redeflex", "mapa", periodo],
+    queryFn: () => loadMapa(periodo),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: 5 * 60_000,
     placeholderData: keepPreviousData,
   });
 
@@ -176,6 +196,20 @@ function Index() {
             />
           </div>
         </header>
+
+        <div className="mt-6">
+          <ClientOnly fallback={<MapaSkeleton />}>
+            <Suspense fallback={<MapaSkeleton />}>
+              <NetworkMap
+                postos={postosMapa}
+                carregando={mapaCarregando}
+                erro={mapaErro}
+                periodoLabel={diario ? `Hoje até ${data?.corte ?? "--:--"}` : "Mês até hoje"}
+                onSelecionar={setSelecao}
+              />
+            </Suspense>
+          </ClientOnly>
+        </div>
 
         <div className="mt-6">
           <WeeklyOverview
