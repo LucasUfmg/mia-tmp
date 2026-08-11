@@ -1,19 +1,19 @@
 /**
  * Localização dos postos da rede.
  *
- * Origem: CNPJ de cada posto (`LBCBi.Lojas`) → endereço oficial na Receita
- * (BrasilAPI) → coordenadas pelo Google Geocoding. Usado quando o cadastro
- * `ibm_info` do Postgres não está acessível; quando ele voltar, os valores de
- * lá têm prioridade.
+ * Origem: CNPJ de cada posto (`LBCBi.Lojas`) -> endereço oficial na Receita
+ * -> coordenadas pelo Google Geocoding. Usado enquanto o cadastro `ibm_info`
+ * do Postgres não está acessível; quando ele voltar, os dados de lá têm
+ * prioridade.
  *
- * `precisao: "alta"` = coordenada no imóvel (rooftop).
- * `precisao: "aproximada"` = ponto no meio da via/quadra; ajuste `lat`/`lng`
- * manualmente se quiser precisão total.
+ * `precisao: "alta"` = coordenada no imóvel. `precisao: "aproximada"` = ponto
+ * no meio da via; ajuste `lat`/`lng` manualmente se quiser precisão total.
  */
 export type PostoLocalizado = {
   ibm: string;
   nome: string;
-  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
   lat: number;
   lng: number;
   precisao: "alta" | "aproximada";
@@ -23,7 +23,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000053901",
     nome: "AUTO POSTO ALELUIA LTDA",
-    endereco: "Av. Getúlio Vargas, 533 - Centro, Itaúna - MG, 35680-037, Brazil",
+    bairro: "Centro",
+    cidade: "Itaúna",
     lat: -20.0735977,
     lng: -44.57883349999999,
     precisao: "alta",
@@ -31,7 +32,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000054701",
     nome: "AUTO POSTO ALELUIA LTDA FILIAL",
-    endereco: "Av. Juscelino Kubitscheck, 1597 - Alaíta, Itaúna - MG, 35680-415, Brazil",
+    bairro: "Alaíta",
+    cidade: "Itaúna",
     lat: -20.0803569,
     lng: -44.60446659999999,
     precisao: "alta",
@@ -39,7 +41,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000010601",
     nome: "CCA COMERCIAL DE COMBUSTIVEIS AUTOMOTIVOS",
-    endereco: "Av. Cel. Jove Soares Nogueira, 300 - Inconfidentes, Contagem - MG, 32260-470, Brazil",
+    bairro: "Inconfidentes",
+    cidade: "Contagem",
     lat: -19.9593541,
     lng: -44.0365944,
     precisao: "alta",
@@ -47,7 +50,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000002401",
     nome: "CELT COMERCIO DE COMBUSTIVEIS E LUBRIFICANTES LTDA",
-    endereco: "Av. Dom Pedro I, 2177 - Santa Branca, Belo Horizonte - MG, 31515-300, Brazil",
+    bairro: "Santa Branca",
+    cidade: "Belo Horizonte",
     lat: -19.8273753,
     lng: -43.9597933,
     precisao: "alta",
@@ -55,7 +59,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000053701",
     nome: "CENTER POSTO LTDA",
-    endereco: "R. Zezé Lima, 325 - Centro, Itaúna - MG, 35680-045, Brazil",
+    bairro: "Centro",
+    cidade: "Itaúna",
     lat: -20.0712226,
     lng: -44.5753503,
     precisao: "alta",
@@ -63,7 +68,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000053801",
     nome: "CENTER POSTO LTDA  FILIAL",
-    endereco: "R. Quinze de Novembro, 1526 - Piedade, Itaúna - MG, 35680-258, Brazil",
+    bairro: "Piedade",
+    cidade: "Itaúna",
     lat: -20.0804149,
     lng: -44.58139329999999,
     precisao: "alta",
@@ -71,7 +77,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000003301",
     nome: "GNV SETE BELO LTDA",
-    endereco: "Av. Cristiano Machado, 8898 - Primeiro de Maio, Belo Horizonte - MG, 31812-112, Brazil",
+    bairro: "Primeiro de Maio",
+    cidade: "Belo Horizonte",
     lat: -19.8561969,
     lng: -43.9347649,
     precisao: "alta",
@@ -79,7 +86,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000000701",
     nome: "MM  COMERCIO DE DERIVADOS DE PETROLEO LTDA",
-    endereco: "R. Grão Mogol, 953 - a - Carmo, Belo Horizonte - MG, 30315-600, Brazil",
+    bairro: "a - Carmo",
+    cidade: "Belo Horizonte",
     lat: -19.9488572,
     lng: -43.9341222,
     precisao: "alta",
@@ -87,7 +95,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000003101",
     nome: "POSTO AEROPORTO LTDA",
-    endereco: "Av. Professor Magalhães Penido, 540 - São Luiz, Belo Horizonte - MG, 31270-760, Brazil",
+    bairro: "São Luiz",
+    cidade: "Belo Horizonte",
     lat: -19.8567248,
     lng: -43.9595583,
     precisao: "alta",
@@ -95,7 +104,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000003701",
     nome: "POSTO BURITIS LTDA",
-    endereco: "R. José Rodrigues Pereira, 1192 - Estoril, Belo Horizonte - MG, 30455-640, Brazil",
+    bairro: "Estoril",
+    cidade: "Belo Horizonte",
     lat: -19.969271,
     lng: -43.963591,
     precisao: "alta",
@@ -103,7 +113,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000278201",
     nome: "POSTO CARMENIA SA",
-    endereco: "Av. Teresa Cristina, 8620 - Betânia, Belo Horizonte - MG, 30662-537, Brazil",
+    bairro: "Betânia",
+    cidade: "Belo Horizonte",
     lat: -19.958279,
     lng: -43.99571820000001,
     precisao: "aproximada",
@@ -111,7 +122,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000076701",
     nome: "POSTO CENTER NORTE",
-    endereco: "Av. Vilarinho, 5360 - Venda Nova, Belo Horizonte - MG, 31615-250, Brazil",
+    bairro: "Venda Nova",
+    cidade: "Belo Horizonte",
     lat: -19.8009141,
     lng: -43.9871474,
     precisao: "alta",
@@ -119,7 +131,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000065701",
     nome: "POSTO DANUBIO LTDA",
-    endereco: "R. Jacuí, 2300 - Renascença, Belo Horizonte - MG, 31140-650, Brazil",
+    bairro: "Renascença",
+    cidade: "Belo Horizonte",
     lat: -19.8936374,
     lng: -43.9361088,
     precisao: "alta",
@@ -127,7 +140,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000206101",
     nome: "POSTO DE COMBUSTIVEIS CENTER SUL LTDA",
-    endereco: "Rua Cinquenta e Seis 520 - Conj. Jatoba, Belo Horizonte - MG, 30666-700, Brazil",
+    bairro: "Conj. Jatoba",
+    cidade: "Belo Horizonte",
     lat: -20.0083,
     lng: -44.04172,
     precisao: "aproximada",
@@ -135,7 +149,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000013301",
     nome: "POSTO DE COMBUSTIVEIS SANTO AGOSTINHO LTDA",
-    endereco: "Av. Amazonas, 2381 - Santo Agostinho, Belo Horizonte - MG, 30180-061, Brazil",
+    bairro: "Santo Agostinho",
+    cidade: "Belo Horizonte",
     lat: -19.9284121,
     lng: -43.9547607,
     precisao: "alta",
@@ -143,7 +158,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000340101",
     nome: "POSTO DUODRIVE 2",
-    endereco: "Rua Sena Madureira, 130 - Ouro Preto, Belo Horizonte - MG, 31340-000, Brazil",
+    bairro: "Ouro Preto",
+    cidade: "Belo Horizonte",
     lat: -19.8739209,
     lng: -43.9874029,
     precisao: "alta",
@@ -151,7 +167,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000062901",
     nome: "POSTO FORMULA BR LTDA",
-    endereco: "Av. Amazonas, 8 - Centro, Belo Horizonte - MG, 30110-002, Brazil",
+    bairro: "Centro",
+    cidade: "Belo Horizonte",
     lat: -19.917335,
     lng: -43.9357597,
     precisao: "alta",
@@ -159,7 +176,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000000201",
     nome: "POSTO GALL LTDA",
-    endereco: "Rua André Cavalcanti, 388 - Gutierrez, Belo Horizonte - MG, 30430-110, Brazil",
+    bairro: "Gutierrez",
+    cidade: "Belo Horizonte",
     lat: -19.9323435,
     lng: -43.9584269,
     precisao: "alta",
@@ -167,7 +185,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000151801",
     nome: "POSTO JUPITER",
-    endereco: "Av. Teresa Cristina, 2850 - Coração Eucarístico, Belo Horizonte - MG, 30535-485, Brazil",
+    bairro: "Coração Eucarístico",
+    cidade: "Belo Horizonte",
     lat: -19.9230788,
     lng: -43.9792062,
     precisao: "aproximada",
@@ -175,7 +194,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000047501",
     nome: "POSTO LESTE LTDA",
-    endereco: "Av. dos Andradas, 3300 - Santa Efigênia, Belo Horizonte - MG, 30260-070, Brazil",
+    bairro: "Santa Efigênia",
+    cidade: "Belo Horizonte",
     lat: -19.9200281,
     lng: -43.9143127,
     precisao: "alta",
@@ -183,7 +203,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000119501",
     nome: "POSTO MAQUINE",
-    endereco: "Anel Rodoviário Celso Mello Azevedo, 3605 - Bernadete, Belo Horizonte - MG, 30622-056, Brazil",
+    bairro: "Bernadete",
+    cidade: "Belo Horizonte",
     lat: -19.9791125,
     lng: -43.9863511,
     precisao: "alta",
@@ -191,7 +212,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000173201",
     nome: "POSTO MAURITANIA",
-    endereco: "Rua do Uruguai 856 - Sion, Belo Horizonte - MG, 30310-300, Brazil",
+    bairro: "Sion",
+    cidade: "Belo Horizonte",
     lat: -19.9535041,
     lng: -43.9312141,
     precisao: "aproximada",
@@ -199,7 +221,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000008901",
     nome: "POSTO MINAS SHOPPING LTDA",
-    endereco: "Av. Cristiano Machado, 3400 - Vila Suzana, Belo Horizonte - MG, 31140-660, Brazil",
+    bairro: "Vila Suzana",
+    cidade: "Belo Horizonte",
     lat: -19.8777044,
     lng: -43.9287003,
     precisao: "aproximada",
@@ -207,7 +230,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000000501",
     nome: "POSTO MUSTANG LTDA",
-    endereco: "R. Joaquim Murtinho, 9 - Santo Antônio, Belo Horizonte - MG, 30350-050, Brazil",
+    bairro: "Santo Antônio",
+    cidade: "Belo Horizonte",
     lat: -19.9389203,
     lng: -43.9441676,
     precisao: "alta",
@@ -215,7 +239,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000105301",
     nome: "POSTO PANAMERA",
-    endereco: "Av. Bandeirantes, 1155 - Filadélfia, Betim - MG, 32670-355, Brazil",
+    bairro: "Filadélfia",
+    cidade: "Betim",
     lat: -19.9658627,
     lng: -44.1820365,
     precisao: "aproximada",
@@ -223,7 +248,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000233401",
     nome: "POSTO PARQUE BURITIS LTDA",
-    endereco: "Rua Moisés Kalil, 15 - Buritis, Belo Horizonte - MG, 30575-819, Brazil",
+    bairro: "Buritis",
+    cidade: "Belo Horizonte",
     lat: -19.9857299,
     lng: -43.9737334,
     precisao: "alta",
@@ -231,7 +257,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000159601",
     nome: "POSTO PARQUE JARDIM",
-    endereco: "Av. Faria Taváres, 147 - Parque Jardim Santanense, Itaúna - MG, 35681-124, Brazil",
+    bairro: "Parque Jardim Santanense",
+    cidade: "Itaúna",
     lat: -20.0916814,
     lng: -44.6127925,
     precisao: "alta",
@@ -239,7 +266,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000007201",
     nome: "POSTO POETA LTDA",
-    endereco: "Av. Dom Pedro I, 2355 - Venda Nova, Belo Horizonte - MG, 31515-300, Brazil",
+    bairro: "Venda Nova",
+    cidade: "Belo Horizonte",
     lat: -19.8262006,
     lng: -43.95759169999999,
     precisao: "alta",
@@ -247,7 +275,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000324901",
     nome: "POSTO PORTAL DE BETIM LTDA",
-    endereco: "Av. Campo de Ourique, 638 - Jardim Alterosa, Betim - MG, 32670-778, Brazil",
+    bairro: "Jardim Alterosa",
+    cidade: "Betim",
     lat: -19.9498998,
     lng: -44.15668830000001,
     precisao: "alta",
@@ -255,7 +284,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000241901",
     nome: "POSTO PORTAL DE CONTAGEM LTDA",
-    endereco: "Praça Louis Ensch, 40 - Cidade Industrial, Contagem - MG, 32210-050, Brazil",
+    bairro: "Cidade Industrial",
+    cidade: "Contagem",
     lat: -19.9487088,
     lng: -44.0112107,
     precisao: "aproximada",
@@ -263,7 +293,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000291901",
     nome: "POSTO PORTAL DOS CAICARAS",
-    endereco: "R. Belmiro Braga, 1078 - Caiçaras, Belo Horizonte - MG, 30720-520, Brazil",
+    bairro: "Caiçaras",
+    cidade: "Belo Horizonte",
     lat: -19.9062983,
     lng: -43.9756587,
     precisao: "alta",
@@ -271,7 +302,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000322301",
     nome: "POSTO RAJA LTDA",
-    endereco: "Av. Raja Gabáglia, 2230 - Estoril, Belo Horizonte - MG, 30494-170, Brazil",
+    bairro: "Estoril",
+    cidade: "Belo Horizonte",
     lat: -19.9566133,
     lng: -43.9579285,
     precisao: "alta",
@@ -279,7 +311,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000151701",
     nome: "POSTO SIGMA",
-    endereco: "R. Haití, 55 - Sion, Belo Horizonte - MG, 30320-140, Brazil",
+    bairro: "Sion",
+    cidade: "Belo Horizonte",
     lat: -19.9585843,
     lng: -43.9386801,
     precisao: "alta",
@@ -287,7 +320,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000000601",
     nome: "POSTO TATIANA LTDA",
-    endereco: "Av. Dom Pedro I, 468 - Jardim Atlântico, Belo Horizonte - MG, 31710-000, Brazil",
+    bairro: "Jardim Atlântico",
+    cidade: "Belo Horizonte",
     lat: -19.8403973,
     lng: -43.9667336,
     precisao: "alta",
@@ -295,7 +329,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000001301",
     nome: "POSTO TROVAO LTDA",
-    endereco: "Av. Tito Fulgêncio, 1189 - Jardim Industrial, Contagem - MG, 32215-000, Brazil",
+    bairro: "Jardim Industrial",
+    cidade: "Contagem",
     lat: -19.9671667,
     lng: -44.0141867,
     precisao: "aproximada",
@@ -303,7 +338,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000257401",
     nome: "POSTO VIA FERNAO DIAS LTDA",
-    endereco: "Rod. Fernão Dias, 900 - Jardim Laguna, Contagem - MG, 37418-760, Brazil",
+    bairro: "Jardim Laguna",
+    cidade: "Contagem",
     lat: -19.9630808,
     lng: -44.0420604,
     precisao: "alta",
@@ -311,7 +347,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000105201",
     nome: "POSTO VILA CHALE LTDA",
-    endereco: "BR-262, KM 366 - Francelinos, Juatuba - MG, 35675-000, Brazil",
+    bairro: "Francelinos",
+    cidade: "Juatuba",
     lat: -19.9680788,
     lng: -44.2927448,
     precisao: "alta",
@@ -319,7 +356,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000105901",
     nome: "POSTO VILA DA SERRA LTDA",
-    endereco: "MG-030, 1 - Ipê, Nova Lima - MG, 34012-640, Brazil",
+    bairro: "Ipê",
+    cidade: "Nova Lima",
     lat: -19.999172,
     lng: -43.897825,
     precisao: "alta",
@@ -327,7 +365,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000134301",
     nome: "RFX DISTRIBUIDORA DE PRODUTOS AUTOMOTIVOS LTDA",
-    endereco: "Av. Dom Pedro I, 2355 - Venda Nova, Belo Horizonte - MG, 31515-300, Brazil",
+    bairro: "Venda Nova",
+    cidade: "Belo Horizonte",
     lat: -19.8262006,
     lng: -43.95759169999999,
     precisao: "alta",
@@ -335,7 +374,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000000901",
     nome: "ROL COM DE DERIVADOS DE PETROLEO LTDA",
-    endereco: "Av. dos Andradas, 3650 - Paraíso, Belo Horizonte - MG, 30120-010, Brazil",
+    bairro: "Paraíso",
+    cidade: "Belo Horizonte",
     lat: -19.9167743,
     lng: -43.9095267,
     precisao: "alta",
@@ -343,7 +383,8 @@ export const POSTOS_LOCALIZADOS: PostoLocalizado[] = [
   {
     ibm: "00000000010201",
     nome: "VENETO EMPREENDIMENTO COMERCIAL LTDA",
-    endereco: "Av. João César de Oliveira, 4125 - Novo Eldorado, Contagem - MG, 32341-000, Brazil",
+    bairro: "Novo Eldorado",
+    cidade: "Contagem",
     lat: -19.938541,
     lng: -44.0577107,
     precisao: "alta",

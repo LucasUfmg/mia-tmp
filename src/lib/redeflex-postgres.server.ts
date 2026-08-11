@@ -3,7 +3,8 @@ import { consultar } from "./postgres.server";
 export type Localizacao = {
   ibm: string;
   nome: string;
-  endereco: string | null;
+  bairro: string | null;
+  cidade: string | null;
   cep: string | null;
   regional: string | null;
   lat: number;
@@ -32,6 +33,19 @@ function numero(valor: number | string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * O cadastro guarda o endereço em uma única linha ("Rua X, 100 - Bairro,
+ * Cidade - MG"); daí extraímos bairro e cidade para o balão do mapa.
+ */
+function bairroCidade(endereco: string | null): { bairro: string | null; cidade: string | null } {
+  if (!endereco) return { bairro: null, cidade: null };
+  const casa = endereco.match(/-\s*([^,]+),\s*([^-,]+?)\s*(?:-\s*[A-Za-z]{2})?\s*(?:,|$)/);
+  return {
+    bairro: casa?.[1]?.trim() || null,
+    cidade: casa?.[2]?.trim() || null,
+  };
+}
+
 /** Cadastro de localização dos postos (lat/long vindos de `ibm_info`). */
 export async function listarLocalizacoes(): Promise<Localizacao[]> {
   const linhas = await consultar<Linha>(
@@ -48,10 +62,12 @@ export async function listarLocalizacoes(): Promise<Localizacao[]> {
     if (lat === null || lng === null || (lat === 0 && lng === 0)) continue;
     const ibm = normalizaIbm(linha.ibm);
     if (mapa.has(ibm)) continue;
+    const local = bairroCidade(linha.endereco?.trim() || null);
     mapa.set(ibm, {
       ibm,
       nome: linha.nomefantasia?.trim() || ibm,
-      endereco: linha.endereco?.trim() || null,
+      bairro: local.bairro,
+      cidade: local.cidade,
       cep: linha.cep?.trim() || null,
       regional: linha.regional?.trim() || null,
       lat,
