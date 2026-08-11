@@ -127,7 +127,9 @@ function ManualPage() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar className="print:hidden" />
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
 
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8 print:px-0 print:py-0">
         <Link
