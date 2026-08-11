@@ -277,7 +277,7 @@ function ManualPage() {
           </article>
         </section>
 
-        <div className="mt-10">
+        <div className="mt-10 print:hidden">
           <Link
             to="/"
             className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-brand-foreground transition hover:brightness-105"
