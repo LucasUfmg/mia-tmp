@@ -57,21 +57,26 @@ type Faixa = keyof typeof CORES;
 /** Todos os postos usam o mesmo tamanho de ícone. */
 const TAMANHO_PONTO = 26;
 
-/** Faixas de M/LT relativas à rede (terços dos postos com movimento). */
-function faixas(postos: PostoMapa[]): { alto: number; medio: number } {
-  const valores = postos
-    .filter((p) => p.comDados)
-    .map((p) => p.mlt)
-    .sort((a, b) => a - b);
-  if (valores.length === 0) return { alto: 0, medio: 0 };
-  const em = (q: number) => valores[Math.min(valores.length - 1, Math.floor(valores.length * q))]!;
-  return { alto: em(0.66), medio: em(0.33) };
+/** Margem em torno da média da rede que ainda conta como "na média". */
+const MARGEM = 0.05;
+
+/** M/LT médio da rede no período: resultado bruto total ÷ litros totais. */
+function mediaRede(postos: PostoMapa[]): number {
+  let litros = 0;
+  let bruto = 0;
+  for (const posto of postos) {
+    if (!posto.comDados) continue;
+    litros += posto.litros;
+    bruto += posto.lucroBruto;
+  }
+  return litros > 0 ? bruto / litros : 0;
 }
 
-function classificar(posto: PostoMapa, corte: { alto: number; medio: number }): Faixa {
+function classificar(posto: PostoMapa, media: number): Faixa {
   if (!posto.comDados) return "sem";
-  if (posto.mlt >= corte.alto) return "alto";
-  if (posto.mlt >= corte.medio) return "medio";
+  if (media <= 0) return "medio";
+  if (posto.mlt >= media * (1 + MARGEM)) return "alto";
+  if (posto.mlt >= media * (1 - MARGEM)) return "medio";
   return "baixo";
 }
 
@@ -85,10 +90,16 @@ function local(posto: PostoMapa): string {
   return [posto.bairro, posto.cidade].filter(Boolean).join(" · ");
 }
 
-function balao(posto: PostoMapa, periodoLabel: string): string {
+function balao(posto: PostoMapa, periodoLabel: string, media: number): string {
   const linha = (rotulo: string, valor: string) =>
     `<div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">${rotulo}</span><strong>${valor}</strong></div>`;
   const lugar = local(posto);
+  const diff = media > 0 ? (posto.mlt / media - 1) * 100 : 0;
+  const corDiff = diff >= MARGEM * 100 ? "#16a34a" : diff <= -MARGEM * 100 ? "#dc2626" : "#64748b";
+  const vsRede =
+    media > 0
+      ? `<div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">vs. rede</span><strong style="color:${corDiff}">${diff >= 0 ? "+" : ""}${diff.toFixed(1)}%</strong></div>`
+      : "";
   return `
     <div style="font-family:inherit;min-width:200px;max-width:250px;color:#0f172a;font-size:13px;line-height:1.5">
       <div style="font-weight:800;font-size:14px">${escapar(posto.nome)}</div>
@@ -100,6 +111,7 @@ function balao(posto: PostoMapa, periodoLabel: string): string {
             linha("Faturamento", brl0.format(posto.receita)) +
             linha("Resultado Bruto", brl0.format(posto.lucroBruto)) +
             linha("M/LT", brl.format(posto.mlt)) +
+            vsRede +
             linha("TMC", brl.format(posto.tmc))
           : `<div style="color:#64748b">Sem movimento no período</div>`
       }
@@ -126,7 +138,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
   selecionarRef.current = onSelecionar;
   postosRef.current = postos;
-  const corte = useMemo(() => faixas(postos), [postos]);
+  const media = useMemo(() => mediaRede(postos), [postos]);
 
   useEffect(() => {
     if (!divRef.current) return;
@@ -166,7 +178,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     if (postos.length === 0) return;
 
     for (const posto of postos) {
-      const faixa = classificar(posto, corte);
+      const faixa = classificar(posto, media);
       const cor = CORES[faixa];
 
       const ponto = document.createElement("div");
@@ -190,7 +202,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
         offset: TAMANHO_PONTO / 2 + 6,
         closeButton: false,
         maxWidth: "270px",
-      }).setHTML(balao(posto, periodoLabel));
+      }).setHTML(balao(posto, periodoLabel, media));
 
       popup.on("open", () => {
         const elemento = popup.getElement();
@@ -210,7 +222,7 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
     }
     // O enquadramento inicial fica em Belo Horizonte; usar "Enquadrar rede"
     // para ver todos os postos.
-  }, [pronto, postos, corte, periodoLabel]);
+  }, [pronto, postos, media, periodoLabel]);
 
   function enquadrarRede() {
     const mapa = mapaRef.current;
@@ -263,12 +275,15 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
       </div>
 
       <footer className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border bg-surface-muted px-5 py-3 text-xs text-muted-foreground sm:px-7">
-        <span>Cor do ícone = M/LT frente à rede</span>
+        <span>
+          Cor do ícone = M/LT frente à média da rede
+          {media > 0 ? ` (${brl.format(media)}/L)` : ""}
+        </span>
         {(
           [
-            ["alto", "M/LT alto"],
-            ["medio", "M/LT médio"],
-            ["baixo", "M/LT baixo"],
+            ["alto", "Acima da média"],
+            ["medio", "Na média"],
+            ["baixo", "Abaixo da média"],
             ["sem", "Sem movimento"],
           ] as [Faixa, string][]
         ).map(([faixa, rotulo]) => (
