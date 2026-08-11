@@ -483,6 +483,66 @@ export type CategoriaIndicador = {
   indice: number;
 };
 
+export type IndicadorPosto = {
+  ibm: string;
+  litros: number;
+  receita: number;
+  lucroBruto: number;
+  atendimentos: number;
+  mlt: number;
+  tmc: number;
+};
+
+/** Índices de combustível de TODOS os postos no período (usado no mapa). */
+export async function getIndicadoresPorPosto(
+  dates: string[],
+  cutoffMinutes?: number,
+  desde?: string,
+): Promise<IndicadorPosto[]> {
+  const linhas = await agregar<{
+    _id: string | null;
+    litros: number;
+    receita: number;
+    custo: number;
+    atendimentos: number;
+  }>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+    {
+      $match: {
+        ori: { $in: ["0", "1"] },
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
+      },
+    },
+    {
+      $group: {
+        _id: "$ibm",
+        litros: { $sum: num("$vol") },
+        receita: { $sum: num("$val") },
+        custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
+        atendimentos: { $sum: 1 },
+      },
+    },
+  ]);
+
+  return linhas
+    .filter((linha) => typeof linha._id === "string" && linha._id.length > 0)
+    .map((linha) => {
+      const receita = linha.receita ?? 0;
+      const lucroBruto = receita - (linha.custo ?? 0);
+      const litros = linha.litros ?? 0;
+      const atendimentos = linha.atendimentos ?? 0;
+      return {
+        ibm: linha._id as string,
+        litros,
+        receita,
+        lucroBruto,
+        atendimentos,
+        mlt: div(lucroBruto, litros),
+        tmc: div(receita, atendimentos),
+      };
+    })
+    .sort((a, b) => b.litros - a.litros);
+}
+
 /** Distribuição por combustível (sigla → descrição do cadastro). */
 export async function getCategoriasCombustivel(
   dates: string[],

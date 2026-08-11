@@ -227,3 +227,38 @@ export const getCategorias = createServerFn({ method: "POST" })
       throw error;
     }
   });
+
+/** Localização dos postos (lat/long do cadastro `ibm_info` no Postgres). */
+export const getLocalizacoes = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { comCache, chaveDeCache } = await import("./cache.server");
+    return await comCache(chaveDeCache("localizacoes", null), false, async () => {
+      const { listarLocalizacoes } = await import("./redeflex-postgres.server");
+      return await listarLocalizacoes();
+    });
+  } catch (error) {
+    console.error("[RedeFlex:getLocalizacoes]", error);
+    throw error;
+  }
+});
+
+/** Índices de combustível de todos os postos no período (mapa da rede). */
+export const getIndicatorsPorPosto = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => indicatorsSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { fresh, ibm: _ibm, ...escopo } = data;
+    try {
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("indicatorsPorPosto", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { getIndicadoresPorPosto } = await import("./redeflex-mongo.server");
+        return await comSessao(
+          async () =>
+            await getIndicadoresPorPosto(escopo.dates, escopo.cutoffMinutes, escopo.desde),
+        );
+      });
+    } catch (error) {
+      console.error("[RedeFlex:getIndicatorsPorPosto]", error);
+      throw error;
+    }
+  });
