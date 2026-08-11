@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Crosshair, MapPin } from "lucide-react";
+import maplibregl, { type Map as MapaLibre, type Marker as MarcadorLibre } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 
-import { carregarGoogleMaps } from "@/lib/google-maps";
-import type { MapsApi, MapsInfoWindow, MapsMap, MapsMarker } from "@/lib/google-maps";
 import type { PostoMapa } from "@/lib/redeflex-mapa";
 
 const litros0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
@@ -14,8 +14,29 @@ const brl0 = new Intl.NumberFormat("pt-BR", {
 });
 
 /** Centro inicial do mapa: Belo Horizonte. */
-const BELO_HORIZONTE = { lat: -19.9167, lng: -43.9345 };
+const BELO_HORIZONTE: [number, number] = [-43.9345, -19.9167];
 const ZOOM_INICIAL = 11;
+
+/** Fundo claro e minimalista (CARTO Positron) — sem chave de API. */
+const ESTILO_CLEAN: maplibregl.StyleSpecification = {
+  version: 8,
+  sources: {
+    base: {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
+        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
+        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
+      ],
+      tileSize: 256,
+      attribution: "© OpenStreetMap · © CARTO",
+    },
+  },
+  layers: [
+    { id: "fundo", type: "background", paint: { "background-color": "#f2f5f7" } },
+    { id: "base", type: "raster", source: "base" },
+  ],
+};
 
 const CORES = {
   alto: "#16a34a",
@@ -44,14 +65,25 @@ function classificar(posto: PostoMapa, corte: { alto: number; medio: number }): 
   return "baixo";
 }
 
+function escapar(texto: string): string {
+  return texto.replace(/[&<>"]/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&quot;",
+  );
+}
+
+function local(posto: PostoMapa): string {
+  return [posto.bairro, posto.cidade].filter(Boolean).join(" · ");
+}
+
 function balao(posto: PostoMapa, periodoLabel: string): string {
   const linha = (rotulo: string, valor: string) =>
     `<div style="display:flex;justify-content:space-between;gap:16px"><span style="color:#64748b">${rotulo}</span><strong>${valor}</strong></div>`;
+  const lugar = local(posto);
   return `
-    <div style="font-family:inherit;min-width:210px;max-width:260px;color:#0f172a;font-size:13px;line-height:1.5">
-      <div style="font-weight:800;font-size:14px">${posto.nome}</div>
-      ${posto.endereco ? `<div style="color:#64748b;margin-bottom:6px">${posto.endereco}</div>` : ""}
-      <div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:6px 0 4px">${periodoLabel}</div>
+    <div style="font-family:inherit;min-width:200px;max-width:250px;color:#0f172a;font-size:13px;line-height:1.5">
+      <div style="font-weight:800;font-size:14px">${escapar(posto.nome)}</div>
+      ${lugar ? `<div style="color:#64748b">${escapar(lugar)}</div>` : ""}
+      <div style="color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:.08em;margin:8px 0 4px">${escapar(periodoLabel)}</div>
       ${
         posto.comDados
           ? linha("Volume", `${litros0.format(posto.litros)} L`) +
@@ -61,7 +93,7 @@ function balao(posto: PostoMapa, periodoLabel: string): string {
             linha("TMC", brl.format(posto.tmc))
           : `<div style="color:#64748b">Sem movimento no período</div>`
       }
-      <button data-ibm="${posto.ibm}" style="margin-top:10px;width:100%;border:0;border-radius:8px;padding:7px 10px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Ver no painel</button>
+      <button data-ibm="${escapar(posto.ibm)}" style="margin-top:10px;width:100%;border:0;border-radius:8px;padding:7px 10px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Ver no painel</button>
     </div>`;
 }
 
@@ -75,10 +107,8 @@ type Props = {
 
 export default function NetworkMap({ postos, carregando, erro, periodoLabel, onSelecionar }: Props) {
   const divRef = useRef<HTMLDivElement | null>(null);
-  const apiRef = useRef<MapsApi | null>(null);
-  const mapaRef = useRef<MapsMap | null>(null);
-  const infoRef = useRef<MapsInfoWindow | null>(null);
-  const marcadoresRef = useRef<MapsMarker[]>([]);
+  const mapaRef = useRef<MapaLibre | null>(null);
+  const marcadoresRef = useRef<MarcadorLibre[]>([]);
   const postosRef = useRef<PostoMapa[]>(postos);
   const selecionarRef = useRef(onSelecionar);
   const [pronto, setPronto] = useState(false);
@@ -89,35 +119,39 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
   const corte = useMemo(() => faixas(postos), [postos]);
 
   useEffect(() => {
-    let ativo = true;
-    carregarGoogleMaps()
-      .then((maps) => {
-        if (!ativo || !divRef.current) return;
-        apiRef.current = maps;
-        mapaRef.current = new maps.Map(divRef.current, {
-          center: BELO_HORIZONTE,
-          zoom: ZOOM_INICIAL,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-        });
-        infoRef.current = new maps.InfoWindow();
-        setPronto(true);
-      })
-      .catch((e: unknown) => {
-        if (ativo) setErroMapa(e instanceof Error ? e.message : String(e));
+    if (!divRef.current) return;
+    let mapa: MapaLibre | null = null;
+    try {
+      mapa = new maplibregl.Map({
+        container: divRef.current,
+        style: ESTILO_CLEAN,
+        center: BELO_HORIZONTE,
+        zoom: ZOOM_INICIAL,
+        attributionControl: { compact: true },
       });
+      mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      mapa.on("load", () => setPronto(true));
+      mapa.on("error", (evento) => {
+        console.warn("[RedeFlex] mapa", evento.error);
+      });
+      mapaRef.current = mapa;
+    } catch (e: unknown) {
+      setErroMapa(e instanceof Error ? e.message : String(e));
+    }
     return () => {
-      ativo = false;
+      marcadoresRef.current.forEach((m) => m.remove());
+      marcadoresRef.current = [];
+      mapa?.remove();
+      mapaRef.current = null;
+      setPronto(false);
     };
   }, []);
 
   useEffect(() => {
     const mapa = mapaRef.current;
-    const maps = apiRef.current;
-    if (!pronto || !mapa || !maps) return;
+    if (!pronto || !mapa) return;
 
-    marcadoresRef.current.forEach((m) => m.setMap(null));
+    marcadoresRef.current.forEach((m) => m.remove());
     marcadoresRef.current = [];
     if (postos.length === 0) return;
 
@@ -125,33 +159,32 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
     for (const posto of postos) {
       const faixa = classificar(posto, corte);
-      const escala = posto.comDados ? 8 + 10 * Math.sqrt(posto.litros / maxLitros) : 7;
-      const marcador = new maps.Marker({
-        map: mapa,
-        position: { lat: posto.lat, lng: posto.lng },
-        title: posto.nome,
-        icon: {
-          path: maps.SymbolPath.CIRCLE,
-          scale: escala,
-          fillColor: CORES[faixa],
-          fillOpacity: 0.85,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        },
-      });
-      marcador.addListener("click", () => {
-        const info = infoRef.current;
-        if (!info) return;
-        info.setContent(balao(posto, periodoLabel));
-        info.open({ map: mapa, anchor: marcador });
-        maps.event.addListenerOnce(info, "domready", () => {
-          const botao = document.querySelector<HTMLButtonElement>(`button[data-ibm="${posto.ibm}"]`);
-          botao?.addEventListener("click", () => {
-            selecionarRef.current(posto.ibm);
-            info.close();
-          });
+      const tamanho = posto.comDados ? 14 + 18 * Math.sqrt(posto.litros / maxLitros) : 12;
+
+      const ponto = document.createElement("div");
+      ponto.title = `${posto.nome}${local(posto) ? ` — ${local(posto)}` : ""}`;
+      ponto.style.cssText = `width:${tamanho}px;height:${tamanho}px;border-radius:9999px;background:${CORES[faixa]};border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);cursor:pointer`;
+
+      const popup = new maplibregl.Popup({
+        offset: tamanho / 2 + 6,
+        closeButton: false,
+        maxWidth: "270px",
+      }).setHTML(balao(posto, periodoLabel));
+
+      popup.on("open", () => {
+        const elemento = popup.getElement();
+        const botao = elemento?.querySelector<HTMLButtonElement>(`button[data-ibm="${posto.ibm}"]`);
+        botao?.addEventListener("click", () => {
+          selecionarRef.current(posto.ibm);
+          popup.remove();
         });
       });
+
+      const marcador = new maplibregl.Marker({ element: ponto })
+        .setLngLat([posto.lng, posto.lat])
+        .setPopup(popup)
+        .addTo(mapa);
+
       marcadoresRef.current.push(marcador);
     }
     // O enquadramento inicial fica em Belo Horizonte; usar "Enquadrar rede"
@@ -160,17 +193,19 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
 
   function enquadrarRede() {
     const mapa = mapaRef.current;
-    const maps = apiRef.current;
     const lista = postosRef.current;
-    if (!mapa || !maps || lista.length === 0) return;
-    const bounds = new maps.LatLngBounds();
-    for (const posto of lista) bounds.extend({ lat: posto.lat, lng: posto.lng });
-    mapa.fitBounds(bounds, 48);
+    if (!mapa || lista.length === 0) return;
+    const bounds = new maplibregl.LngLatBounds(
+      [lista[0]!.lng, lista[0]!.lat],
+      [lista[0]!.lng, lista[0]!.lat],
+    );
+    for (const posto of lista) bounds.extend([posto.lng, posto.lat]);
+    mapa.fitBounds(bounds, { padding: 48, maxZoom: 13, duration: 600 });
   }
 
   const mensagem = erroMapa
     ? erroMapa
-    : erro
+    : erro && postos.length === 0
       ? "Não foi possível carregar a localização dos postos."
       : null;
 
