@@ -5,6 +5,7 @@ import {
   BookOpen,
   CalendarRange,
   Clock,
+  Download,
   Fuel,
   Info,
   LayoutGrid,
@@ -13,6 +14,7 @@ import {
   Store,
 } from "lucide-react";
 import { Sidebar } from "@/components/redeflex/Sidebar";
+import { useState } from "react";
 
 const title = "Manual do BI RedeFlex — como ler o painel e os índices";
 const description =
@@ -111,32 +113,60 @@ const indices = [
 ];
 
 function ManualPage() {
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handleDownload = () => {
+    setIsPrinting(true);
+    document.body.classList.add("printing");
+    setTimeout(() => {
+      window.print();
+      document.body.classList.remove("printing");
+      setIsPrinting(false);
+    }, 200);
+  };
+
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar />
+      <div className="print:hidden">
+        <Sidebar />
+      </div>
 
-      <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
+      <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8 print:px-0 print:py-0">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline lg:hidden"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline lg:hidden print:hidden"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar ao painel
         </Link>
 
-        <header className="mt-4 lg:mt-0">
-          <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand">
-            <BookOpen className="h-3.5 w-3.5" />
-            Manual da plataforma
-          </span>
-          <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
-            Como ler o BI RedeFlex
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-            O BI acompanha a operação da rede de postos em tempo quase real: os dados vêm direto do
-            sistema de pista e da loja, e o painel se atualiza sozinho durante o dia. Este guia
-            explica as duas visões, o que cada bloco mostra e como cada índice é calculado.
-          </p>
+        <header className="mt-4 lg:mt-0 print:mt-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-brand">
+                <BookOpen className="h-3.5 w-3.5" />
+                Manual da plataforma
+              </span>
+              <h1 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
+                Como ler o BI RedeFlex
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+                O BI acompanha a operação da rede de postos em tempo quase real: os dados vêm direto do
+                sistema de pista e da loja, e o painel se atualiza sozinho durante o dia. Este guia
+                explica as duas visões, o que cada bloco mostra e como cada índice é calculado.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleDownload}
+              disabled={isPrinting}
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full bg-brand px-5 py-2.5 text-sm font-bold text-brand-foreground transition hover:brightness-105 print:hidden"
+              aria-label="Baixar manual em PDF"
+            >
+              <Download className="h-4 w-4" />
+              {isPrinting ? "Preparando..." : "Baixar manual"}
+            </button>
+          </div>
         </header>
 
         <section className="mt-8 grid gap-5 md:grid-cols-2">
@@ -247,7 +277,7 @@ function ManualPage() {
           </article>
         </section>
 
-        <div className="mt-10">
+        <div className="mt-10 print:hidden">
           <Link
             to="/"
             className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-brand-foreground transition hover:brightness-105"
