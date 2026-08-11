@@ -543,15 +543,6 @@ export async function getIndicadoresPorPosto(
     .sort((a, b) => b.litros - a.litros);
 }
 
-type CategoriaIndicadorLegado = {
-  nome: string;
-  receita: number;
-  lucroBruto: number;
-  lb: number;
-  /** M/LT para combustíveis, TMP para produtos. */
-  indice: number;
-};
-
 /** Distribuição por combustível (sigla → descrição do cadastro). */
 export async function getCategoriasCombustivel(
   dates: string[],
