@@ -1,4 +1,8 @@
-import { Home, SlidersHorizontal, PieChart } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { BookOpen, Home, SlidersHorizontal, PieChart } from "lucide-react";
+
+const itemBase =
+  "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors";
 
 export function Sidebar() {
   return (
@@ -18,10 +22,29 @@ export function Sidebar() {
       </div>
 
       <nav className="mt-8 flex flex-1 flex-col gap-1">
-        <a className="flex items-center gap-3 rounded-xl bg-brand/15 px-4 py-3 text-sm font-semibold text-brand brand-rail">
+        <Link
+          to="/"
+          className={itemBase}
+          activeOptions={{ exact: true }}
+          activeProps={{ className: `${itemBase} bg-brand/15 text-brand brand-rail` }}
+          inactiveProps={{
+            className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
+          }}
+        >
           <Home className="h-[18px] w-[18px]" />
           Visão Geral
-        </a>
+        </Link>
+        <Link
+          to="/manual"
+          className={itemBase}
+          activeProps={{ className: `${itemBase} bg-brand/15 text-brand brand-rail` }}
+          inactiveProps={{
+            className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
+          }}
+        >
+          <BookOpen className="h-[18px] w-[18px]" />
+          Manual da plataforma
+        </Link>
       </nav>
 
       <div className="mt-6 rounded-2xl bg-sidebar-accent/70 p-4">
