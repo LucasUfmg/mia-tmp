@@ -7,9 +7,9 @@ import {
   DollarSign,
   TrendingUp,
   ShoppingCart,
-  PieChart,
   BookOpen,
 } from "lucide-react";
+import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
@@ -161,16 +161,13 @@ function Index() {
 
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
         <div className="mb-5 flex items-center gap-3 lg:hidden">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar">
-            <PieChart className="h-5 w-5 text-gold" strokeWidth={2.4} />
-          </span>
-          <span className="min-w-0 flex-1 leading-tight">
-            <span className="block text-base font-extrabold tracking-tight">
-              REDE<span className="text-brand">FLEX</span>
-            </span>
-            <span className="block truncate text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-              Inteligência em postos de combustíveis
-            </span>
+          <img
+            src={logoRedeFlex}
+            alt="RedeFlex — rede de postos"
+            className="h-9 w-auto shrink-0 rounded-md"
+          />
+          <span className="min-w-0 flex-1 truncate text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+            Inteligência em postos de combustíveis
           </span>
           <Link
             to="/manual"
