@@ -17,7 +17,8 @@ import {
   variacao,
 } from "./redeflex-transform";
 
-export type Selecao = string; // REDE_ID ou o IBM do posto
+/** Lista de IBMs selecionados; vazia (ou com `REDE_ID`) = rede inteira. */
+export type Selecao = string[];
 
 export type Periodo = "diario" | "mensal";
 
@@ -121,17 +122,18 @@ export async function loadDashboardData(
   referencia = dataReferencia(),
   fresh = false,
 ): Promise<DashboardData> {
-  const porPosto = selecao !== REDE_ID;
+  const ibms = [...new Set(selecao.filter((id) => id && id !== REDE_ID))].sort();
+  const porPosto = ibms.length > 0;
   const corte = cutoffMinutes();
   const mensal = periodo === "mensal";
-  const filtro = porPosto ? selecao : undefined;
+  const filtro = porPosto ? ibms : undefined;
 
   // Escopo dos indicadores/categorias: o dia (on-time) ou o acumulado do mês.
   const escopoIndices = {
     dates: [referencia],
     cutoffMinutes: corte,
     ...(mensal ? { desde: primeiroDiaDoMes(referencia) } : {}),
-    ...(porPosto ? { ibm: selecao } : {}),
+    ...(porPosto ? { ibm: ibms } : {}),
   };
 
   if (mensal) {

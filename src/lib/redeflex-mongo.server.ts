@@ -52,6 +52,20 @@ function filtroDatas(dates: string[], toEndOfDay: boolean, cutoffMinutes?: numbe
 }
 
 /**
+ * Escopo por posto: um IBM, uma lista de IBMs (`$in`) ou a rede inteira
+ * (sem filtro) quando nada é informado.
+ */
+function filtroDeIbm(ibm?: string | string[]) {
+  if (!ibm) return {};
+  if (Array.isArray(ibm)) {
+    const lista = [...new Set(ibm.filter(Boolean))];
+    if (lista.length === 0) return {};
+    return lista.length === 1 ? { ibm: lista[0]! } : { ibm: { $in: lista } };
+  }
+  return { ibm };
+}
+
+/**
  * Quando `desde` é informado, o filtro passa a ser um único intervalo contínuo
  * (`desde` 00:00 → corte da última data). Isso mantém a visão mensal leve: uma
  * faixa em vez de dezenas de `$or` sobre `dtHr`.
@@ -389,11 +403,11 @@ function div(a: number, b: number): number {
  */
 export async function getIndicadores(
   dates: string[],
-  ibm?: string,
+  ibm?: string | string[],
   cutoffMinutes?: number,
   desde?: string,
 ): Promise<Indicadores> {
-  const filtroIbm = ibm ? { ibm } : {};
+  const filtroIbm = filtroDeIbm(ibm);
 
   const [comb] = await agregar<{
     litros: number;
@@ -546,7 +560,7 @@ export async function getIndicadoresPorPosto(
 /** Distribuição por combustível (sigla → descrição do cadastro). */
 export async function getCategoriasCombustivel(
   dates: string[],
-  ibm?: string,
+  ibm?: string | string[],
   cutoffMinutes?: number,
   desde?: string,
 ): Promise<CategoriaIndicador[]> {
@@ -559,7 +573,7 @@ export async function getCategoriasCombustivel(
     {
       $match: {
         ori: { $in: ["0", "1"] },
-        ...(ibm ? { ibm } : {}),
+        ...filtroDeIbm(ibm),
         ...filtroPeriodo(dates, true, cutoffMinutes, desde),
       },
     },
@@ -598,7 +612,7 @@ export async function getCategoriasCombustivel(
 /** Distribuição por grupo de produto (codG do item + ibm → descrição). */
 export async function getCategoriasProduto(
   dates: string[],
-  ibm?: string,
+  ibm?: string | string[],
   cutoffMinutes?: number,
   desde?: string,
 ): Promise<CategoriaIndicador[]> {
@@ -608,7 +622,7 @@ export async function getCategoriasProduto(
     custo: number;
     cupons: number;
   }>("sales", COLECAO_VENDAS, [
-    { $match: { ...(ibm ? { ibm } : {}), ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
+    { $match: { ...filtroDeIbm(ibm), ...filtroPeriodo(dates, true, cutoffMinutes, desde) } },
     { $unwind: "$items" },
     { $match: { "items.iTip": { $eq: "0" } } },
     {

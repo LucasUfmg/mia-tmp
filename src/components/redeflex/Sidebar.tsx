@@ -9,11 +9,11 @@ export function Sidebar() {
     <aside className="hidden w-[268px] shrink-0 flex-col bg-sidebar px-5 py-7 text-sidebar-foreground lg:flex">
       <div className="flex items-center gap-3 px-2">
         <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-accent">
-          <PieChart className="h-6 w-6 text-brand" strokeWidth={2.4} />
+          <PieChart className="h-6 w-6 text-gold" strokeWidth={2.4} />
         </span>
         <span className="leading-tight">
           <span className="block text-xl font-extrabold tracking-tight">
-            REDE<span className="text-brand">FLEX</span>
+            REDE<span className="text-gold">FLEX</span>
           </span>
           <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
             Inteligência em postos de combustíveis
@@ -26,7 +26,7 @@ export function Sidebar() {
           to="/"
           className={itemBase}
           activeOptions={{ exact: true }}
-          activeProps={{ className: `${itemBase} bg-brand/15 text-brand brand-rail` }}
+          activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}
           inactiveProps={{
             className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
           }}
@@ -37,7 +37,7 @@ export function Sidebar() {
         <Link
           to="/manual"
           className={itemBase}
-          activeProps={{ className: `${itemBase} bg-brand/15 text-brand brand-rail` }}
+          activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}
           inactiveProps={{
             className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
           }}
@@ -49,7 +49,7 @@ export function Sidebar() {
 
       <div className="mt-6 rounded-2xl bg-sidebar-accent/70 p-4">
         <p className="flex items-center gap-2 text-sm font-semibold">
-          <SlidersHorizontal className="h-4 w-4 text-brand" />
+          <SlidersHorizontal className="h-4 w-4 text-gold" />
           Filtros aplicados
         </p>
         <p className="mt-1.5 text-xs text-sidebar-foreground/60">Períodos: diário e mensal (on-time)</p>

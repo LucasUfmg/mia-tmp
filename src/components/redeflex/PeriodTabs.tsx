@@ -29,7 +29,7 @@ export function PeriodTabs({ value, onChange }: Props) {
             onClick={() => onChange(id)}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors sm:flex-none sm:px-3.5 ${
               ativo
-                ? "bg-brand text-brand-foreground"
+                ? "bg-gold text-gold-foreground"
                 : "text-muted-foreground hover:bg-surface-muted"
             }`}
           >

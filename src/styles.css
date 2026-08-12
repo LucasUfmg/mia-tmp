@@ -24,6 +24,9 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-wa: var(--wa);
@@ -75,22 +78,27 @@
 :root {
   --radius: 0.625rem;
   --background: oklch(0.972 0.004 240);
-  --foreground: oklch(0.24 0.035 235);
-  --brand: oklch(0.68 0.106 190);
-  --brand-foreground: oklch(0.99 0.005 190);
-  --brand-soft: oklch(0.94 0.03 190);
+  --foreground: oklch(0.24 0.05 258);
+  /* Azul institucional da logo RedeFlex. */
+  --brand: oklch(0.45 0.15 258);
+  --brand-foreground: oklch(0.99 0.005 258);
+  --brand-soft: oklch(0.94 0.035 258);
+  /* Amarelo/âmbar da logo — cor de destaque. */
+  --gold: oklch(0.8 0.16 82);
+  --gold-foreground: oklch(0.26 0.06 258);
+  --gold-soft: oklch(0.95 0.06 88);
   --surface: oklch(1 0 0);
-  --surface-muted: oklch(0.968 0.006 235);
+  --surface-muted: oklch(0.968 0.008 258);
   --wa: oklch(0.45 0.07 175);
   --wa-foreground: oklch(0.99 0.005 175);
   --wa-bubble: oklch(0.9 0.06 150);
   --wa-canvas: oklch(0.95 0.012 120);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.035 235);
+  --card-foreground: oklch(0.24 0.05 258);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.035 235);
-  --primary: oklch(0.68 0.106 190);
-  --primary-foreground: oklch(0.99 0.005 190);
+  --popover-foreground: oklch(0.24 0.05 258);
+  --primary: oklch(0.45 0.15 258);
+  --primary-foreground: oklch(0.99 0.005 258);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.968 0.007 247.896);
@@ -99,23 +107,23 @@
   --accent-foreground: oklch(0.208 0.042 265.755);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.916 0.008 240);
-  --input: oklch(0.916 0.008 240);
-  --ring: oklch(0.68 0.106 190);
-  --chart-1: oklch(0.68 0.106 190);
-  --chart-2: oklch(0.35 0.07 250);
-  --chart-3: oklch(0.74 0.13 145);
-  --chart-4: oklch(0.82 0.005 240);
-  --chart-5: oklch(0.83 0.16 85);
-  --sidebar: oklch(0.23 0.035 235);
-  --sidebar-foreground: oklch(0.95 0.008 235);
-  --sidebar-primary: oklch(0.68 0.106 190);
-  --sidebar-primary-foreground: oklch(0.15 0.03 235);
-  --sidebar-accent: oklch(0.3 0.04 235);
-  --sidebar-accent-foreground: oklch(0.97 0.005 235);
-  --sidebar-border: oklch(0.32 0.035 235);
-  --sidebar-ring: oklch(0.68 0.106 190);
-  --shadow-card: 0 1px 2px oklch(0.24 0.035 235 / 6%), 0 12px 28px -18px oklch(0.24 0.035 235 / 22%);
+  --border: oklch(0.912 0.012 258);
+  --input: oklch(0.912 0.012 258);
+  --ring: oklch(0.45 0.15 258);
+  --chart-1: oklch(0.45 0.15 258);
+  --chart-2: oklch(0.8 0.16 82);
+  --chart-3: oklch(0.62 0.12 250);
+  --chart-4: oklch(0.3 0.1 262);
+  --chart-5: oklch(0.88 0.09 92);
+  --sidebar: oklch(0.29 0.105 260);
+  --sidebar-foreground: oklch(0.95 0.015 258);
+  --sidebar-primary: oklch(0.8 0.16 82);
+  --sidebar-primary-foreground: oklch(0.26 0.06 258);
+  --sidebar-accent: oklch(0.36 0.11 260);
+  --sidebar-accent-foreground: oklch(0.97 0.008 258);
+  --sidebar-border: oklch(0.4 0.1 260);
+  --sidebar-ring: oklch(0.8 0.16 82);
+  --shadow-card: 0 1px 2px oklch(0.24 0.05 258 / 6%), 0 12px 28px -18px oklch(0.24 0.05 258 / 22%);
 }
 
 .dark {
@@ -181,7 +189,7 @@
     inset: 0 auto 0 0;
     width: 4px;
     border-radius: 999px;
-    background: var(--brand);
+    background: var(--gold);
   }
 }
 
