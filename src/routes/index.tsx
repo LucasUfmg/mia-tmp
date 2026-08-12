@@ -14,7 +14,7 @@ import { Sidebar } from "@/components/redeflex/Sidebar";
 import { NetworkCard } from "@/components/redeflex/NetworkCard";
 import { DistributionCard } from "@/components/redeflex/DistributionCard";
 import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
-import { NetworkFilter } from "@/components/redeflex/NetworkFilter";
+import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
@@ -73,7 +73,7 @@ function toSlices(
 }
 
 function Index() {
-  const [selecao, setSelecao] = useState<string>(REDE_ID);
+  const [selecao, setSelecao] = useState<string[]>([]);
   const [periodo, setPeriodo] = useState<Periodo>("diario");
   const forcar = useRef(false);
 
@@ -100,7 +100,7 @@ function Index() {
   });
 
   const { data, isPending, isFetching, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ["redeflex", "dashboard", selecao, periodo],
+    queryKey: ["redeflex", "dashboard", [...selecao].sort().join(","), periodo],
     queryFn: () => {
       const fresh = forcar.current;
       forcar.current = false;
@@ -114,10 +114,17 @@ function Index() {
     placeholderData: keepPreviousData,
   });
 
+  const nomePosto = (ibm: string) => lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`;
   const escopo =
-    selecao === REDE_ID
+    selecao.length === 0
       ? "Rede"
-      : (lojas.find((l) => l.ibm === selecao)?.nome ?? `Posto ${selecao}`);
+      : selecao.length <= 2
+        ? selecao.map(nomePosto).join(" + ")
+        : `${selecao.length} postos`;
+
+  /** Clique em "Ver no painel" no mapa: soma o posto à seleção atual. */
+  const selecionarDoMapa = (ibm: string) =>
+    setSelecao((atual) => (atual.includes(ibm) ? atual : [...atual, ibm]));
 
   const ind = data?.indicadores;
   const diario = periodo === "diario";
@@ -183,7 +190,7 @@ function Index() {
             <PeriodTabs value={periodo} onChange={setPeriodo} />
           </div>
           <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
-            <NetworkFilter value={selecao} onChange={setSelecao} lojas={lojas} />
+            <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
             <span className="hidden h-5 w-px bg-border sm:block" />
             <LiveStatus
               atualizadoEm={dataUpdatedAt}
@@ -205,7 +212,7 @@ function Index() {
                 carregando={mapaCarregando}
                 erro={mapaErro}
                 periodoLabel={diario ? `Hoje até ${data?.corte ?? "--:--"}` : "Mês até hoje"}
-                onSelecionar={setSelecao}
+                onSelecionar={selecionarDoMapa}
               />
             </Suspense>
           </ClientOnly>
