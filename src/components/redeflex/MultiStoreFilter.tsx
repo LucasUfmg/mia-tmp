@@ -21,16 +21,30 @@ type Props = {
 
 export function MultiStoreFilter({ value, onChange, lojas }: Props) {
   const [aberto, setAberto] = useState(false);
+  // Rascunho local: só é aplicado ao dashboard ao clicar "Confirmar".
+  const [rascunho, setRascunho] = useState<string[]>(value);
 
-  const rede = value.length === 0;
-  const rotulo = rede
+  const rede = rascunho.length === 0;
+  const rotulo = value.length === 0
     ? "Rede (todos os postos)"
     : value.length === 1
       ? (lojas.find((l) => l.ibm === value[0])?.nome ?? `Posto ${value[0]}`)
       : `${value.length} postos selecionados`;
 
+  function abrir(v: boolean) {
+    if (v) setRascunho(value); // sincroniza o rascunho ao abrir
+    setAberto(v);
+  }
+
   function alternar(ibm: string) {
-    onChange(value.includes(ibm) ? value.filter((id) => id !== ibm) : [...value, ibm]);
+    setRascunho((atual) =>
+      atual.includes(ibm) ? atual.filter((id) => id !== ibm) : [...atual, ibm],
+    );
+  }
+
+  function confirmar() {
+    onChange(rascunho);
+    setAberto(false);
   }
 
   return (
@@ -39,7 +53,7 @@ export function MultiStoreFilter({ value, onChange, lojas }: Props) {
         <Building2 className="h-4 w-4" />
         Visualizar
       </span>
-      <Popover open={aberto} onOpenChange={setAberto}>
+      <Popover open={aberto} onOpenChange={abrir}>
         <PopoverTrigger asChild>
           <button
             type="button"
@@ -60,14 +74,14 @@ export function MultiStoreFilter({ value, onChange, lojas }: Props) {
             <CommandList className="max-h-72">
               <CommandEmpty>Nenhum posto encontrado.</CommandEmpty>
               <CommandGroup>
-                <CommandItem value="__rede" onSelect={() => onChange([])}>
+                <CommandItem value="__rede" onSelect={() => setRascunho([])}>
                   <Check className={cn("mr-2 h-4 w-4", rede ? "opacity-100" : "opacity-0")} />
                   <span className="font-semibold">Rede (todos os postos)</span>
                 </CommandItem>
               </CommandGroup>
               <CommandGroup heading="Postos">
                 {lojas.map((loja) => {
-                  const marcado = value.includes(loja.ibm);
+                  const marcado = rascunho.includes(loja.ibm);
                   return (
                     <CommandItem
                       key={loja.ibm}
@@ -85,19 +99,26 @@ export function MultiStoreFilter({ value, onChange, lojas }: Props) {
             </CommandList>
             <div className="flex items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
               <span className="text-muted-foreground">
-                {rede ? "Rede inteira" : `${value.length} de ${lojas.length}`}
+                {rede ? "Rede inteira" : `${rascunho.length} de ${lojas.length}`}
               </span>
               <span className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => onChange(lojas.map((l) => l.ibm))}
+                  onClick={confirmar}
+                  className="rounded-full bg-gold px-4 py-1 font-bold text-gold-foreground"
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRascunho(lojas.map((l) => l.ibm))}
                   className="rounded-full bg-brand-soft px-3 py-1 font-bold text-brand"
                 >
                   Selecionar todos
                 </button>
                 <button
                   type="button"
-                  onClick={() => onChange([])}
+                  onClick={() => setRascunho([])}
                   className="rounded-full px-3 py-1 font-bold text-muted-foreground hover:text-foreground"
                 >
                   Limpar
