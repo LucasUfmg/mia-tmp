@@ -10,7 +10,8 @@ const seriesSchema = z.object({
 
 const indicatorsSchema = z.object({
   dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(120),
-  ibm: z.string().min(1).optional(),
+  /** Um IBM ou uma lista de IBMs (valores agrupados). */
+  ibm: z.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(200)]).optional(),
   cutoffMinutes: z.number().int().min(0).max(1439).optional(),
   /** Início de um intervalo contínuo (visão mensal: 1º dia do mês). */
   desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),

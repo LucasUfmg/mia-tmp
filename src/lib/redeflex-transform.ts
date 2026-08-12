@@ -30,10 +30,17 @@ export function parseKeyedSeries(payload: Record<string, unknown> | null | undef
   return pontos.sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : 0));
 }
 
-/** Soma os valores por data, opcionalmente restringindo a um posto. */
-export function groupByDate(pontos: SeriePonto[], postoId?: string): Record<string, number> {
+/** Soma os valores por data, opcionalmente restringindo a um ou vários postos. */
+export function groupByDate(
+  pontos: SeriePonto[],
+  postoId?: string | string[],
+): Record<string, number> {
+  const permitidos =
+    postoId === undefined
+      ? null
+      : new Set(Array.isArray(postoId) ? postoId.filter(Boolean) : [postoId]);
   return pontos.reduce<Record<string, number>>((acc, ponto) => {
-    if (postoId && ponto.postoId !== postoId) return acc;
+    if (permitidos && permitidos.size > 0 && !permitidos.has(ponto.postoId)) return acc;
     acc[ponto.data] = (acc[ponto.data] ?? 0) + ponto.valor;
     return acc;
   }, {});
