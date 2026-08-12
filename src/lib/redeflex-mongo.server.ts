@@ -52,6 +52,20 @@ function filtroDatas(dates: string[], toEndOfDay: boolean, cutoffMinutes?: numbe
 }
 
 /**
+ * Escopo por posto: um IBM, uma lista de IBMs (`$in`) ou a rede inteira
+ * (sem filtro) quando nada é informado.
+ */
+function filtroDeIbm(ibm?: string | string[]) {
+  if (!ibm) return {};
+  if (Array.isArray(ibm)) {
+    const lista = [...new Set(ibm.filter(Boolean))];
+    if (lista.length === 0) return {};
+    return lista.length === 1 ? { ibm: lista[0]! } : { ibm: { $in: lista } };
+  }
+  return { ibm };
+}
+
+/**
  * Quando `desde` é informado, o filtro passa a ser um único intervalo contínuo
  * (`desde` 00:00 → corte da última data). Isso mantém a visão mensal leve: uma
  * faixa em vez de dezenas de `$or` sobre `dtHr`.
