@@ -20,7 +20,6 @@ import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
 import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
 import { loadMapa } from "@/lib/redeflex-mapa";
 import { usePersistedQueryCache } from "@/lib/query-persist";
-import { REDE_ID } from "@/lib/redeflex-transform";
 import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
 import type { Slice } from "@/data/redeflex";
 
