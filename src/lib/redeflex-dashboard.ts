@@ -17,7 +17,8 @@ import {
   variacao,
 } from "./redeflex-transform";
 
-export type Selecao = string; // REDE_ID ou o IBM do posto
+/** Lista de IBMs selecionados; vazia (ou com `REDE_ID`) = rede inteira. */
+export type Selecao = string[];
 
 export type Periodo = "diario" | "mensal";
 
