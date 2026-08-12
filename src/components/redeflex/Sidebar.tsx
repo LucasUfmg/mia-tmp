@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Home, SlidersHorizontal, PieChart } from "lucide-react";
+import { BookOpen, Home, SlidersHorizontal } from "lucide-react";
+import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 
 const itemBase =
   "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-colors";
@@ -7,17 +8,14 @@ const itemBase =
 export function Sidebar() {
   return (
     <aside className="hidden w-[268px] shrink-0 flex-col bg-sidebar px-5 py-7 text-sidebar-foreground lg:flex">
-      <div className="flex items-center gap-3 px-2">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sidebar-accent">
-          <PieChart className="h-6 w-6 text-gold" strokeWidth={2.4} />
-        </span>
-        <span className="leading-tight">
-          <span className="block text-xl font-extrabold tracking-tight">
-            REDE<span className="text-gold">FLEX</span>
-          </span>
-          <span className="block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
-            Inteligência em postos de combustíveis
-          </span>
+      <div className="px-2">
+        <img
+          src={logoRedeFlex}
+          alt="RedeFlex — rede de postos"
+          className="h-12 w-auto rounded-lg"
+        />
+        <span className="mt-2 block text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+          Inteligência em postos de combustíveis
         </span>
       </div>
 
