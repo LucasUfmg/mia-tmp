@@ -162,7 +162,7 @@ function Index() {
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
         <div className="mb-5 flex items-center gap-3 lg:hidden">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sidebar">
-            <PieChart className="h-5 w-5 text-brand" strokeWidth={2.4} />
+            <PieChart className="h-5 w-5 text-gold" strokeWidth={2.4} />
           </span>
           <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-base font-extrabold tracking-tight">
@@ -231,7 +231,7 @@ function Index() {
         <section className="card-elevated mt-6 grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
           {kpis.map(({ icon: Icon, label, value, hint }) => (
             <div key={label} className="flex items-center gap-4 px-4 py-4 sm:px-6 sm:py-5">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-soft text-gold-foreground sm:h-12 sm:w-12">
                 <Icon className="h-5 w-5" />
               </span>
               <div className="min-w-0">

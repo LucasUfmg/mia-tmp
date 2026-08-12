@@ -115,7 +115,7 @@ function balao(posto: PostoMapa, periodoLabel: string, media: number): string {
             linha("TMC", brl.format(posto.tmc))
           : `<div style="color:#64748b">Sem movimento no período</div>`
       }
-      <button data-ibm="${escapar(posto.ibm)}" style="margin-top:10px;width:100%;border:0;border-radius:8px;padding:7px 10px;background:#0f766e;color:#fff;font-weight:700;cursor:pointer">Ver no painel</button>
+      <button data-ibm="${escapar(posto.ibm)}" style="margin-top:10px;width:100%;border:0;border-radius:8px;padding:7px 10px;background:#1b4c9c;color:#fff;font-weight:700;cursor:pointer">Adicionar ao painel</button>
     </div>`;
 }
 
