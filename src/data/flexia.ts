@@ -51,8 +51,8 @@ export const conversa: Mensagem[] = [
 
 export const passos = [
   {
-    titulo: "Conecta no seu BI",
-    texto: "A Mia lê os mesmos dados do seu painel — galonagem, produtos, margem e postos.",
+    titulo: "Conecta na sua base",
+    texto: "A Mia lê direto do banco de dados do seu posto — galonagem, produtos, margem e postos.",
   },
   {
     titulo: "Você pergunta no WhatsApp",
@@ -114,7 +114,7 @@ export const economias = [
 
 export const beneficiosPlano = [
   "Perguntas ilimitadas no WhatsApp, 24h por dia",
-  "Dados on-time do seu BI — galonagem, margem, ticket e produtos",
+  "Dados on-time da base dos seus postos — galonagem, margem, ticket e produtos",
   "Comparativo com a semana anterior e projeção do mês",
   "Ranking dos postos e alertas proativos automáticos",
   "Acesso ao painel RedeFlex no navegador",
@@ -124,7 +124,7 @@ export const beneficiosPlano = [
 export const faq = [
   {
     p: "Como a Mia sabe os dados do meu posto?",
-    r: "Ela lê a mesma base que alimenta o seu BI. Nada é digitado à mão: assim que o abastecimento e a venda são registrados, a Mia já responde com o número atualizado.",
+    r: "Ela lê direto do banco de dados do seu posto. Nada é digitado à mão: assim que o abastecimento e a venda são registrados, a Mia já responde com o número atualizado.",
   },
   {
     p: "Preciso instalar algo?",

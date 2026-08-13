@@ -93,9 +93,9 @@ function AgentePage() {
               <span className="gold-text">já virou prejuízo</span>.
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
-              A Mia é a agente de IA que lê os dados dos seus postos em tempo real e responde no
-              WhatsApp: galonagem, margem M/LT, ticket médio, ranking e projeção. Você age no mesmo
-              dia — não no fechamento.
+              A Mia é a agente de IA que lê direto do banco de dados dos seus postos em tempo real e
+              responde no WhatsApp: galonagem, margem M/LT, ticket médio, ranking e projeção. Você age
+              no mesmo dia — não no fechamento.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <CtaPrincipal />
