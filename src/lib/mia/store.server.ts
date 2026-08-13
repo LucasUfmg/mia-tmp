@@ -26,8 +26,9 @@ export function normalizarTelefone(bruto: string): string {
 export function variantesTelefone(telefone: string): string[] {
   const variantes = new Set<string>([telefone]);
   const br = /^55(\d{2})(\d{8,9})$/.exec(telefone);
-  if (br) {
-    const [, ddd, resto] = br;
+  if (br?.[1] && br[2]) {
+    const ddd = br[1];
+    const resto = br[2];
     if (resto.length === 8) variantes.add(`55${ddd}9${resto}`);
     if (resto.length === 9 && resto.startsWith("9")) variantes.add(`55${ddd}${resto.slice(1)}`);
   }
