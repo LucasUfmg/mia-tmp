@@ -51,26 +51,31 @@ export const Route = createFileRoute("/api/public/whatsapp")({
 
         const contato = await buscarContato(telefone);
         if (!contato || !contato.ativo) {
+          console.warn(
+            "[Mia:webhook] número não autorizado:",
+            `${telefone.slice(0, 4)}****${telefone.slice(-4)}`,
+          );
           return twiml(
-            "Olá! Este número ainda não tem acesso aos dados da RedeFlex. Fale com o administrador da sua rede para liberar o seu WhatsApp.",
+            "Olá! Este número ainda não está liberado para consultar os dados da RedeFlex. Peça ao administrador da rede para cadastrar este WhatsApp e tente novamente.",
           );
         }
 
-        const usadas = await mensagensHoje(telefone);
+        const chave = contato.telefone || telefone;
+        const usadas = await mensagensHoje(chave);
         if (usadas >= contato.limite_diario) {
           return twiml(
             `Você já usou as ${contato.limite_diario} consultas do dia. Amanhã liberamos novas perguntas.`,
           );
         }
 
-        await registrar(telefone, "user", corpo);
+        await registrar(chave, "user", corpo);
 
         try {
           const comando = atalho(corpo);
           if (comando === "ajuda") return twiml(TEXTO_AJUDA);
           if (comando === "resumo") {
             const resumo = await resumoDoDia({ ibms: contato.ibms ?? [] });
-            await registrar(telefone, "assistant", resumo);
+            await registrar(chave, "assistant", resumo);
             return twiml(resumo);
           }
           return twiml(await responderPergunta(contato, corpo));
