@@ -93,34 +93,7 @@ export function criarFerramentas(escopo: Escopo) {
         escopo: escopoEnum,
         postos: z.array(z.string()).optional().describe("Nomes dos postos; vazio = todos os permitidos"),
       }),
-      execute: async ({ escopo: tipo, postos }) => {
-        const { referencia, corte, corteTexto, desde } = periodo(tipo);
-        const ibms = await resolverIbms(escopo, postos);
-        const dados = await comCache(
-          chaveDeCache("mia:ind", { referencia, corte, desde, ibms }),
-          false,
-          () => getIndicadores([referencia], ibms, corte, desde),
-        );
-        return {
-          referencia,
-          corte: corteTexto,
-          combustivel: {
-            litros: r0(dados.combustivel.litros),
-            faturamento: r0(dados.combustivel.receita),
-            resultadoBruto: r0(dados.combustivel.lucroBruto),
-            mlt: r2(dados.combustivel.mlt),
-            lbPercent: r2(dados.combustivel.lb),
-            tmc: r2(dados.combustivel.tmc),
-            tmv: r2(dados.combustivel.tmv),
-            atendimentos: dados.combustivel.atendimentos,
-          },
-          produto: {
-            receita: r0(dados.produto.receita),
-            tmp: r2(dados.produto.tmp),
-            cupons: dados.produto.cupons,
-          },
-        };
-      },
+      execute: async ({ escopo: tipo, postos }) => lerIndicadores(escopo, tipo, postos),
     }),
 
     comparativo_semanal: tool({
