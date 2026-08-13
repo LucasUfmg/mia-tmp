@@ -120,18 +120,29 @@ export function criarFerramentas(escopo: Escopo) {
         const datas = sameWeekdayDates(referencia, 4);
         const ibms = await resolverIbms(escopo, postos);
         const chave = { datas, corte, ibms };
-        const [comb, prod] = await comCache(chaveDeCache("mia:semana", chave), false, async () => {
-          const porPosto = Boolean(ibms);
-          return await Promise.all([
-            calcFuelByDates(datas, true, corte).then(() => calcFuelByDates(datas, true, corte)),
-            calcProductByDates(datas, true, corte),
-          ]).then(async ([, p]) => [await calcFuelByDates(datas, true, corte), p, porPosto] as const);
-        });
-        const litrosPorData = comb as Record<string, number>;
-        const produtoPorData = prod as Record<string, number>;
+        const { litrosPorData, produtoPorData } = await comCache(
+          chaveDeCache("mia:semana", chave),
+          false,
+          async () => {
+            if (!ibms) {
+              const [litros, produtos] = await Promise.all([
+                calcFuelByDates(datas, true, corte),
+                calcProductByDates(datas, true, corte),
+              ]);
+              return { litrosPorData: litros, produtoPorData: produtos };
+            }
+            const [litros, produtos] = await Promise.all([
+              getVolumePorPosto(datas, true, corte),
+              getItensTotaisPorPosto(datas, true, corte),
+            ]);
+            return {
+              litrosPorData: somarPostos(litros, datas, ibms),
+              produtoPorData: somarPostos(produtos, datas, ibms),
+            };
+          },
+        );
         return {
           corte: formatCorte(corte),
-          observacao: ibms ? "Valores da rede inteira; filtro por posto use a ferramenta ranking." : undefined,
           dias: datas.map((d) => ({
             data: d,
             litros: r0(litrosPorData[d] ?? 0),
