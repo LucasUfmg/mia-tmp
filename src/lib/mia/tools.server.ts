@@ -74,6 +74,36 @@ async function resolverIbms(escopo: Escopo, postos?: string[]): Promise<string[]
   return [...new Set(alvo)];
 }
 
+/** Indicadores do dia (on-time) ou do acumulado do mês, já arredondados. */
+export async function lerIndicadores(escopo: Escopo, tipo: EscopoPeriodo, postos?: string[]) {
+  const { referencia, corte, corteTexto, desde } = periodo(tipo);
+  const ibms = await resolverIbms(escopo, postos);
+  const dados = await comCache(
+    chaveDeCache("mia:ind", { referencia, corte, desde, ibms }),
+    false,
+    () => getIndicadores([referencia], ibms, corte, desde),
+  );
+  return {
+    referencia,
+    corte: corteTexto,
+    combustivel: {
+      litros: r0(dados.combustivel.litros),
+      faturamento: r0(dados.combustivel.receita),
+      resultadoBruto: r0(dados.combustivel.lucroBruto),
+      mlt: r2(dados.combustivel.mlt),
+      lbPercent: r2(dados.combustivel.lb),
+      tmc: r2(dados.combustivel.tmc),
+      tmv: r2(dados.combustivel.tmv),
+      atendimentos: dados.combustivel.atendimentos,
+    },
+    produto: {
+      receita: r0(dados.produto.receita),
+      tmp: r2(dados.produto.tmp),
+      cupons: dados.produto.cupons,
+    },
+  };
+}
+
 /** Ferramentas do agente: leitura dos mesmos dados do painel, nada de escrita. */
 export function criarFerramentas(escopo: Escopo) {
   return {
