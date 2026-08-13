@@ -10,6 +10,8 @@ import {
   getCategoriasProduto,
   getIndicadores,
   getIndicadoresPorPosto,
+  getItensTotaisPorPosto,
+  getVolumePorPosto,
   listarLojas,
 } from "../redeflex-mongo.server";
 import { corteAgora, diaDoMes, diasNoMes, formatCorte, hojeSaoPaulo, primeiroDiaDoMes } from "./datas";
@@ -22,6 +24,19 @@ type EscopoPeriodo = z.infer<typeof escopoEnum>;
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const r0 = (n: number) => Math.round(n);
+
+/** Soma as chaves `IBM_data` dos postos permitidos em um total por data. */
+function somarPostos(
+  serie: Record<string, number>,
+  datas: string[],
+  ibms: string[],
+): Record<string, number> {
+  const total: Record<string, number> = {};
+  for (const data of datas) {
+    total[data] = ibms.reduce((soma, ibm) => soma + (serie[`${ibm}_${data}`] ?? 0), 0);
+  }
+  return total;
+}
 
 function periodo(tipo: EscopoPeriodo) {
   const referencia = hojeSaoPaulo();
