@@ -193,6 +193,48 @@
   }
 }
 
+/* Tema preto & dourado — usado apenas na landing page da Mia. */
+.mia-landing {
+  --background: oklch(0.13 0.004 70);
+  --foreground: oklch(0.97 0.012 88);
+  --surface: oklch(0.185 0.008 75);
+  --surface-muted: oklch(0.16 0.006 75);
+  --card: oklch(0.185 0.008 75);
+  --card-foreground: oklch(0.97 0.012 88);
+  --popover: oklch(0.185 0.008 75);
+  --popover-foreground: oklch(0.97 0.012 88);
+  --brand: oklch(0.82 0.148 88);
+  --brand-foreground: oklch(0.16 0.012 75);
+  --brand-soft: oklch(0.26 0.05 85);
+  --gold: oklch(0.82 0.148 88);
+  --gold-foreground: oklch(0.16 0.012 75);
+  --gold-soft: oklch(0.26 0.05 85);
+  --muted: oklch(0.22 0.01 78);
+  --muted-foreground: oklch(0.75 0.02 88);
+  --border: oklch(0.3 0.022 82);
+  --input: oklch(0.3 0.022 82);
+  --ring: oklch(0.82 0.148 88);
+  --sidebar: oklch(0.1 0.004 70);
+  --sidebar-foreground: oklch(0.97 0.012 88);
+  --sidebar-accent: oklch(0.2 0.018 82);
+  --sidebar-border: oklch(0.28 0.022 82);
+  --wa: oklch(0.5 0.085 162);
+  --wa-foreground: oklch(0.99 0.005 162);
+  --wa-bubble: oklch(0.26 0.045 150);
+  --wa-canvas: oklch(0.155 0.008 120);
+  --shadow-card:
+    0 1px 2px oklch(0 0 0 / 45%), 0 24px 48px -28px oklch(0.82 0.148 88 / 18%);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+@utility gold-text {
+  background: linear-gradient(100deg, oklch(0.9 0.11 92), oklch(0.78 0.16 82));
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
 @media print {
   body {
     background: white !important;

@@ -87,3 +87,55 @@ export const insights = [
     texto: "Acompanha o ritmo do mês e sinaliza quem não fecha no projetado.",
   },
 ];
+
+/** Estimativas de economia — cenário de referência, editável. */
+export const economias = [
+  {
+    titulo: "R$ 3.000 por mês em margem",
+    texto:
+      "Uma queda de R$ 0,02 no M/LT passa despercebida no fechamento. Em 150 mil litros/mês são R$ 3.000 que somem — a Mia avisa no mesmo dia.",
+  },
+  {
+    titulo: "R$ 1.800 em desvio de bomba e turno",
+    texto:
+      "Turno com galonagem 20% abaixo do padrão é sinalizado na hora, antes de virar prejuízo do mês inteiro.",
+  },
+  {
+    titulo: "20 horas/mês do gerente",
+    texto:
+      "Fim do vai e volta de planilha e print no grupo: a resposta chega em segundos, no WhatsApp de quem decide.",
+  },
+  {
+    titulo: "Ruptura e ticket de loja",
+    texto:
+      "TMP e cupons acompanhados diariamente mostram onde a conveniência está deixando dinheiro na mesa.",
+  },
+];
+
+export const beneficiosPlano = [
+  "Perguntas ilimitadas no WhatsApp, 24h por dia",
+  "Dados on-time do seu BI — galonagem, margem, ticket e produtos",
+  "Comparativo com a semana anterior e projeção do mês",
+  "Ranking dos postos e alertas proativos automáticos",
+  "Acesso ao painel RedeFlex no navegador",
+  "Sem taxa de instalação, sem fidelidade — cancela quando quiser",
+];
+
+export const faq = [
+  {
+    p: "Como a Mia sabe os dados do meu posto?",
+    r: "Ela lê a mesma base que alimenta o seu BI. Nada é digitado à mão: assim que o abastecimento e a venda são registrados, a Mia já responde com o número atualizado.",
+  },
+  {
+    p: "Preciso instalar algo?",
+    r: "Não. É só liberar o número de WhatsApp de quem vai perguntar. Em minutos a Mia está respondendo.",
+  },
+  {
+    p: "Quantas pessoas podem usar?",
+    r: "Você libera os números que quiser (dono, gerente, supervisor) e define quais postos cada um pode consultar.",
+  },
+  {
+    p: "R$ 19,90 é por posto?",
+    r: "Sim, R$ 19,90 por posto por mês. Uma rede com 10 postos paga R$ 199,00 — menos do que um único dia de margem perdida.",
+  },
+];
