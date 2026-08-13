@@ -4,7 +4,7 @@ import { createLovableAiGatewayProvider } from "../ai-gateway.server";
 import { comSessao } from "../mongo.server";
 import { corteAgora, formatCorte, hojeSaoPaulo } from "./datas";
 import { promptSistema } from "./prompt";
-import { criarFerramentas, type Escopo } from "./tools.server";
+import { criarFerramentas, lerIndicadores, type Escopo } from "./tools.server";
 import { historico as carregarHistorico, registrar, type Contato } from "./store.server";
 
 /** Modelo barato por padrão; sobe para o Flash só em perguntas longas/analíticas. */
@@ -43,11 +43,7 @@ export const TEXTO_AJUDA = [
 /** Panorama do dia direto das ferramentas, sem passar pelo modelo. */
 export async function resumoDoDia(escopo: Escopo): Promise<string> {
   return await comSessao(async () => {
-    const ferramentas = criarFerramentas(escopo);
-    const dados = await ferramentas.indicadores.execute!(
-      { escopo: "hoje" },
-      { toolCallId: "resumo", messages: [] },
-    );
+    const dados = await lerIndicadores(escopo, "hoje");
     const brl = (n: number) =>
       n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
     const litros = (n: number) => `${n.toLocaleString("pt-BR")} L`;
