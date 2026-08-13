@@ -19,12 +19,29 @@ export function normalizarTelefone(bruto: string): string {
   return bruto.replace(/\D/g, "");
 }
 
+/**
+ * Variantes de um celular brasileiro: com e sem o 9º dígito depois do DDD.
+ * O WhatsApp/Twilio às vezes entrega o número sem o 9.
+ */
+export function variantesTelefone(telefone: string): string[] {
+  const variantes = new Set<string>([telefone]);
+  const br = /^55(\d{2})(\d{8,9})$/.exec(telefone);
+  if (br?.[1] && br[2]) {
+    const ddd = br[1];
+    const resto = br[2];
+    if (resto.length === 8) variantes.add(`55${ddd}9${resto}`);
+    if (resto.length === 9 && resto.startsWith("9")) variantes.add(`55${ddd}${resto.slice(1)}`);
+  }
+  return [...variantes];
+}
+
 export async function buscarContato(telefone: string): Promise<Contato | null> {
   const db = await admin();
   const { data, error } = await db
     .from("mia_contatos")
     .select("telefone, nome, ibms, ativo, limite_diario")
-    .eq("telefone", telefone)
+    .in("telefone", variantesTelefone(telefone))
+    .limit(1)
     .maybeSingle();
   if (error) {
     console.error("[Mia:buscarContato]", error.message);

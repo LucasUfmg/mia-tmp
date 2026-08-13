@@ -276,12 +276,12 @@ function Index() {
         <div className="mt-6 grid gap-6 xl:grid-cols-2">
           <DistributionCard
             title="Distribuição dos Combustíveis"
-            data={toSlices(data?.categorias.combustiveis, "M/LT", (v) => brl.format(v), true)}
+            data={toSlices(data?.categorias?.combustiveis, "M/LT", (v) => brl.format(v), true)}
             note="Participação por faturamento — passe o mouse para ver M/LT, LB e RB"
           />
           <DistributionCard
             title="Distribuição dos Produtos"
-            data={toSlices(data?.categorias.produtos, "TMP", (v) => brl.format(v), false)}
+            data={toSlices(data?.categorias?.produtos, "TMP", (v) => brl.format(v), false)}
             note="Participação por faturamento — passe o mouse para ver TMP"
           />
         </div>
