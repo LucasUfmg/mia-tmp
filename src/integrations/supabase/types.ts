@@ -14,7 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      mia_contatos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          ibms: string[]
+          limite_diario: number
+          nome: string | null
+          telefone: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          ibms?: string[]
+          limite_diario?: number
+          nome?: string | null
+          telefone: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          ibms?: string[]
+          limite_diario?: number
+          nome?: string | null
+          telefone?: string
+        }
+        Relationships: []
+      }
+      mia_mensagens: {
+        Row: {
+          created_at: string
+          id: string
+          papel: string
+          telefone: string
+          texto: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          papel: string
+          telefone: string
+          texto: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          papel?: string
+          telefone?: string
+          texto?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
