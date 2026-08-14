@@ -118,7 +118,8 @@ export const beneficiosPlano = [
   "Comparativo com a semana anterior e projeção do mês",
   "Ranking dos postos e alertas proativos automáticos",
   "Acesso ao painel RedeFlex no navegador",
-  "Sem taxa de instalação, sem fidelidade — cancela quando quiser",
+  "Setup de R$ 1.599 — configuração e treinamento inclusos",
+  "Sem contrato de fidelidade — cancela quando quiser",
 ];
 
 export const faq = [
@@ -136,6 +137,6 @@ export const faq = [
   },
   {
     p: "R$ 19,90 é por posto?",
-    r: "Sim, R$ 19,90 por posto por mês. Uma rede com 10 postos paga R$ 199,00 — menos do que um único dia de margem perdida.",
+    r: "Sim, R$ 19,90 por posto por mês. Para começar há um setup único de R$ 1.599, que inclui a configuração técnica e o treinamento da sua equipe. Uma rede com 10 postos investe R$ 1.599 + R$ 199/mês.",
   },
 ];
