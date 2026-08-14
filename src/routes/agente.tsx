@@ -231,8 +231,11 @@ function AgentePage() {
               </span>
               <span className="pb-2 text-sm text-muted-foreground">/ posto / mês</span>
             </p>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              Setup único: R$ 1.599
+            </p>
             <p className="mt-3 text-sm text-muted-foreground">
-              Preço único por posto. Sem taxa de setup, sem contrato de fidelidade.
+              Setup com configuração e treinamento inclusos. Sem contrato de fidelidade.
             </p>
             <ul className="mt-7 grid gap-3">
               {beneficiosPlano.map((b) => (
