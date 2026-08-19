@@ -12,9 +12,9 @@ import {
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
 import { beneficiosPlano, capacidades, economias, faq, insights, passos } from "@/data/flexia";
 
-const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 19,90 por posto";
+const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 49,90 por telefone";
 const description =
-  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 19,90 por posto/mês, sem instalação.";
+  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 49,90 por telefone/mês, setup de R$ 4.990.";
 const url = "https://mia-tmp.lovable.app/agente";
 
 const WHATSAPP =
@@ -86,7 +86,7 @@ function AgentePage() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand">
               <Sparkle className="h-3.5 w-3.5" />
-              R$ 19,90 por posto / mês
+              R$ 49,90 por telefone / mês
             </span>
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-5xl lg:text-[3.4rem]">
               Cada centavo de margem que você descobre no dia 30{" "}
@@ -111,7 +111,7 @@ function AgentePage() {
               {[
                 { k: "< 5s", v: "Para saber sua margem" },
                 { k: "24/7", v: "Sempre respondendo" },
-                { k: "R$ 0,66", v: "Por dia, por posto" },
+                { k: "R$ 1,66", v: "Por dia, por telefone" },
               ].map((s) => (
                 <div key={s.k}>
                   <dt className="text-2xl font-extrabold text-brand">{s.k}</dt>
@@ -148,8 +148,8 @@ function AgentePage() {
           ))}
         </div>
         <p className="mt-8 text-sm text-muted-foreground">
-          Investimento: <strong className="text-foreground">R$ 19,90 por posto/mês</strong>. Uma
-          rede de 10 postos paga R$ 199 — menos de 7% de uma única correção de margem.
+          Investimento: <strong className="text-foreground">R$ 49,90 por telefone/mês</strong>. Uma
+          rede com 5 gestores cadastrados paga R$ 249,50 — menos de 7% de uma única correção de margem.
         </p>
       </section>
 
@@ -227,12 +227,12 @@ function AgentePage() {
             </p>
             <p className="mt-4 flex items-end gap-2">
               <span className="text-5xl font-extrabold tracking-tight text-brand md:text-6xl">
-                R$ 19,90
+                R$ 49,90
               </span>
-              <span className="pb-2 text-sm text-muted-foreground">/ posto / mês</span>
+              <span className="pb-2 text-sm text-muted-foreground">/ telefone / mês</span>
             </p>
             <p className="mt-2 text-sm font-semibold text-foreground">
-              Setup único: R$ 1.599
+              Setup único: R$ 4.990
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               Setup com configuração e treinamento inclusos. Sem contrato de fidelidade.
@@ -271,7 +271,7 @@ function AgentePage() {
       <section className="border-t border-border bg-sidebar py-16 lg:py-24">
         <div className="mx-auto max-w-3xl px-5 text-center md:px-8">
           <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-            Sua rede em tempo real por <span className="gold-text">R$ 0,66 ao dia</span>
+            Sua rede em tempo real por <span className="gold-text">R$ 1,66 ao dia</span>
           </h2>
           <p className="mt-4 text-muted-foreground">
             Fale agora no WhatsApp <strong className="text-foreground">(31) 99293-2316</strong> e
