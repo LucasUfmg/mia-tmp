@@ -118,7 +118,7 @@ export const beneficiosPlano = [
   "Comparativo com a semana anterior e projeção do mês",
   "Ranking dos postos e alertas proativos automáticos",
   "Acesso ao painel RedeFlex no navegador",
-  "Setup de R$ 1.599 — configuração e treinamento inclusos",
+  "Setup de R$ 4.990 — configuração e treinamento inclusos",
   "Sem contrato de fidelidade — cancela quando quiser",
 ];
 
@@ -136,7 +136,7 @@ export const faq = [
     r: "Você libera os números que quiser (dono, gerente, supervisor) e define quais postos cada um pode consultar.",
   },
   {
-    p: "R$ 19,90 é por posto?",
-    r: "Sim, R$ 19,90 por posto por mês. Para começar há um setup único de R$ 1.599, que inclui a configuração técnica e o treinamento da sua equipe. Uma rede com 10 postos investe R$ 1.599 + R$ 199/mês.",
+    p: "R$ 49,90 é por telefone?",
+    r: "Sim, R$ 49,90 por número de WhatsApp cadastrado por mês. Para começar há um setup único de R$ 4.990, que inclui a configuração técnica e o treinamento da sua equipe. Uma rede com 5 gestores cadastrados investe R$ 4.990 + R$ 249,50/mês.",
   },
 ];
