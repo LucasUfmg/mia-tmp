@@ -12,9 +12,9 @@ import {
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
 import { beneficiosPlano, capacidades, economias, faq, insights, passos } from "@/data/flexia";
 
-const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 19,90 por posto";
+const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 49,90 por telefone";
 const description =
-  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 19,90 por posto/mês, sem instalação.";
+  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 49,90 por telefone/mês, setup de R$ 4.990.";
 const url = "https://mia-tmp.lovable.app/agente";
 
 const WHATSAPP =
@@ -86,7 +86,7 @@ function AgentePage() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand">
               <Sparkle className="h-3.5 w-3.5" />
-              R$ 19,90 por posto / mês
+              R$ 49,90 por telefone / mês
             </span>
             <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-5xl lg:text-[3.4rem]">
               Cada centavo de margem que você descobre no dia 30{" "}
@@ -111,7 +111,7 @@ function AgentePage() {
               {[
                 { k: "< 5s", v: "Para saber sua margem" },
                 { k: "24/7", v: "Sempre respondendo" },
-                { k: "R$ 0,66", v: "Por dia, por posto" },
+                { k: "R$ 1,66", v: "Por dia, por telefone" },
               ].map((s) => (
                 <div key={s.k}>
                   <dt className="text-2xl font-extrabold text-brand">{s.k}</dt>
