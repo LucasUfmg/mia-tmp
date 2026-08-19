@@ -271,7 +271,7 @@ function AgentePage() {
       <section className="border-t border-border bg-sidebar py-16 lg:py-24">
         <div className="mx-auto max-w-3xl px-5 text-center md:px-8">
           <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">
-            Sua rede em tempo real por <span className="gold-text">R$ 0,66 ao dia</span>
+            Sua rede em tempo real por <span className="gold-text">R$ 1,66 ao dia</span>
           </h2>
           <p className="mt-4 text-muted-foreground">
             Fale agora no WhatsApp <strong className="text-foreground">(31) 99293-2316</strong> e
