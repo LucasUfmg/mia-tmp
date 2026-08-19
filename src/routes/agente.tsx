@@ -148,8 +148,8 @@ function AgentePage() {
           ))}
         </div>
         <p className="mt-8 text-sm text-muted-foreground">
-          Investimento: <strong className="text-foreground">R$ 19,90 por posto/mês</strong>. Uma
-          rede de 10 postos paga R$ 199 — menos de 7% de uma única correção de margem.
+          Investimento: <strong className="text-foreground">R$ 49,90 por telefone/mês</strong>. Uma
+          rede com 5 gestores cadastrados paga R$ 249,50 — menos de 7% de uma única correção de margem.
         </p>
       </section>
 
@@ -227,12 +227,12 @@ function AgentePage() {
             </p>
             <p className="mt-4 flex items-end gap-2">
               <span className="text-5xl font-extrabold tracking-tight text-brand md:text-6xl">
-                R$ 19,90
+                R$ 49,90
               </span>
-              <span className="pb-2 text-sm text-muted-foreground">/ posto / mês</span>
+              <span className="pb-2 text-sm text-muted-foreground">/ telefone / mês</span>
             </p>
             <p className="mt-2 text-sm font-semibold text-foreground">
-              Setup único: R$ 1.599
+              Setup único: R$ 4.990
             </p>
             <p className="mt-3 text-sm text-muted-foreground">
               Setup com configuração e treinamento inclusos. Sem contrato de fidelidade.
