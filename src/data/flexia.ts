@@ -122,6 +122,43 @@ export const beneficiosPlano = [
   "Sem contrato de fidelidade — cancela quando quiser",
 ];
 
+/** Números de demonstração do Mia BI (fictícios). */
+export const biKpis = {
+  combustiveis: {
+    rb: "R$ 13.020,32",
+    metrics: [
+      { label: "M/LT", value: "R$ 0,66" },
+      { label: "LB", value: "11%" },
+      { label: "TMC", value: "R$ 116,16" },
+      { label: "TMV", value: "21,42 L" },
+    ],
+  },
+  produtos: {
+    rb: "R$ 561,00",
+    metrics: [{ label: "TMP", value: "R$ 0,82" }],
+  },
+};
+
+export const biDistribuicao = [
+  { name: "Óleo Diesel Comum", value: 16, mlt: "R$ 0,57", lb: "11%" },
+  { name: "Óleo Diesel S500", value: 11, mlt: "R$ 0,48", lb: "9%" },
+  { name: "Gasolina Aditivada", value: 7, mlt: "R$ 0,22", lb: "6%" },
+  { name: "Gasolina Comum", value: 5, mlt: "R$ 0,31", lb: "5%" },
+  { name: "Etanol Hidratado", value: 3, mlt: "R$ 0,66", lb: "4%" },
+];
+
+export const biBeneficios = [
+  "Dados on-time lidos direto da base dos seus postos",
+  "Big numbers da rede: RB, M/LT, LB, TMC, TMV e TMP",
+  "Visão diária e acumulado do mês em um clique",
+  "Comparativo com a semana anterior no mesmo horário",
+  "Projeção de fechamento de combustível e produtos",
+  "Ranking dos postos e distribuição por combustível e produto",
+  "Mapa da rede com desempenho de cada posto",
+  "Seleção múltipla de postos com valores agrupados",
+  "Acesso pelo navegador no computador ou no celular",
+];
+
 export const faq = [
   {
     p: "Como a Mia sabe os dados do meu posto?",
