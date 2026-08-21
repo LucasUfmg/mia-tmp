@@ -4,22 +4,36 @@ import {
   Bot,
   Check,
   Clock,
+  LayoutDashboard,
   MessageCircle,
   Sparkle,
   TrendingDown,
   Zap,
 } from "lucide-react";
+import { BiMockup } from "@/components/flexia/BiMockup";
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
-import { beneficiosPlano, capacidades, economias, faq, insights, passos } from "@/data/flexia";
+import {
+  beneficiosPlano,
+  biBeneficios,
+  capacidades,
+  economias,
+  faq,
+  insights,
+  passos,
+} from "@/data/flexia";
 
-const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 49,90 por telefone";
+const title = "Mia — IA no WhatsApp e painel em tempo real para postos de combustíveis";
 const description =
-  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 49,90 por telefone/mês, setup de R$ 4.990.";
+  "Margem, galonagem e ticket do seu posto em tempo real: Mia no WhatsApp por R$ 49,90 por telefone/mês e o painel Mia BI exclusivo por R$ 297/mês.";
 const url = "https://mia-tmp.lovable.app/agente";
 
 const WHATSAPP =
   "https://wa.me/5531992932316?text=" +
   encodeURIComponent("Olá! Quero conhecer a Mia para os meus postos.");
+
+const WHATSAPP_BI =
+  "https://wa.me/5531992932316?text=" +
+  encodeURIComponent("Olá! Quero contratar o Mia BI (painel em tempo real) para os meus postos.");
 
 export const Route = createFileRoute("/agente")({
   head: () => ({
