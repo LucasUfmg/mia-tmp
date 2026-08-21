@@ -4,22 +4,36 @@ import {
   Bot,
   Check,
   Clock,
+  LayoutDashboard,
   MessageCircle,
   Sparkle,
   TrendingDown,
   Zap,
 } from "lucide-react";
+import { BiMockup } from "@/components/flexia/BiMockup";
 import { WhatsappMockup } from "@/components/flexia/WhatsappMockup";
-import { beneficiosPlano, capacidades, economias, faq, insights, passos } from "@/data/flexia";
+import {
+  beneficiosPlano,
+  biBeneficios,
+  capacidades,
+  economias,
+  faq,
+  insights,
+  passos,
+} from "@/data/flexia";
 
-const title = "Mia — IA no WhatsApp para postos de combustíveis | R$ 49,90 por telefone";
+const title = "Mia — IA no WhatsApp e painel em tempo real para postos de combustíveis";
 const description =
-  "Saiba a margem, a galonagem e o ticket do seu posto em tempo real pelo WhatsApp. A Mia avisa antes do prejuízo acontecer. R$ 49,90 por telefone/mês, setup de R$ 4.990.";
+  "Margem, galonagem e ticket do seu posto em tempo real: Mia no WhatsApp por R$ 49,90 por telefone/mês e o painel Mia BI exclusivo por R$ 297/mês.";
 const url = "https://mia-tmp.lovable.app/agente";
 
 const WHATSAPP =
   "https://wa.me/5531992932316?text=" +
   encodeURIComponent("Olá! Quero conhecer a Mia para os meus postos.");
+
+const WHATSAPP_BI =
+  "https://wa.me/5531992932316?text=" +
+  encodeURIComponent("Olá! Quero contratar o Mia BI (painel em tempo real) para os meus postos.");
 
 export const Route = createFileRoute("/agente")({
   head: () => ({
@@ -123,6 +137,68 @@ function AgentePage() {
 
           <div id="conversa" className="lg:pl-6">
             <WhatsappMockup />
+          </div>
+        </div>
+      </section>
+
+      <section id="bi" className="border-b border-border bg-surface-muted py-16 lg:py-24">
+        <div className="mx-auto max-w-6xl px-5 md:px-8">
+          <span className="inline-flex items-center gap-2 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-brand">
+            <LayoutDashboard className="h-3.5 w-3.5" />
+            Mia BI · Painel em tempo real
+          </span>
+          <h2 className="mt-5 max-w-3xl text-3xl font-extrabold tracking-tight md:text-4xl">
+            O mesmo dado da Mia, agora <span className="gold-text">na tela</span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-muted-foreground">
+            O Mia BI é o painel exclusivo da sua rede: os mesmos números que a Mia lê direto do banco
+            de dados dos seus postos, organizados em big numbers, gráficos, ranking e mapa — sempre
+            on-time.
+          </p>
+
+          <div className="mt-10">
+            <BiMockup />
+          </div>
+
+          <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_1fr] lg:items-start">
+            <ul className="grid gap-3 sm:grid-cols-2">
+              {biBeneficios.map((b) => (
+                <li key={b} className="flex items-start gap-3 text-sm">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                  <span className="text-muted-foreground">{b}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="card-elevated brand-rail p-7 pl-8">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                Mia BI
+              </p>
+              <p className="mt-4 flex items-end gap-2">
+                <span className="text-4xl font-extrabold tracking-tight text-brand md:text-5xl">
+                  R$ 297
+                </span>
+                <span className="pb-1.5 text-sm text-muted-foreground">/ mês</span>
+              </p>
+              <p className="mt-3 text-sm text-muted-foreground">
+                Painel exclusivo da sua rede, com usuários liberados por posto. Pode ser contratado
+                junto da Mia no WhatsApp (R$ 49,90 por telefone/mês). Sem contrato de fidelidade.
+              </p>
+              <div className="mt-6">
+                <a
+                  href={WHATSAPP_BI}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-brand-foreground shadow-[0_12px_32px_-14px_oklch(0.82_0.148_88/60%)] transition hover:brightness-110"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Quero o Mia BI
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
