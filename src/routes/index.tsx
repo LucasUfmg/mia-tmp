@@ -17,7 +17,8 @@ import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
 import { LiveStatus } from "@/components/redeflex/LiveStatus";
 import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
-import { loadDashboardData, loadLojas } from "@/lib/redeflex-dashboard";
+import { SellerRanking } from "@/components/redeflex/SellerRanking";
+import { loadDashboardData, loadLojas, loadRankingVendedores } from "@/lib/redeflex-dashboard";
 import { loadMapa } from "@/lib/redeflex-mapa";
 import { usePersistedQueryCache } from "@/lib/query-persist";
 import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
@@ -74,6 +75,7 @@ function toSlices(
 function Index() {
   const [selecao, setSelecao] = useState<string[]>([]);
   const [periodo, setPeriodo] = useState<Periodo>("diario");
+  const [ordemVendedores, setOrdemVendedores] = useState<"maiores" | "menores">("maiores");
   const forcar = useRef(false);
 
   usePersistedQueryCache();
@@ -108,6 +110,21 @@ function Index() {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
     refetchIntervalInBackground: false,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const { data: vendedores = [], isPending: vendedoresCarregando } = useQuery({
+    queryKey: [
+      "redeflex",
+      "vendedores",
+      [...selecao].sort().join(","),
+      periodo,
+      ordemVendedores,
+    ],
+    queryFn: () => loadRankingVendedores(selecao, periodo, ordemVendedores, 10),
+    refetchInterval: 60_000,
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     placeholderData: keepPreviousData,
@@ -283,6 +300,19 @@ function Index() {
             title="Distribuição dos Produtos"
             data={toSlices(data?.categorias?.produtos, "TMP", (v) => brl.format(v), false)}
             note="Participação por faturamento — passe o mouse para ver TMP"
+          />
+        </div>
+        <div className="mt-6">
+          <SellerRanking
+            vendedores={vendedores}
+            ordem={ordemVendedores}
+            onOrdemChange={setOrdemVendedores}
+            nomePosto={nomePosto}
+            mostrarPosto={selecao.length !== 1}
+            carregando={vendedoresCarregando}
+            nota={`${escopo} · venda de combustível por funcionário ${
+              diario ? `hoje até ${data?.corte ?? "--:--"}` : "no mês até hoje"
+            }`}
           />
         </div>
       </main>
