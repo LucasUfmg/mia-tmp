@@ -265,3 +265,41 @@ export const getIndicatorsPorPosto = createServerFn({ method: "POST" })
       throw error;
     }
   });
+
+const vendedoresSchema = z.object({
+  dates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).min(1).max(31),
+  ibm: z.union([z.string().min(1), z.array(z.string().min(1)).min(1).max(200)]).optional(),
+  cutoffMinutes: z.number().int().min(0).max(1439).optional(),
+  desde: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  limite: z.number().int().min(1).max(20).default(10),
+  ordem: z.enum(["maiores", "menores"]).default("maiores"),
+  fresh: z.boolean().default(false),
+});
+
+/** Ranking de venda de combustível por funcionário (frentista). */
+export const getVendedores = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => vendedoresSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { fresh, ...escopo } = data;
+    try {
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      return await comCache(chaveDeCache("vendedores", escopo), fresh, async () => {
+        const { comSessao } = await import("./mongo.server");
+        const { getRankingVendedores } = await import("./redeflex-mongo.server");
+        return await comSessao(
+          async () =>
+            await getRankingVendedores(
+              escopo.dates,
+              escopo.ibm,
+              escopo.cutoffMinutes,
+              escopo.desde,
+              escopo.limite,
+              escopo.ordem,
+            ),
+        );
+      });
+    } catch (error) {
+      console.error("[RedeFlex:getVendedores]", error);
+      throw error;
+    }
+  });

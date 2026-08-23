@@ -704,3 +704,117 @@ function consolidar(
   }
   return principais;
 }
+const COLECAO_USUARIOS = ["Usuarios", "usuarios"];
+
+export type VendedorIndicador = {
+  ibm: string;
+  ven: string;
+  nome: string;
+  litros: number;
+  receita: number;
+  lucroBruto: number;
+  atendimentos: number;
+  mlt: number;
+  tmc: number;
+  tmv: number;
+};
+
+/**
+ * Nome de cada frentista. `Abastecimentos.ven` casa com `Usuarios.id` dentro do
+ * mesmo IBM. A coleção guarda um retrato por dia — fica o registro mais recente.
+ */
+async function nomesDeVendedores(
+  pares: { ibm: string; ven: string }[],
+): Promise<Map<string, string>> {
+  const nomes = new Map<string, string>();
+  if (pares.length === 0) return nomes;
+
+  const col = await colecao("lbc", COLECAO_USUARIOS);
+  const ibms = [...new Set(pares.map((p) => p.ibm))];
+  const ids = [...new Set(pares.map((p) => p.ven))];
+  const docs = await col
+    .find(
+      { ibm: { $in: ibms }, id: { $in: ids } },
+      { projection: { ibm: 1, id: 1, nom: 1, dtHr: 1 }, sort: { dtHr: -1 }, limit: 5000 },
+    )
+    .toArray();
+
+  for (const doc of docs as unknown as Record<string, unknown>[]) {
+    const ibm = typeof doc["ibm"] === "string" ? doc["ibm"] : null;
+    const id = typeof doc["id"] === "string" ? doc["id"] : null;
+    const nome = typeof doc["nom"] === "string" ? doc["nom"].trim() : "";
+    if (!ibm || !id || !nome) continue;
+    const chave = `${ibm}|${id}`;
+    if (!nomes.has(chave)) nomes.set(chave, nome);
+  }
+  return nomes;
+}
+
+/**
+ * Ranking de vendas de combustível por funcionário (frentista) no período.
+ * Mesmas fórmulas dos indicadores da rede: M/LT, TMC e TMV.
+ */
+export async function getRankingVendedores(
+  dates: string[],
+  ibm?: string | string[],
+  cutoffMinutes?: number,
+  desde?: string,
+  limite = 10,
+  ordem: "maiores" | "menores" = "maiores",
+): Promise<VendedorIndicador[]> {
+  const linhas = await agregar<{
+    _id: { ibm: string | null; ven: string | null };
+    litros: number;
+    receita: number;
+    custo: number;
+    atendimentos: number;
+  }>("gasMonitor", COLECAO_ABASTECIMENTOS, [
+    {
+      $match: {
+        ori: { $in: ["0", "1"] },
+        ...filtroDeIbm(ibm),
+        ...filtroPeriodo(dates, true, cutoffMinutes, desde),
+      },
+    },
+    {
+      $group: {
+        _id: { ibm: "$ibm", ven: "$ven" },
+        litros: { $sum: num("$vol") },
+        receita: { $sum: num("$val") },
+        custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
+        atendimentos: { $sum: 1 },
+      },
+    },
+    { $match: { "_id.ven": { $type: "string", $ne: "" }, litros: { $gt: 0 } } },
+    { $sort: { litros: ordem === "maiores" ? -1 : 1 } },
+    { $limit: Math.max(1, Math.min(limite, 50)) },
+  ]);
+
+  const validas = linhas.filter(
+    (l) => typeof l._id?.ibm === "string" && typeof l._id?.ven === "string",
+  );
+  const nomes = await nomesDeVendedores(
+    validas.map((l) => ({ ibm: l._id.ibm as string, ven: l._id.ven as string })),
+  );
+
+  return validas.map((linha) => {
+    const ibmLinha = linha._id.ibm as string;
+    const ven = linha._id.ven as string;
+    const receita = linha.receita ?? 0;
+    const litros = linha.litros ?? 0;
+    const lucroBruto = receita - (linha.custo ?? 0);
+    const atendimentos = linha.atendimentos ?? 0;
+    return {
+      ibm: ibmLinha,
+      ven,
+      nome: nomes.get(`${ibmLinha}|${ven}`) ?? `Vendedor ${ven}`,
+      litros,
+      receita,
+      lucroBruto,
+      atendimentos,
+      mlt: div(lucroBruto, litros),
+      tmc: div(receita, atendimentos),
+      tmv: div(litros, atendimentos),
+    };
+  });
+}
