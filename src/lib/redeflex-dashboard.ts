@@ -6,6 +6,7 @@ import {
   getLojas,
   getProductSeries,
   getProductMonths,
+  getVendedores,
 } from "./redeflex.functions";
 import {
   REDE_ID,
@@ -232,4 +233,41 @@ export async function loadDashboardData(
 /** Lojas disponíveis para o filtro: IBM + nome fantasia. */
 export async function loadLojas(): Promise<Loja[]> {
   return await getLojas();
+}
+
+export type Vendedor = {
+  ibm: string;
+  ven: string;
+  nome: string;
+  litros: number;
+  receita: number;
+  lucroBruto: number;
+  atendimentos: number;
+  mlt: number;
+  tmc: number;
+  tmv: number;
+};
+
+/** Ranking de vendedores de combustível, com os mesmos filtros do painel. */
+export async function loadRankingVendedores(
+  selecao: Selecao,
+  periodo: Periodo = "diario",
+  ordem: "maiores" | "menores" = "maiores",
+  limite = 10,
+  referencia = dataReferencia(),
+  fresh = false,
+): Promise<Vendedor[]> {
+  const ibms = [...new Set(selecao.filter((id) => id && id !== REDE_ID))].sort();
+  const corte = cutoffMinutes();
+  return await getVendedores({
+    data: {
+      dates: [referencia],
+      cutoffMinutes: corte,
+      ordem,
+      limite,
+      fresh,
+      ...(periodo === "mensal" ? { desde: primeiroDiaDoMes(referencia) } : {}),
+      ...(ibms.length > 0 ? { ibm: ibms } : {}),
+    },
+  });
 }
