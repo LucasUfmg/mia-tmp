@@ -236,6 +236,44 @@ export function criarFerramentas(escopo: Escopo) {
       },
     }),
 
+    ranking_vendedores: tool({
+      description:
+        "Ranking de vendas de combustível por funcionário (frentista) no dia ou no mês: litros, faturamento, M/LT e TMC. Use para 'quem vendeu mais/menos'.",
+      inputSchema: z.object({
+        escopo: escopoEnum,
+        ordem: z.enum(["maiores", "menores"]),
+        limite: z.number().int().min(1).max(10),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ escopo: tipo, ordem, limite, postos }) => {
+        const { referencia, corte, corteTexto, desde } = periodo(tipo);
+        const ibms = await resolverIbms(escopo, postos);
+        const [linhas, lojas] = await Promise.all([
+          comCache(
+            chaveDeCache("mia:vendedores", { referencia, corte, desde, ibms, ordem, limite }),
+            false,
+            () => getRankingVendedores([referencia], ibms, corte, desde, limite, ordem),
+          ),
+          lojasPermitidas(escopo),
+        ]);
+        const nomes = new Map(lojas.map((l) => [l.ibm, l.nome]));
+        return {
+          corte: corteTexto,
+          vendedores: linhas
+            .filter((l) => nomes.has(l.ibm))
+            .map((l) => ({
+              vendedor: l.nome,
+              posto: nomes.get(l.ibm) ?? l.ibm,
+              litros: r0(l.litros),
+              faturamento: r0(l.receita),
+              mlt: r2(l.mlt),
+              tmc: r2(l.tmc),
+              atendimentos: l.atendimentos,
+            })),
+        };
+      },
+    }),
+
     projecao_mes: tool({
       description:
         "Projeção de fechamento do mês (litros de combustível e receita de produtos) com base no acumulado até agora.",
