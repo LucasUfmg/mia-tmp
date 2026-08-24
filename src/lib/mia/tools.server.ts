@@ -11,6 +11,7 @@ import {
   getIndicadores,
   getIndicadoresPorPosto,
   getItensTotaisPorPosto,
+  getRankingVendedores,
   getVolumePorPosto,
   listarLojas,
 } from "../redeflex-mongo.server";
