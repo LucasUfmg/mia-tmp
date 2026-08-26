@@ -120,6 +120,7 @@ export function LancamentoDialog({
                 <SelectValue placeholder="Selecione o posto" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
+                <SelectItem value={IBM_REDE}>Rede (consolidado)</SelectItem>
                 {lojas.map((l) => (
                   <SelectItem key={l.ibm} value={l.ibm}>
                     {l.nome}
@@ -128,6 +129,7 @@ export function LancamentoDialog({
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid gap-2">
             <Label>Mês</Label>
             <Select value={mes} onValueChange={setMes}>
