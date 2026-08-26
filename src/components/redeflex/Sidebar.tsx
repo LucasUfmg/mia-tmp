@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Home, SlidersHorizontal } from "lucide-react";
+import { BookOpen, Calculator, Home, SlidersHorizontal } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 
 const itemBase =
@@ -31,6 +31,17 @@ export function Sidebar() {
         >
           <Home className="h-[18px] w-[18px]" />
           Visão Geral
+        </Link>
+        <Link
+          to="/contabil"
+          className={itemBase}
+          activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}
+          inactiveProps={{
+            className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
+          }}
+        >
+          <Calculator className="h-[18px] w-[18px]" />
+          Contábil
         </Link>
         <Link
           to="/manual"
