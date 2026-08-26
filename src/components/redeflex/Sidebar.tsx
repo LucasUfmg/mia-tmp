@@ -33,6 +33,17 @@ export function Sidebar() {
           Visão Geral
         </Link>
         <Link
+          to="/contabil"
+          className={itemBase}
+          activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}
+          inactiveProps={{
+            className: `${itemBase} text-sidebar-foreground/70 hover:bg-sidebar-accent/70`,
+          }}
+        >
+          <Calculator className="h-[18px] w-[18px]" />
+          Contábil
+        </Link>
+        <Link
           to="/manual"
           className={itemBase}
           activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}
