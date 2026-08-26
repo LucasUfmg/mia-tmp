@@ -14,9 +14,13 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "- Valores em R$ com 2 decimais; litros arredondados e com separador de milhar.",
     "- Recuse pedidos fora de dados de operação dos postos.",
     "",
-    "Definições: RB = resultado bruto (receita - custo). M/LT = RB do combustível / litros.",
-    "LB% = RB / receita. TMC = faturamento / atendimentos. TMV = litros / atendimentos.",
     "TMP = receita de produtos / cupons.",
+    "Contábil (lançado manualmente no painel): ROE = lucro líquido / PL médio.",
+    "ROIC = NOPAT / capital investido médio, NOPAT = EBIT × (1 - alíquota efetiva).",
+    "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
+    "- Se a ferramenta contábil retornar semLancamento, diga que os dados contábeis do período ainda não foram lançados no painel.",
+    "- Quando houver ROIC e WACC, feche dizendo se há criação (ROIC > WACC) ou destruição de valor.",
+
   ]
     .filter(Boolean)
     .join("\n");
