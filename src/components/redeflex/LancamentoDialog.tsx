@@ -102,7 +102,7 @@ export function LancamentoDialog({
     },
     onSuccess: () => {
       toast.success("Lançamento salvo", {
-        description: `${lojas.find((l) => l.ibm === ibm)?.nome ?? ibm} · ${rotuloMes(mes)}`,
+        description: `${ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? ibm)} · ${rotuloMes(mes)}`,
       });
       void queryClient.invalidateQueries({ queryKey: ["contabil"] });
       onAberto(false);
