@@ -51,6 +51,7 @@ function Contabil() {
   const [mes, setMes] = useState(mesAtual);
   const [visao, setVisao] = useState<"mes" | "ano">("mes");
   const [dialogo, setDialogo] = useState(false);
+  const [edicao, setEdicao] = useState<{ ibm: string; mes: string } | null>(null);
 
   const ano = anoDoMes(mes);
 
@@ -159,7 +160,10 @@ function Contabil() {
           <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground">
             <div className="flex sm:justify-end">
               <Button
-                onClick={() => setDialogo(true)}
+                onClick={() => {
+                  setEdicao(null);
+                  setDialogo(true);
+                }}
                 className="bg-gold text-gold-foreground hover:bg-gold/90"
               >
                 <Plus className="mr-1.5 h-4 w-4" />
@@ -225,6 +229,11 @@ function Contabil() {
             linhas={linhasMes}
             total={totalAno}
             totalLabel={`Ano ${ano}`}
+            nomePosto={nomePosto}
+            onEditar={(l) => {
+              setEdicao({ ibm: l.ibm, mes: l.mes });
+              setDialogo(true);
+            }}
           />
         </div>
       </main>
@@ -235,8 +244,12 @@ function Contabil() {
         lojas={lojas}
         lancamentos={lancamentos}
         ano={ano}
-        mesInicial={mes}
-        {...(selecao.length === 1 ? { ibmInicial: selecao[0]! } : {})}
+        mesInicial={edicao?.mes ?? mes}
+        {...(edicao
+          ? { ibmInicial: edicao.ibm }
+          : selecao.length === 1
+            ? { ibmInicial: selecao[0]! }
+            : {})}
       />
     </div>
   );
