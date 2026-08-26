@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Home, SlidersHorizontal } from "lucide-react";
+import { BookOpen, Calculator, Home, SlidersHorizontal } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 
 const itemBase =
