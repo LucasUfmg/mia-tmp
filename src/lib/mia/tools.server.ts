@@ -304,5 +304,27 @@ export function criarFerramentas(escopo: Escopo) {
         };
       },
     }),
+
+    indicadores_contabeis: tool({
+      description:
+        "Indicadores financeiros contábeis lançados no painel (/contabil): ROE, ROIC, margem líquida, margem EBITDA, receita líquida, lucro líquido, EBITDA, EBIT, PL médio, capital investido, NOPAT e WACC. Use para perguntas contábeis/financeiras, não operacionais.",
+      inputSchema: z.object({
+        periodo: z
+          .enum(["mes", "ano"])
+          .describe("'mes' = um mês; 'ano' = acumulado do ano até o mês informado"),
+        mes: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional()
+          .describe("Mês de referência 'YYYY-MM'; vazio = mês corrente"),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ periodo, mes, postos }) => {
+        const { lerContabil } = await import("./contabil.server");
+        const ibms = await resolverIbms(escopo, postos);
+        return lerContabil({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) });
+      },
+    }),
   };
 }
+

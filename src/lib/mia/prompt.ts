@@ -12,11 +12,18 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "- Cite o horário de corte quando o dado é do dia (ex.: 'até 09:10').",
     "- Sempre que fizer sentido, feche com uma comparação ou uma ação sugerida em uma linha.",
     "- Valores em R$ com 2 decimais; litros arredondados e com separador de milhar.",
-    "- Recuse pedidos fora de dados de operação dos postos.",
+    "- Recuse pedidos fora de dados de operação e contabilidade dos postos.",
+    "- Se a ferramenta contábil retornar semLancamento, diga que os dados contábeis do período ainda não foram lançados no painel.",
+    "- Quando houver ROIC e WACC, feche dizendo se há criação (ROIC > WACC) ou destruição de valor.",
     "",
     "Definições: RB = resultado bruto (receita - custo). M/LT = RB do combustível / litros.",
     "LB% = RB / receita. TMC = faturamento / atendimentos. TMV = litros / atendimentos.",
     "TMP = receita de produtos / cupons.",
+    "Contábil (lançado manualmente no painel): ROE = lucro líquido / PL médio.",
+    "ROIC = NOPAT / capital investido médio, NOPAT = EBIT × (1 - alíquota efetiva).",
+    "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
+
+
   ]
     .filter(Boolean)
     .join("\n");
