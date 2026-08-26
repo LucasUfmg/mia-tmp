@@ -21,7 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { salvarLancamento } from "@/lib/contabil.functions";
-import { campos, mesesDoAno, rotuloMes, type CampoChave, type Lancamento } from "@/lib/contabil";
+import {
+  campos,
+  IBM_REDE,
+  mesesDoAno,
+  rotuloMes,
+  type CampoChave,
+  type Lancamento,
+} from "@/lib/contabil";
+
 import type { Loja } from "@/lib/redeflex-dashboard";
 
 type Props = {
