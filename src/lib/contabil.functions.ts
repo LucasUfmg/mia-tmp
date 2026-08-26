@@ -102,3 +102,14 @@ export const salvarLancamento = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/** Remove um lançamento pelo id. */
+export const excluirLancamento = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data }) => {
+    const { clienteContabil } = await import("./contabil.server");
+    const supabase = clienteContabil();
+    const { error } = await supabase.from("contabil_lancamentos").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
