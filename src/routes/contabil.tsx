@@ -82,7 +82,8 @@ function Contabil() {
   const linhasMes = useMemo(() => linhasPorMes(doAno, mesesAno), [doAno, mesesAno]);
   const totalAno = useMemo(() => consolidar(doAno), [doAno]);
 
-  const nomePosto = (ibm: string) => lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`;
+  const nomePosto = (ibm: string) =>
+    ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`);
   const escopo =
     selecao.length === 0
       ? "Rede"
@@ -90,8 +91,12 @@ function Contabil() {
         ? selecao.map(nomePosto).join(" + ")
         : `${selecao.length} postos`;
 
+  const usaRede = consolidado.postos.includes(IBM_REDE);
   const selecionados = selecao.length === 0 ? lojas.map((l) => l.ibm) : selecao;
-  const semLancamento = selecionados.filter((ibm) => !consolidado.postos.includes(ibm));
+  const semLancamento = usaRede
+    ? []
+    : selecionados.filter((ibm) => !consolidado.postos.includes(ibm));
+
 
   const anos = useMemo(() => {
     const atual = Number(anoDoMes(mesAtual));
