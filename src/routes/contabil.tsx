@@ -22,10 +22,12 @@ import {
   anoDoMes,
   consolidar,
   filtrarEscopo,
+  IBM_REDE,
   mesReferencia,
   mesesDoAno,
   rotuloMes,
 } from "@/lib/contabil";
+
 
 const title = "Contábil — ROE, ROIC e Margens | RedeFlex";
 const description =
