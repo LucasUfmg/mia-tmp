@@ -22,10 +22,12 @@ import {
   anoDoMes,
   consolidar,
   filtrarEscopo,
+  IBM_REDE,
   mesReferencia,
   mesesDoAno,
   rotuloMes,
 } from "@/lib/contabil";
+
 
 const title = "Contábil — ROE, ROIC e Margens | RedeFlex";
 const description =
@@ -82,7 +84,8 @@ function Contabil() {
   const linhasMes = useMemo(() => linhasPorMes(doAno, mesesAno), [doAno, mesesAno]);
   const totalAno = useMemo(() => consolidar(doAno), [doAno]);
 
-  const nomePosto = (ibm: string) => lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`;
+  const nomePosto = (ibm: string) =>
+    ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`);
   const escopo =
     selecao.length === 0
       ? "Rede"
@@ -90,8 +93,12 @@ function Contabil() {
         ? selecao.map(nomePosto).join(" + ")
         : `${selecao.length} postos`;
 
+  const usaRede = consolidado.postos.includes(IBM_REDE);
   const selecionados = selecao.length === 0 ? lojas.map((l) => l.ibm) : selecao;
-  const semLancamento = selecionados.filter((ibm) => !consolidado.postos.includes(ibm));
+  const semLancamento = usaRede
+    ? []
+    : selecionados.filter((ibm) => !consolidado.postos.includes(ibm));
+
 
   const anos = useMemo(() => {
     const atual = Number(anoDoMes(mesAtual));
@@ -149,42 +156,47 @@ function Contabil() {
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
-            <div className="flex items-center gap-2">
-              <Select value={ano} onValueChange={(v) => setMes(`${v}-${mes.slice(5, 7)}-01`)}>
-                <SelectTrigger className="w-[110px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {anos.map((a) => (
-                    <SelectItem key={a} value={a}>
-                      {a}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={mes} onValueChange={setMes}>
-                <SelectTrigger className="w-[130px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {mesesAno.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {rotuloMes(m)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground">
+            <div className="flex sm:justify-end">
+              <Button
+                onClick={() => setDialogo(true)}
+                className="bg-gold text-gold-foreground hover:bg-gold/90"
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                Lançar dados contábeis
+              </Button>
             </div>
-            <Button
-              onClick={() => setDialogo(true)}
-              className="bg-gold text-gold-foreground hover:bg-gold/90"
-            >
-              <Plus className="mr-1.5 h-4 w-4" />
-              Lançar dados contábeis
-            </Button>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
+              <div className="flex items-center gap-2">
+                <Select value={ano} onValueChange={(v) => setMes(`${v}-${mes.slice(5, 7)}-01`)}>
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {anos.map((a) => (
+                      <SelectItem key={a} value={a}>
+                        {a}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={mes} onValueChange={setMes}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {mesesAno.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {rotuloMes(m)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
+
         </header>
 
         <p className="mt-3 text-xs text-muted-foreground">

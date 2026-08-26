@@ -182,7 +182,14 @@ export function consolidar(linhas: Lancamento[]): Consolidado {
   };
 }
 
-/** Filtra os lançamentos pelo escopo do painel (postos selecionados; vazio = rede). */
+/** IBM reservado para o lançamento consolidado da rede inteira. */
+export const IBM_REDE = "REDE";
+
+/**
+ * Filtra os lançamentos pelo escopo do painel (postos selecionados; vazio = rede).
+ * O lançamento da rede só vale no escopo "rede" e, quando existe no período,
+ * substitui a soma dos postos (evita dupla contagem).
+ */
 export function filtrarEscopo(
   linhas: Lancamento[],
   selecao: string[],
@@ -190,5 +197,11 @@ export function filtrarEscopo(
 ): Lancamento[] {
   const postos = new Set(selecao);
   const alvo = new Set(meses);
-  return linhas.filter((l) => alvo.has(l.mes) && (postos.size === 0 || postos.has(l.ibm)));
+  const noPeriodo = linhas.filter((l) => alvo.has(l.mes));
+  if (postos.size > 0) {
+    return noPeriodo.filter((l) => l.ibm !== IBM_REDE && postos.has(l.ibm));
+  }
+  const rede = noPeriodo.filter((l) => l.ibm === IBM_REDE);
+  return rede.length > 0 ? rede : noPeriodo;
 }
+

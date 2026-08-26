@@ -21,7 +21,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { salvarLancamento } from "@/lib/contabil.functions";
-import { campos, mesesDoAno, rotuloMes, type CampoChave, type Lancamento } from "@/lib/contabil";
+import {
+  campos,
+  IBM_REDE,
+  mesesDoAno,
+  rotuloMes,
+  type CampoChave,
+  type Lancamento,
+} from "@/lib/contabil";
+
 import type { Loja } from "@/lib/redeflex-dashboard";
 
 type Props = {
@@ -94,7 +102,7 @@ export function LancamentoDialog({
     },
     onSuccess: () => {
       toast.success("Lançamento salvo", {
-        description: `${lojas.find((l) => l.ibm === ibm)?.nome ?? ibm} · ${rotuloMes(mes)}`,
+        description: `${ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? ibm)} · ${rotuloMes(mes)}`,
       });
       void queryClient.invalidateQueries({ queryKey: ["contabil"] });
       onAberto(false);
@@ -120,6 +128,7 @@ export function LancamentoDialog({
                 <SelectValue placeholder="Selecione o posto" />
               </SelectTrigger>
               <SelectContent className="max-h-72">
+                <SelectItem value={IBM_REDE}>Rede (consolidado)</SelectItem>
                 {lojas.map((l) => (
                   <SelectItem key={l.ibm} value={l.ibm}>
                     {l.nome}
@@ -128,6 +137,7 @@ export function LancamentoDialog({
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid gap-2">
             <Label>Mês</Label>
             <Select value={mes} onValueChange={setMes}>
