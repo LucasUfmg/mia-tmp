@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      contabil_lancamentos: {
+        Row: {
+          aliquota_efetiva: number
+          caixa: number
+          created_at: string
+          divida_financeira: number
+          ebit: number
+          ebitda: number
+          ibm: string
+          id: string
+          lucro_liquido: number
+          mes: string
+          pl_final: number
+          pl_inicial: number
+          receita_liquida: number
+          updated_at: string
+          wacc: number
+        }
+        Insert: {
+          aliquota_efetiva?: number
+          caixa?: number
+          created_at?: string
+          divida_financeira?: number
+          ebit?: number
+          ebitda?: number
+          ibm: string
+          id?: string
+          lucro_liquido?: number
+          mes: string
+          pl_final?: number
+          pl_inicial?: number
+          receita_liquida?: number
+          updated_at?: string
+          wacc?: number
+        }
+        Update: {
+          aliquota_efetiva?: number
+          caixa?: number
+          created_at?: string
+          divida_financeira?: number
+          ebit?: number
+          ebitda?: number
+          ibm?: string
+          id?: string
+          lucro_liquido?: number
+          mes?: string
+          pl_final?: number
+          pl_inicial?: number
+          receita_liquida?: number
+          updated_at?: string
+          wacc?: number
+        }
+        Relationships: []
+      }
       mia_contatos: {
         Row: {
           ativo: boolean
