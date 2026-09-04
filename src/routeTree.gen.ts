@@ -12,7 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgenteRouteImport } from './routes/agente'
 import { Route as ContabilRouteImport } from './routes/contabil'
+import { Route as IntegracaoFzapRouteImport } from './routes/integracao-fzap'
 import { Route as ManualRouteImport } from './routes/manual'
+import { Route as ApiPublicFzapRouteImport } from './routes/api/public/fzap'
 import { Route as ApiPublicWhatsappRouteImport } from './routes/api/public/whatsapp'
 
 const IndexRoute = IndexRouteImport.update({
@@ -30,9 +32,19 @@ const ContabilRoute = ContabilRouteImport.update({
   path: '/contabil',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntegracaoFzapRoute = IntegracaoFzapRouteImport.update({
+  id: '/integracao-fzap',
+  path: '/integracao-fzap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ManualRoute = ManualRouteImport.update({
   id: '/manual',
   path: '/manual',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicFzapRoute = ApiPublicFzapRouteImport.update({
+  id: '/api/public/fzap',
+  path: '/api/public/fzap',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicWhatsappRoute = ApiPublicWhatsappRouteImport.update({
@@ -45,14 +57,18 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/agente': typeof AgenteRoute
   '/contabil': typeof ContabilRoute
+  '/integracao-fzap': typeof IntegracaoFzapRoute
   '/manual': typeof ManualRoute
+  '/api/public/fzap': typeof ApiPublicFzapRoute
   '/api/public/whatsapp': typeof ApiPublicWhatsappRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/agente': typeof AgenteRoute
   '/contabil': typeof ContabilRoute
+  '/integracao-fzap': typeof IntegracaoFzapRoute
   '/manual': typeof ManualRoute
+  '/api/public/fzap': typeof ApiPublicFzapRoute
   '/api/public/whatsapp': typeof ApiPublicWhatsappRoute
 }
 export interface FileRoutesById {
@@ -60,20 +76,38 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/agente': typeof AgenteRoute
   '/contabil': typeof ContabilRoute
+  '/integracao-fzap': typeof IntegracaoFzapRoute
   '/manual': typeof ManualRoute
+  '/api/public/fzap': typeof ApiPublicFzapRoute
   '/api/public/whatsapp': typeof ApiPublicWhatsappRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/agente' | '/contabil' | '/manual' | '/api/public/whatsapp'
+  fullPaths:
+    | '/'
+    | '/agente'
+    | '/contabil'
+    | '/integracao-fzap'
+    | '/manual'
+    | '/api/public/fzap'
+    | '/api/public/whatsapp'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/agente' | '/contabil' | '/manual' | '/api/public/whatsapp'
+  to:
+    | '/'
+    | '/agente'
+    | '/contabil'
+    | '/integracao-fzap'
+    | '/manual'
+    | '/api/public/fzap'
+    | '/api/public/whatsapp'
   id:
     | '__root__'
     | '/'
     | '/agente'
     | '/contabil'
+    | '/integracao-fzap'
     | '/manual'
+    | '/api/public/fzap'
     | '/api/public/whatsapp'
   fileRoutesById: FileRoutesById
 }
@@ -81,7 +115,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AgenteRoute: typeof AgenteRoute
   ContabilRoute: typeof ContabilRoute
+  IntegracaoFzapRoute: typeof IntegracaoFzapRoute
   ManualRoute: typeof ManualRoute
+  ApiPublicFzapRoute: typeof ApiPublicFzapRoute
   ApiPublicWhatsappRoute: typeof ApiPublicWhatsappRoute
 }
 
@@ -108,11 +144,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContabilRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/integracao-fzap': {
+      id: '/integracao-fzap'
+      path: '/integracao-fzap'
+      fullPath: '/integracao-fzap'
+      preLoaderRoute: typeof IntegracaoFzapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/manual': {
       id: '/manual'
       path: '/manual'
       fullPath: '/manual'
       preLoaderRoute: typeof ManualRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/fzap': {
+      id: '/api/public/fzap'
+      path: '/api/public/fzap'
+      fullPath: '/api/public/fzap'
+      preLoaderRoute: typeof ApiPublicFzapRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/whatsapp': {
@@ -129,7 +179,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AgenteRoute: AgenteRoute,
   ContabilRoute: ContabilRoute,
+  IntegracaoFzapRoute: IntegracaoFzapRoute,
   ManualRoute: ManualRoute,
+  ApiPublicFzapRoute: ApiPublicFzapRoute,
   ApiPublicWhatsappRoute: ApiPublicWhatsappRoute,
 }
 export const routeTree = rootRouteImport

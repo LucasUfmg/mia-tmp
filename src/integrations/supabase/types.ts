@@ -68,6 +68,75 @@ export type Database = {
         }
         Relationships: []
       }
+      fzap_config: {
+        Row: {
+          base_url: string | null
+          id: string
+          instance_id: string | null
+          instance_name: string | null
+          last_test_at: string | null
+          last_test_result: string | null
+          updated_at: string
+        }
+        Insert: {
+          base_url?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          last_test_at?: string | null
+          last_test_result?: string | null
+          updated_at?: string
+        }
+        Update: {
+          base_url?: string | null
+          id?: string
+          instance_id?: string | null
+          instance_name?: string | null
+          last_test_at?: string | null
+          last_test_result?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fzap_eventos: {
+        Row: {
+          error: string | null
+          event_type: string | null
+          from_me: boolean
+          id: string
+          instance_id: string | null
+          message_id: string | null
+          payload: Json | null
+          phone: string | null
+          received_at: string
+          result: string
+        }
+        Insert: {
+          error?: string | null
+          event_type?: string | null
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          message_id?: string | null
+          payload?: Json | null
+          phone?: string | null
+          received_at?: string
+          result?: string
+        }
+        Update: {
+          error?: string | null
+          event_type?: string | null
+          from_me?: boolean
+          id?: string
+          instance_id?: string | null
+          message_id?: string | null
+          payload?: Json | null
+          phone?: string | null
+          received_at?: string
+          result?: string
+        }
+        Relationships: []
+      }
       mia_contatos: {
         Row: {
           ativo: boolean
