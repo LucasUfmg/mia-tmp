@@ -8,3 +8,7 @@
 - [x] Tela /integracao-fzap (status, URL webhook, testar, eventos recentes)
 - [ ] Desativar rota Twilio /api/public/whatsapp (410)
 - [ ] Validar build/preview
+
+## Canal WhatsApp
+- [x] Twilio reativado em /api/public/whatsapp (canal ativo)
+- [ ] FZAP pausado (código preservado, rota 410, tela em espera) — reativar quando quiser
