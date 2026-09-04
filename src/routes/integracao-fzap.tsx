@@ -49,7 +49,8 @@ function IntegracaoFzapPage() {
   const testMutation = useMutation({
     mutationFn: useServerFn(testFzapEnvio),
     onSuccess: (r) => {
-      toast(r.ok ? "Mensagem de teste enviada." : "Falha no envio do teste.");
+      const ok = (r as { ok?: boolean })?.ok ?? false;
+      toast(ok ? "Mensagem de teste enviada." : "Falha no envio do teste.");
       queryClient.invalidateQueries({ queryKey: ["fzap-status"] });
     },
     onError: (e) => toast.error("Erro no teste: " + String(e)),
