@@ -73,7 +73,7 @@ export function parseIncomingMessage(payload: unknown): FzapEvento {
 
   // Telefone: remoteJid costuma vir como "5511999999999@s.us"
   const jid = pickStr(info["remoteJid"], info["Sender"], data["remoteJid"], data["from"], p["from"]);
-  const phone = jid ? normalizarTelefone(jid.split("@")[0]) : null;
+  const phone = jid ? normalizarTelefone((jid.split("@")[0] ?? jid) as string) : null;
 
   const name = pickStr(info["pushName"], info["PushName"], data["pushName"], data["notifyName"], p["pushName"]);
   const messageId = pickStr(info["id"], info["ID"], data["id"], p["id"], p["messageId"]);
