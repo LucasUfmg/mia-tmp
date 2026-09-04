@@ -100,11 +100,11 @@ export function parseIncomingMessage(payload: unknown): FzapEvento {
   else if (message["videoMessage"] || message["VideoMessage"]) type = "video";
 
   const instanceId = pickStr(
-    (data["instanceId"] as unknown) ?? undefined,
-    data["instance"],
-    p["instanceId"],
-    p["instance"],
-    info["instanceId"],
+    data["instanceId"] as string | undefined,
+    data["instance"] as string | undefined,
+    p["instanceId"] as string | undefined,
+    p["instance"] as string | undefined,
+    info["instanceId"] as string | undefined,
   );
 
   return { instanceId, phone, name, messageId, type, text, fromMe, raw: payload };
