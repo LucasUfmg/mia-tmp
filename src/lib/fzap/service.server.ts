@@ -125,7 +125,7 @@ type EventoRow = {
   from_me: boolean;
   result: string;
   error: string | null;
-  payload: unknown;
+  payload: ReturnType<typeof JSON.parse>;
 };
 
 /** Salva o evento bruto + resultado. Devolve false se for duplicata (mesmo message_id). */
