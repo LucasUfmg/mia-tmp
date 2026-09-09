@@ -164,10 +164,18 @@ export function EbitdaDialog({
         <DialogHeader>
           <DialogTitle>Calcular EBITDA</DialogTitle>
           <DialogDescription>
-            Preencha as linhas do resultado do posto no mês. Os totais são calculados
-            automaticamente e podem ser levados para o lançamento contábil.
+            Receita de vendas e custo vêm dos dados de venda do posto e não podem ser alterados.
+            Preencha as demais linhas: os totais são calculados automaticamente e podem ser levados
+            para o lançamento contábil.
           </DialogDescription>
         </DialogHeader>
+
+        {semVendas && (
+          <p className="rounded-xl bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
+            Sem vendas registradas neste período para o posto/mês selecionado.
+          </p>
+        )}
+
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
