@@ -292,7 +292,7 @@ export function EbitdaDialog({
                       inputMode="decimal"
                       placeholder="0,00"
                       value={form[l.chave]}
-                      onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
+                      onChange={(e) => editar(l.chave, e.target.value)}
                     />
                   )}
                 </div>
