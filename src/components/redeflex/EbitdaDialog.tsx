@@ -105,6 +105,7 @@ export function EbitdaDialog({
   const [ibm, setIbm] = useState(ibmInicial ?? lojas[0]?.ibm ?? "");
   const [mes, setMes] = useState(mesInicial);
   const [form, setForm] = useState<Form>({ ...vazio });
+  const [daPlanilha, setDaPlanilha] = useState<LinhaEbitdaChave[]>([]);
   const queryClient = useQueryClient();
   const salvar = useServerFn(salvarEbitda);
 
