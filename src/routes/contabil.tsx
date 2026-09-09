@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { BookOpen, Calculator, Plus } from "lucide-react";
+import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
 import { ContabilCards, RoicVsWacc } from "@/components/redeflex/ContabilCards";
 import { ContabilTabela, linhasPorMes } from "@/components/redeflex/ContabilTabela";
 import { LancamentoDialog } from "@/components/redeflex/LancamentoDialog";
+import { EbitdaDialog } from "@/components/redeflex/EbitdaDialog";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { loadLojas } from "@/lib/redeflex-dashboard";
-import { listarLancamentos } from "@/lib/contabil.functions";
+import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
 import {
   anoDoMes,
   consolidar,
@@ -27,6 +28,7 @@ import {
   mesesDoAno,
   rotuloMes,
 } from "@/lib/contabil";
+
 
 
 const title = "Contábil — ROE, ROIC e Margens | RedeFlex";
