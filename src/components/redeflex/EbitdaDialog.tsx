@@ -31,6 +31,7 @@ import {
   type Ebitda,
   type LinhaEbitdaChave,
 } from "@/lib/ebitda";
+import { baseDrePorPosto, type BaseDreChave } from "@/data/dre-base";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
@@ -63,14 +64,29 @@ function paraNumero(valor: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const texto = (v: number) => (v === 0 ? "" : String(Math.abs(v)).replace(".", ","));
+
 function paraForm(c: Ebitda | undefined): Form {
   if (!c) return { ...vazio };
   return Object.fromEntries(
-    linhasEbitda.map((l) => {
-      const v = Math.abs(c[l.chave] ?? 0);
-      return [l.chave, v === 0 ? "" : String(v).replace(".", ",")];
-    }),
+    linhasEbitda.map((l) => [l.chave, texto(c[l.chave] ?? 0)]),
   ) as Form;
+}
+
+/** Preenchimento inicial pela planilha BASE DRE (só campos editáveis). */
+function paraFormDaPlanilha(base: Record<BaseDreChave, number>): {
+  form: Form;
+  daPlanilha: LinhaEbitdaChave[];
+} {
+  const form = { ...vazio };
+  const daPlanilha: LinhaEbitdaChave[] = [];
+  for (const [chave, valor] of Object.entries(base) as [BaseDreChave, number][]) {
+    const t = texto(valor);
+    if (!t) continue;
+    form[chave] = t;
+    daPlanilha.push(chave);
+  }
+  return { form, daPlanilha };
 }
 
 const moeda = (n: number) =>
@@ -89,6 +105,7 @@ export function EbitdaDialog({
   const [ibm, setIbm] = useState(ibmInicial ?? lojas[0]?.ibm ?? "");
   const [mes, setMes] = useState(mesInicial);
   const [form, setForm] = useState<Form>({ ...vazio });
+  const [daPlanilha, setDaPlanilha] = useState<LinhaEbitdaChave[]>([]);
   const queryClient = useQueryClient();
   const salvar = useServerFn(salvarEbitda);
 
@@ -101,8 +118,32 @@ export function EbitdaDialog({
   }, [aberto, ibmInicial, mesInicial, lojas]);
 
   useEffect(() => {
-    setForm(paraForm(calculos.find((c) => c.ibm === ibm && c.mes === mes)));
-  }, [ibm, mes, calculos]);
+    const salvo = calculos.find((c) => c.ibm === ibm && c.mes === mes);
+    if (salvo) {
+      setForm(paraForm(salvo));
+      setDaPlanilha([]);
+      return;
+    }
+    const base = baseDrePorPosto(lojas.find((l) => l.ibm === ibm)?.nome);
+    if (!base) {
+      setForm({ ...vazio });
+      setDaPlanilha([]);
+      return;
+    }
+    const inicial = paraFormDaPlanilha(base);
+    setForm(inicial.form);
+    setDaPlanilha(inicial.daPlanilha);
+  }, [ibm, mes, calculos, lojas]);
+
+  const editar = (chave: LinhaEbitdaChave, valor: string) => {
+    setForm((f) => ({ ...f, [chave]: valor }));
+    setDaPlanilha((p) => p.filter((c) => c !== chave));
+  };
+
+  const limpar = () => {
+    setForm({ ...vazio });
+    setDaPlanilha([]);
+  };
 
   // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
   const { data: doPainel, isPending: carregandoPainel } = useQuery({
@@ -226,6 +267,11 @@ export function EbitdaDialog({
                         {origem}
                       </span>
                     )}
+                    {!travada && daPlanilha.includes(l.chave) && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Base DRE
+                      </span>
+                    )}
                   </Label>
                   {travada ? (
                     <Input
@@ -246,7 +292,7 @@ export function EbitdaDialog({
                       inputMode="decimal"
                       placeholder="0,00"
                       value={form[l.chave]}
-                      onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
+                      onChange={(e) => editar(l.chave, e.target.value)}
                     />
                   )}
                 </div>
@@ -277,6 +323,9 @@ export function EbitdaDialog({
         <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button variant="outline" onClick={() => onAberto(false)}>
             Cancelar
+          </Button>
+          <Button variant="ghost" onClick={limpar}>
+            Limpar campos
           </Button>
           <Button
             variant="outline"
