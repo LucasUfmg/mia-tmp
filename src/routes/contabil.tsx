@@ -53,7 +53,9 @@ function Contabil() {
   const [mes, setMes] = useState(mesAtual);
   const [visao, setVisao] = useState<"mes" | "ano">("mes");
   const [dialogo, setDialogo] = useState(false);
+  const [dialogoEbitda, setDialogoEbitda] = useState(false);
   const [edicao, setEdicao] = useState<{ ibm: string; mes: string } | null>(null);
+
 
   const ano = anoDoMes(mes);
 
@@ -70,6 +72,15 @@ function Contabil() {
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
+
+  const { data: calculos = [] } = useQuery({
+    queryKey: ["contabil", "ebitda", ano],
+    queryFn: () => listarEbitda({ data: { ano } }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
