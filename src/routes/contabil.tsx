@@ -1,13 +1,14 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { BookOpen, Calculator, Plus } from "lucide-react";
+import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
 import { ContabilCards, RoicVsWacc } from "@/components/redeflex/ContabilCards";
 import { ContabilTabela, linhasPorMes } from "@/components/redeflex/ContabilTabela";
 import { LancamentoDialog } from "@/components/redeflex/LancamentoDialog";
+import { EbitdaDialog } from "@/components/redeflex/EbitdaDialog";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { loadLojas } from "@/lib/redeflex-dashboard";
-import { listarLancamentos } from "@/lib/contabil.functions";
+import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
 import {
   anoDoMes,
   consolidar,
@@ -27,6 +28,7 @@ import {
   mesesDoAno,
   rotuloMes,
 } from "@/lib/contabil";
+
 
 
 const title = "Contábil — ROE, ROIC e Margens | RedeFlex";
@@ -51,7 +53,9 @@ function Contabil() {
   const [mes, setMes] = useState(mesAtual);
   const [visao, setVisao] = useState<"mes" | "ano">("mes");
   const [dialogo, setDialogo] = useState(false);
+  const [dialogoEbitda, setDialogoEbitda] = useState(false);
   const [edicao, setEdicao] = useState<{ ibm: string; mes: string } | null>(null);
+
 
   const ano = anoDoMes(mes);
 
@@ -68,6 +72,15 @@ function Contabil() {
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
+
+  const { data: calculos = [] } = useQuery({
+    queryKey: ["contabil", "ebitda", ano],
+    queryFn: () => listarEbitda({ data: { ano } }),
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
@@ -158,7 +171,17 @@ function Contabil() {
           </div>
 
           <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground">
-            <div className="flex sm:justify-end">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEdicao(null);
+                  setDialogoEbitda(true);
+                }}
+              >
+                <Sigma className="mr-1.5 h-4 w-4 text-gold" />
+                Calcular EBITDA
+              </Button>
               <Button
                 onClick={() => {
                   setEdicao(null);
@@ -170,6 +193,7 @@ function Contabil() {
                 Lançar dados contábeis
               </Button>
             </div>
+
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
               <div className="flex items-center gap-2">
@@ -243,6 +267,7 @@ function Contabil() {
         onAberto={setDialogo}
         lojas={lojas}
         lancamentos={lancamentos}
+        calculos={calculos}
         ano={ano}
         mesInicial={edicao?.mes ?? mes}
         {...(edicao
@@ -251,6 +276,21 @@ function Contabil() {
             ? { ibmInicial: selecao[0]! }
             : {})}
       />
+
+      <EbitdaDialog
+        aberto={dialogoEbitda}
+        onAberto={setDialogoEbitda}
+        lojas={lojas}
+        calculos={calculos}
+        ano={ano}
+        mesInicial={mes}
+        onUsarNoLancamento={(alvo) => {
+          setEdicao(alvo);
+          setDialogo(true);
+        }}
+        {...(selecao.length === 1 ? { ibmInicial: selecao[0]! } : {})}
+      />
+
     </div>
   );
 }

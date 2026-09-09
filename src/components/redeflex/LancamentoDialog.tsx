@@ -30,6 +30,8 @@ import {
   type Lancamento,
 } from "@/lib/contabil";
 
+import { calcularEbitda, type Ebitda } from "@/lib/ebitda";
+
 import type { Loja } from "@/lib/redeflex-dashboard";
 
 type Props = {
@@ -37,6 +39,8 @@ type Props = {
   onAberto: (v: boolean) => void;
   lojas: Loja[];
   lancamentos: Lancamento[];
+  /** Cálculos de EBITDA do ano; preenchem receita líquida, EBITDA e EBIT. */
+  calculos?: Ebitda[];
   ano: string;
   mesInicial: string;
   ibmInicial?: string;
@@ -46,12 +50,22 @@ type Form = Record<CampoChave, string>;
 
 const vazio = Object.fromEntries(campos.map((c) => [c.chave, ""])) as Form;
 
-function paraForm(l: Lancamento | undefined): Form {
-  if (!l) return { ...vazio };
-  return Object.fromEntries(
-    campos.map((c) => [c.chave, l[c.chave] === 0 ? "" : String(l[c.chave]).replace(".", ",")]),
-  ) as Form;
+const texto = (n: number) => (n === 0 ? "" : String(n).replace(".", ","));
+
+function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form {
+  const base = l
+    ? (Object.fromEntries(campos.map((c) => [c.chave, texto(l[c.chave])])) as Form)
+    : { ...vazio };
+  if (!calculo) return base;
+  const r = calcularEbitda(calculo);
+  return {
+    ...base,
+    receitaLiquida: texto(Math.round(r.receitaLiquida * 100) / 100),
+    ebitda: texto(Math.round(r.ebitda * 100) / 100),
+    ebit: texto(Math.round(r.ebit * 100) / 100),
+  };
 }
+
 
 /** Aceita "1.234.567,89" e "1234567.89". */
 function paraNumero(valor: string): number {
@@ -69,6 +83,7 @@ export function LancamentoDialog({
   onAberto,
   lojas,
   lancamentos,
+  calculos = [],
   ano,
   mesInicial,
   ibmInicial,
@@ -87,11 +102,17 @@ export function LancamentoDialog({
     setMes(mesInicial);
   }, [aberto, ibmInicial, mesInicial, lojas]);
 
-  // Carrega o lançamento existente do posto/mês selecionado.
+  const calculo = useMemo(
+    () => calculos.find((c) => c.ibm === ibm && c.mes === mes),
+    [calculos, ibm, mes],
+  );
+
+  // Carrega o lançamento existente do posto/mês e o cálculo de EBITDA, quando houver.
   useEffect(() => {
     const existente = lancamentos.find((l) => l.ibm === ibm && l.mes === mes);
-    setForm(paraForm(existente));
-  }, [ibm, mes, lancamentos]);
+    setForm(paraForm(existente, calculo));
+  }, [ibm, mes, lancamentos, calculo]);
+
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -119,6 +140,15 @@ export function LancamentoDialog({
             Um lançamento por posto e mês. Salvar novamente no mesmo posto/mês atualiza os valores.
           </DialogDescription>
         </DialogHeader>
+
+        {calculo && (
+          <p className="rounded-xl bg-gold/15 px-4 py-3 text-xs font-semibold text-foreground">
+            Receita líquida, EBITDA e EBIT vindos do cálculo de EBITDA deste posto/mês — pode
+            editar à mão se precisar.
+          </p>
+        )}
+
+
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">

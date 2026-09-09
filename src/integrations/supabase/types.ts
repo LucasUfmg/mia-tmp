@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      contabil_ebitda: {
+        Row: {
+          administrativas: number
+          ajuste_energy: number
+          ajuste_gestao: number
+          ajuste_transporte: number
+          apropriacao_contratos: number
+          created_at: string
+          custo: number
+          deducoes: number
+          depreciacao: number
+          despesas_pessoal: number
+          despesas_tributarias: number
+          furtos_roubos: number
+          ibm: string
+          id: string
+          mes: string
+          participacoes_empregados: number
+          receita_vendas: number
+          updated_at: string
+        }
+        Insert: {
+          administrativas?: number
+          ajuste_energy?: number
+          ajuste_gestao?: number
+          ajuste_transporte?: number
+          apropriacao_contratos?: number
+          created_at?: string
+          custo?: number
+          deducoes?: number
+          depreciacao?: number
+          despesas_pessoal?: number
+          despesas_tributarias?: number
+          furtos_roubos?: number
+          ibm: string
+          id?: string
+          mes: string
+          participacoes_empregados?: number
+          receita_vendas?: number
+          updated_at?: string
+        }
+        Update: {
+          administrativas?: number
+          ajuste_energy?: number
+          ajuste_gestao?: number
+          ajuste_transporte?: number
+          apropriacao_contratos?: number
+          created_at?: string
+          custo?: number
+          deducoes?: number
+          depreciacao?: number
+          despesas_pessoal?: number
+          despesas_tributarias?: number
+          furtos_roubos?: number
+          ibm?: string
+          id?: string
+          mes?: string
+          participacoes_empregados?: number
+          receita_vendas?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contabil_lancamentos: {
         Row: {
           aliquota_efetiva: number
