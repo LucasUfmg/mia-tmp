@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Lancamento } from "./contabil";
+import { linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "./ebitda";
+
 
 const mesRegex = /^\d{4}-\d{2}-01$/;
 
