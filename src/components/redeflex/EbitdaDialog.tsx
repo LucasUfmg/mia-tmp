@@ -31,6 +31,7 @@ import {
   type Ebitda,
   type LinhaEbitdaChave,
 } from "@/lib/ebitda";
+import { baseDrePorPosto, type BaseDreChave } from "@/data/dre-base";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
