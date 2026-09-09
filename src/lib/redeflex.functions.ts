@@ -303,3 +303,85 @@ export const getVendedores = createServerFn({ method: "POST" })
       throw error;
     }
   });
+
+const receitaCustoSchema = z.object({
+  /** Mês de referência no formato "YYYY-MM-01". */
+  mes: z.string().regex(/^\d{4}-\d{2}-01$/),
+  /** IBM do posto; ausente = rede inteira. */
+  ibm: z.string().min(1).optional(),
+  fresh: z.boolean().default(false),
+});
+
+export type ReceitaCusto = {
+  receita: number;
+  custo: number;
+  /** true = mês corrente (acumulado até agora). */
+  parcial: boolean;
+  /** Último dia considerado ("YYYY-MM-DD"). */
+  ate: string;
+};
+
+/**
+ * Receita de vendas e custo (combustível + loja) acumulados no mês, por posto.
+ * Mês corrente: do dia 1 até hoje, com corte on-time. Mês encerrado: mês cheio.
+ */
+export const getReceitaCusto = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => receitaCustoSchema.parse(input))
+  .handler(async ({ data }): Promise<ReceitaCusto> => {
+    const hoje = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+
+    const [ano, mesNum] = data.mes.split("-").map(Number) as [number, number];
+    const ultimoDia = new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
+    const fimDoMes = `${data.mes.slice(0, 7)}-${String(ultimoDia).padStart(2, "0")}`;
+    const parcial = hoje >= data.mes && hoje <= fimDoMes;
+    const ate = parcial ? hoje : fimDoMes;
+
+    let cutoffMinutes: number | undefined;
+    if (parcial) {
+      const [hora, minuto] = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })
+        .format(new Date())
+        .split(":")
+        .map(Number);
+      cutoffMinutes = (hora ?? 0) * 60 + (minuto ?? 0);
+    }
+
+    const escopo = {
+      dates: [ate],
+      desde: data.mes,
+      ...(data.ibm ? { ibm: data.ibm } : {}),
+      ...(cutoffMinutes !== undefined ? { cutoffMinutes } : {}),
+    };
+
+    try {
+      const { comCache, chaveDeCache } = await import("./cache.server");
+      const indicadores = await comCache(
+        chaveDeCache("receitaCusto", escopo),
+        data.fresh,
+        async () => {
+          const { comSessao } = await import("./mongo.server");
+          const { getIndicadores } = await import("./redeflex-mongo.server");
+          return await comSessao(
+            async () =>
+              await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
+          );
+        },
+      );
+
+      const receita = indicadores.combustivel.receita + indicadores.produto.receita;
+      const lucroBruto = indicadores.combustivel.lucroBruto + indicadores.produto.lucroBruto;
+      return { receita, custo: receita - lucroBruto, parcial, ate };
+    } catch (error) {
+      console.error("[RedeFlex:getReceitaCusto]", error);
+      throw error;
+    }
+  });
