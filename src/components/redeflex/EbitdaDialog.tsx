@@ -64,14 +64,29 @@ function paraNumero(valor: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const texto = (v: number) => (v === 0 ? "" : String(Math.abs(v)).replace(".", ","));
+
 function paraForm(c: Ebitda | undefined): Form {
   if (!c) return { ...vazio };
   return Object.fromEntries(
-    linhasEbitda.map((l) => {
-      const v = Math.abs(c[l.chave] ?? 0);
-      return [l.chave, v === 0 ? "" : String(v).replace(".", ",")];
-    }),
+    linhasEbitda.map((l) => [l.chave, texto(c[l.chave] ?? 0)]),
   ) as Form;
+}
+
+/** Preenchimento inicial pela planilha BASE DRE (só campos editáveis). */
+function paraFormDaPlanilha(base: Record<BaseDreChave, number>): {
+  form: Form;
+  daPlanilha: LinhaEbitdaChave[];
+} {
+  const form = { ...vazio };
+  const daPlanilha: LinhaEbitdaChave[] = [];
+  for (const [chave, valor] of Object.entries(base) as [BaseDreChave, number][]) {
+    const t = texto(valor);
+    if (!t) continue;
+    form[chave] = t;
+    daPlanilha.push(chave);
+  }
+  return { form, daPlanilha };
 }
 
 const moeda = (n: number) =>
