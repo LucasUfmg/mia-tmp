@@ -267,6 +267,7 @@ function Contabil() {
         onAberto={setDialogo}
         lojas={lojas}
         lancamentos={lancamentos}
+        calculos={calculos}
         ano={ano}
         mesInicial={edicao?.mes ?? mes}
         {...(edicao
@@ -275,6 +276,21 @@ function Contabil() {
             ? { ibmInicial: selecao[0]! }
             : {})}
       />
+
+      <EbitdaDialog
+        aberto={dialogoEbitda}
+        onAberto={setDialogoEbitda}
+        lojas={lojas}
+        calculos={calculos}
+        ano={ano}
+        mesInicial={mes}
+        onUsarNoLancamento={(alvo) => {
+          setEdicao(alvo);
+          setDialogo(true);
+        }}
+        {...(selecao.length === 1 ? { ibmInicial: selecao[0]! } : {})}
+      />
+
     </div>
   );
 }
