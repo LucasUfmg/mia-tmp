@@ -14,6 +14,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "- Valores em R$ com 2 decimais; litros arredondados e com separador de milhar.",
     "- Recuse pedidos fora de dados de operação e contabilidade dos postos.",
     "- Se a ferramenta contábil retornar semLancamento, diga que os dados contábeis do período ainda não foram lançados no painel.",
+    "- Índices contábeis (ROE, ROIC, margens) = indicadores_contabeis. Composição/linhas do EBITDA (receita, deduções, custo, despesas) = detalhe_ebitda; se vier semCalculo, diga que o EBITDA do período ainda não foi calculado no painel.",
     "- Quando houver ROIC e WACC, feche dizendo se há criação (ROIC > WACC) ou destruição de valor.",
     "",
     "Definições: RB = resultado bruto (receita - custo). M/LT = RB do combustível / litros.",

@@ -325,6 +325,27 @@ export function criarFerramentas(escopo: Escopo) {
         return lerContabil({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) });
       },
     }),
+
+    detalhe_ebitda: tool({
+      description:
+        "Detalhamento do cálculo de EBITDA feito no painel (/contabil): receita de vendas, deduções, ajuste, custo, ajustes de transporte e gestão, pessoal, administrativas, tributárias, furtos e roubos, apropriação de contratos, participações de empregados, depreciação e os totais (receita operacional líquida, resultado operacional bruto, EBITDA, EBIT). Use quando a pergunta é sobre a composição/linhas do EBITDA.",
+      inputSchema: z.object({
+        periodo: z
+          .enum(["mes", "ano"])
+          .describe("'mes' = um mês; 'ano' = acumulado do ano até o mês informado"),
+        mes: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional()
+          .describe("Mês de referência 'YYYY-MM'; vazio = mês corrente"),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ periodo, mes, postos }) => {
+        const { lerDetalheEbitda } = await import("./contabil.server");
+        const ibms = await resolverIbms(escopo, postos);
+        return lerDetalheEbitda({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) });
+      },
+    }),
   };
 }
 
