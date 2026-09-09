@@ -13,7 +13,7 @@ Os campos vieram vazios porque os nomes usados para casar planilha × painel nã
 
 ## Detalhes técnicos
 
-- `src/data/dre-base.ts`: reescrever o dicionário indexado por IBM (ex.: `"3101"`, `"53901"`, `"901"`) com as médias mensais da primeira aba (`BASE DRE`), em módulo, mais uma entrada `REDE` com a coluna TOTAL GERAL (col. 82, acumulado).
-- Trocar `baseDrePorPosto(nome)` por `baseDrePorIbm(ibm)`, normalizando o IBM (remover zeros à esquerda) para casar com o formato usado em `Loja.ibm` (ex.: `00000000291901`).
-- `EbitdaDialog.tsx`: no `useEffect` de montagem, buscar por `ibm` (inclusive `IBM_REDE`) em vez de pelo nome da loja. Nenhuma outra mudança de comportamento.
+- `src/data/dre-base.ts`: manter o dicionário por nome de posto com as médias mensais da primeira aba (`BASE DRE`), em módulo, e acrescentar a entrada da rede com a coluna TOTAL GERAL (col. 82, acumulado).
+- Melhorar a normalização de `chave()`: remover acentos, pontuação e stopwords (`POSTO`, `AUTO`, `LTDA`, `LTDA.`, `SA`, `S/A`, `ME`, `EIRELI`, `COMERCIO`, `COM`, `DE`, `DO`, `DA`, `DOS`, `E`, `COMBUSTIVEIS`, `DERIVADOS`, `PETROLEO`, `LUBRIFICANTES`, `AUTOMOTIVOS`, `EMPREENDIMENTO`, `COMERCIAL`, `GNV`, `FILIAL`), depois casar por igualdade do restante e, se não houver, por contenção do token-set da planilha dentro do nome do painel (ex.: `ROL` ⊂ `ROL DERIVADOS PETROLEO`). Casamento ambíguo (dois postos do painel iguais, como as filiais) resolve pelo primeiro; casos sem correspondência retornam `undefined`.
+- `baseDrePorPosto(nome)` continua sendo a função usada; `EbitdaDialog.tsx` passa a tratar `IBM_REDE` chamando a entrada da rede.
 - Nada muda em `src/lib/ebitda.ts`, nas funções de servidor, na tabela `contabil_ebitda` nem no lançamento contábil.
