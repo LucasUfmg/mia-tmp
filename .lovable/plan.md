@@ -4,8 +4,8 @@ Os campos vieram vazios porque os nomes usados para casar planilha × painel nã
 
 ## Como vai funcionar depois do ajuste
 
-- O vínculo passa a ser feito pelo código do posto (IBM), não pelo nome. Assim cada posto da planilha aponta para o posto certo do painel.
-- Vínculos (27 postos da planilha): Aeroporto, Aleluia, Buritis, CCA, CELT, Center Norte, Center Posto, Fórmula, Júpiter, Leste, Maquiné, Mauritânia, Minas Shopping, MM, Mustang, Panamera, Parque Jardim, Poeta, Rol, Sete Belo, Sigma, Sto Agostinho, Tatiana, Trovão, Veneto, Vila Chalé, Vila da Serra.
+- O vínculo passa a ser por nome aproximado: ignora acentos, maiúsculas e palavras genéricas ("POSTO", "AUTO", "LTDA", "SA", "COMERCIO", "DE", "COMBUSTIVEIS", "FILIAL" etc.) e casa pelo miolo do nome. Assim "POSTO MUSTANG" da planilha encontra "POSTO MUSTANG LTDA" do painel, e "POSTO ROL" encontra "ROL COM DE DERIVADOS DE PETROLEO LTDA".
+- Vínculos esperados (27 postos da planilha): Aeroporto, Aleluia, Buritis, CCA, CELT, Center Norte, Center Posto, Fórmula, Júpiter, Leste, Maquiné, Mauritânia, Minas Shopping, MM, Mustang, Panamera, Parque Jardim, Poeta, Rol, Sete Belo, Sigma, Sto Agostinho, Tatiana, Trovão, Veneto, Vila Chalé, Vila da Serra.
 - "Rede (consolidado)" passa a ser preenchida com a coluna TOTAL GERAL da planilha (valores acumulados da rede, não a média mensal). Os campos seguem editáveis.
 - Postos do painel que não existem na planilha continuam em branco: Carmênia, Danúbio, Center Sul, Duodrive 2, Gall, Parque Buritis, Portal de Betim, Portal de Contagem, Portal dos Caiçaras, Raja, Via Fernão Dias, RFX Distribuidora e as duas filiais (Aleluia filial e Center Posto filial).
 - Receita de vendas e custo continuam vindo do painel e travados; os demais campos seguem editáveis, com a marca "Base DRE", e o botão "Limpar campos" continua funcionando.
@@ -13,7 +13,7 @@ Os campos vieram vazios porque os nomes usados para casar planilha × painel nã
 
 ## Detalhes técnicos
 
-- `src/data/dre-base.ts`: reescrever o dicionário indexado por IBM (ex.: `"3101"`, `"53901"`, `"901"`) com as médias mensais da primeira aba (`BASE DRE`), em módulo, mais uma entrada `REDE` com a coluna TOTAL GERAL (col. 82, acumulado).
-- Trocar `baseDrePorPosto(nome)` por `baseDrePorIbm(ibm)`, normalizando o IBM (remover zeros à esquerda) para casar com o formato usado em `Loja.ibm` (ex.: `00000000291901`).
-- `EbitdaDialog.tsx`: no `useEffect` de montagem, buscar por `ibm` (inclusive `IBM_REDE`) em vez de pelo nome da loja. Nenhuma outra mudança de comportamento.
+- `src/data/dre-base.ts`: manter o dicionário por nome de posto com as médias mensais da primeira aba (`BASE DRE`), em módulo, e acrescentar a entrada da rede com a coluna TOTAL GERAL (col. 82, acumulado).
+- Melhorar a normalização de `chave()`: remover acentos, pontuação e stopwords (`POSTO`, `AUTO`, `LTDA`, `LTDA.`, `SA`, `S/A`, `ME`, `EIRELI`, `COMERCIO`, `COM`, `DE`, `DO`, `DA`, `DOS`, `E`, `COMBUSTIVEIS`, `DERIVADOS`, `PETROLEO`, `LUBRIFICANTES`, `AUTOMOTIVOS`, `EMPREENDIMENTO`, `COMERCIAL`, `GNV`, `FILIAL`), depois casar por igualdade do restante e, se não houver, por contenção do token-set da planilha dentro do nome do painel (ex.: `ROL` ⊂ `ROL DERIVADOS PETROLEO`). Casamento ambíguo (dois postos do painel iguais, como as filiais) resolve pelo primeiro; casos sem correspondência retornam `undefined`.
+- `baseDrePorPosto(nome)` continua sendo a função usada; `EbitdaDialog.tsx` passa a tratar `IBM_REDE` chamando a entrada da rede.
 - Nada muda em `src/lib/ebitda.ts`, nas funções de servidor, na tabela `contabil_ebitda` nem no lançamento contábil.
