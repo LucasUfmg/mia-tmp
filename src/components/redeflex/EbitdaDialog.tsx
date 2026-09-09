@@ -118,8 +118,32 @@ export function EbitdaDialog({
   }, [aberto, ibmInicial, mesInicial, lojas]);
 
   useEffect(() => {
-    setForm(paraForm(calculos.find((c) => c.ibm === ibm && c.mes === mes)));
-  }, [ibm, mes, calculos]);
+    const salvo = calculos.find((c) => c.ibm === ibm && c.mes === mes);
+    if (salvo) {
+      setForm(paraForm(salvo));
+      setDaPlanilha([]);
+      return;
+    }
+    const base = baseDrePorPosto(lojas.find((l) => l.ibm === ibm)?.nome);
+    if (!base) {
+      setForm({ ...vazio });
+      setDaPlanilha([]);
+      return;
+    }
+    const inicial = paraFormDaPlanilha(base);
+    setForm(inicial.form);
+    setDaPlanilha(inicial.daPlanilha);
+  }, [ibm, mes, calculos, lojas]);
+
+  const editar = (chave: LinhaEbitdaChave, valor: string) => {
+    setForm((f) => ({ ...f, [chave]: valor }));
+    setDaPlanilha((p) => p.filter((c) => c !== chave));
+  };
+
+  const limpar = () => {
+    setForm({ ...vazio });
+    setDaPlanilha([]);
+  };
 
   // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
   const { data: doPainel, isPending: carregandoPainel } = useQuery({
