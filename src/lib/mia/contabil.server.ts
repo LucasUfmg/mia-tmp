@@ -143,7 +143,7 @@ export async function lerDetalheEbitda(opcoes: {
 
   const n = (v: unknown) => Number(v) || 0;
   const linhas = (data ?? []).map((l) => {
-    const linha = l as Linha;
+    const linha = l as unknown as Linha;
     const valores = Object.fromEntries(
       linhasEbitda.map((c) => [c.chave, n(linha[COLUNAS_EBITDA[c.chave]])]),
     ) as Record<LinhaEbitdaChave, number>;
