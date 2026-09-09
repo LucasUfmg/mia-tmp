@@ -324,6 +324,9 @@ export function EbitdaDialog({
           <Button variant="outline" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
+          <Button variant="ghost" onClick={limpar}>
+            Limpar campos
+          </Button>
           <Button
             variant="outline"
             onClick={() => concluir(false)}
