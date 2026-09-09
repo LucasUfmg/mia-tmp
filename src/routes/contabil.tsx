@@ -171,7 +171,17 @@ function Contabil() {
           </div>
 
           <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground">
-            <div className="flex sm:justify-end">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEdicao(null);
+                  setDialogoEbitda(true);
+                }}
+              >
+                <Sigma className="mr-1.5 h-4 w-4 text-gold" />
+                Calcular EBITDA
+              </Button>
               <Button
                 onClick={() => {
                   setEdicao(null);
@@ -183,6 +193,7 @@ function Contabil() {
                 Lançar dados contábeis
               </Button>
             </div>
+
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
               <div className="flex items-center gap-2">
