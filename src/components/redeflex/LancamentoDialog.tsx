@@ -83,6 +83,7 @@ export function LancamentoDialog({
   onAberto,
   lojas,
   lancamentos,
+  calculos = [],
   ano,
   mesInicial,
   ibmInicial,
@@ -101,11 +102,17 @@ export function LancamentoDialog({
     setMes(mesInicial);
   }, [aberto, ibmInicial, mesInicial, lojas]);
 
-  // Carrega o lançamento existente do posto/mês selecionado.
+  const calculo = useMemo(
+    () => calculos.find((c) => c.ibm === ibm && c.mes === mes),
+    [calculos, ibm, mes],
+  );
+
+  // Carrega o lançamento existente do posto/mês e o cálculo de EBITDA, quando houver.
   useEffect(() => {
     const existente = lancamentos.find((l) => l.ibm === ibm && l.mes === mes);
-    setForm(paraForm(existente));
-  }, [ibm, mes, lancamentos]);
+    setForm(paraForm(existente, calculo));
+  }, [ibm, mes, lancamentos, calculo]);
+
 
   const mutation = useMutation({
     mutationFn: async () => {
