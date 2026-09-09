@@ -207,20 +207,42 @@ export function EbitdaDialog({
         <div className="grid gap-3">
           {linhasEbitda.map((l) => {
             const total = totaisApos[l.chave];
+            const travada = travadas.includes(l.chave);
             return (
               <div key={l.chave} className="grid gap-3">
                 <div className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3">
                   <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
                     {l.label}
+                    {travada && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {origem}
+                      </span>
+                    )}
                   </Label>
-                  <Input
-                    id={`ebitda-${l.chave}`}
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={form[l.chave]}
-                    onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
-                  />
+                  {travada ? (
+                    <Input
+                      id={`ebitda-${l.chave}`}
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                      className="cursor-not-allowed bg-surface-muted font-semibold text-muted-foreground"
+                      value={
+                        carregandoPainel && !doPainel
+                          ? "carregando…"
+                          : moeda(Math.abs(numeros[l.chave]))
+                      }
+                    />
+                  ) : (
+                    <Input
+                      id={`ebitda-${l.chave}`}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={form[l.chave]}
+                      onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
+                    />
+                  )}
                 </div>
+
                 {total && (
                   <div
                     className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm font-bold ${
