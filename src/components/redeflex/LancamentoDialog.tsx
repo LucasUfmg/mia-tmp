@@ -30,6 +30,8 @@ import {
   type Lancamento,
 } from "@/lib/contabil";
 
+import { calcularEbitda, type Ebitda } from "@/lib/ebitda";
+
 import type { Loja } from "@/lib/redeflex-dashboard";
 
 type Props = {
@@ -37,6 +39,8 @@ type Props = {
   onAberto: (v: boolean) => void;
   lojas: Loja[];
   lancamentos: Lancamento[];
+  /** Cálculos de EBITDA do ano; preenchem receita líquida, EBITDA e EBIT. */
+  calculos?: Ebitda[];
   ano: string;
   mesInicial: string;
   ibmInicial?: string;
@@ -46,12 +50,22 @@ type Form = Record<CampoChave, string>;
 
 const vazio = Object.fromEntries(campos.map((c) => [c.chave, ""])) as Form;
 
-function paraForm(l: Lancamento | undefined): Form {
-  if (!l) return { ...vazio };
-  return Object.fromEntries(
-    campos.map((c) => [c.chave, l[c.chave] === 0 ? "" : String(l[c.chave]).replace(".", ",")]),
-  ) as Form;
+const texto = (n: number) => (n === 0 ? "" : String(n).replace(".", ","));
+
+function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form {
+  const base = l
+    ? (Object.fromEntries(campos.map((c) => [c.chave, texto(l[c.chave])])) as Form)
+    : { ...vazio };
+  if (!calculo) return base;
+  const r = calcularEbitda(calculo);
+  return {
+    ...base,
+    receitaLiquida: texto(Math.round(r.receitaLiquida * 100) / 100),
+    ebitda: texto(Math.round(r.ebitda * 100) / 100),
+    ebit: texto(Math.round(r.ebit * 100) / 100),
+  };
 }
+
 
 /** Aceita "1.234.567,89" e "1234567.89". */
 function paraNumero(valor: string): number {
