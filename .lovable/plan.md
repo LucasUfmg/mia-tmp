@@ -6,7 +6,7 @@ Os campos vieram vazios porque os nomes usados para casar planilha × painel nã
 
 - O vínculo passa a ser feito pelo código do posto (IBM), não pelo nome. Assim cada posto da planilha aponta para o posto certo do painel.
 - Vínculos (27 postos da planilha): Aeroporto, Aleluia, Buritis, CCA, CELT, Center Norte, Center Posto, Fórmula, Júpiter, Leste, Maquiné, Mauritânia, Minas Shopping, MM, Mustang, Panamera, Parque Jardim, Poeta, Rol, Sete Belo, Sigma, Sto Agostinho, Tatiana, Trovão, Veneto, Vila Chalé, Vila da Serra.
-- "Rede (consolidado)" passa a ser preenchida com a coluna MÉDIA MENSAL do TOTAL GERAL da planilha.
+- "Rede (consolidado)" passa a ser preenchida com a coluna TOTAL GERAL da planilha (valores acumulados da rede, não a média mensal). Os campos seguem editáveis.
 - Postos do painel que não existem na planilha continuam em branco: Carmênia, Danúbio, Center Sul, Duodrive 2, Gall, Parque Buritis, Portal de Betim, Portal de Contagem, Portal dos Caiçaras, Raja, Via Fernão Dias, RFX Distribuidora e as duas filiais (Aleluia filial e Center Posto filial).
 - Receita de vendas e custo continuam vindo do painel e travados; os demais campos seguem editáveis, com a marca "Base DRE", e o botão "Limpar campos" continua funcionando.
 - Valores já salvos para o posto/mês continuam tendo prioridade sobre a planilha.
