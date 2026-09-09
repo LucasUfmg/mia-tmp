@@ -31,7 +31,7 @@ import {
   type Ebitda,
   type LinhaEbitdaChave,
 } from "@/lib/ebitda";
-import { baseDrePorPosto, type BaseDreChave } from "@/data/dre-base";
+import { baseDrePorPosto, baseDreRedeConsolidada, type BaseDreChave } from "@/data/dre-base";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
@@ -124,7 +124,10 @@ export function EbitdaDialog({
       setDaPlanilha([]);
       return;
     }
-    const base = baseDrePorPosto(lojas.find((l) => l.ibm === ibm)?.nome);
+    const base =
+      ibm === IBM_REDE
+        ? baseDreRedeConsolidada()
+        : baseDrePorPosto(lojas.find((l) => l.ibm === ibm)?.nome);
     if (!base) {
       setForm({ ...vazio });
       setDaPlanilha([]);
