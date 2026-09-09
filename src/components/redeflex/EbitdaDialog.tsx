@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { salvarEbitda } from "@/lib/contabil.functions";
+import { getReceitaCusto } from "@/lib/redeflex.functions";
 import { IBM_REDE, mesesDoAno, rotuloMes } from "@/lib/contabil";
 import {
   calcularEbitda,
@@ -31,6 +33,10 @@ import {
 } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
+
+/** Linhas que vêm dos dados de venda e não podem ser editadas. */
+const travadas: LinhaEbitdaChave[] = ["receitaVendas", "custo"];
+
 
 type Props = {
   aberto: boolean;
