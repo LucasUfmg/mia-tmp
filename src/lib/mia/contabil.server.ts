@@ -8,6 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
+import { calcularEbitda, linhasEbitda, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";

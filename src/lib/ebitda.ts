@@ -7,7 +7,7 @@
 export const linhasEbitda = [
   { chave: "receitaVendas", label: "(+) Receita de vendas", sinal: 1 },
   { chave: "deducoes", label: "(-) Deduções da receita bruta", sinal: -1 },
-  { chave: "ajusteEnergy", label: "Ajuste Energy", sinal: 1 },
+  { chave: "ajusteEnergy", label: "Ajuste", sinal: 1 },
   { chave: "custo", label: "(-) Custo", sinal: -1 },
   { chave: "ajusteTransporte", label: "Ajuste transporte", sinal: 1 },
   { chave: "ajusteGestao", label: "Ajuste gestão", sinal: 1 },
