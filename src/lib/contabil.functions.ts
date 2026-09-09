@@ -115,3 +115,60 @@ export const excluirLancamento = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ---------------------------- Cálculo de EBITDA ---------------------------- */
+
+const snake = (chave: string) => chave.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const colunasEbitda = linhasEbitda.map((l) => snake(l.chave));
+
+const ebitdaSchema = z.object({
+  ibm: z.string().min(1),
+  mes: z.string().regex(mesRegex),
+  ...(Object.fromEntries(linhasEbitda.map((l) => [l.chave, z.number().finite()])) as Record<
+    LinhaEbitdaChave,
+    z.ZodNumber
+  >),
+});
+
+function paraEbitda(linha: Record<string, unknown>): Ebitda {
+  const valores = Object.fromEntries(
+    linhasEbitda.map((l) => [l.chave, Number(linha[snake(l.chave)]) || 0]),
+  ) as Record<LinhaEbitdaChave, number>;
+  return {
+    ibm: String(linha["ibm"]),
+    mes: String(linha["mes"]).slice(0, 10),
+    ...valores,
+  };
+}
+
+/** Cálculos de EBITDA de um ano (todos os postos). */
+export const listarEbitda = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => listarSchema.parse(input))
+  .handler(async ({ data }): Promise<Ebitda[]> => {
+    const { clienteContabil } = await import("./contabil.server");
+    const supabase = clienteContabil();
+    const { data: linhas, error } = await supabase
+      .from("contabil_ebitda")
+      .select(["ibm", "mes", ...colunasEbitda].join(", "))
+      .gte("mes", `${data.ano}-01-01`)
+      .lte("mes", `${data.ano}-12-01`)
+      .order("mes", { ascending: true });
+    if (error) throw new Error(error.message);
+    return (linhas ?? []).map((l) => paraEbitda(l as unknown as Record<string, unknown>));
+  });
+
+/** Cria ou atualiza o cálculo de EBITDA de um posto em um mês. */
+export const salvarEbitda = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => ebitdaSchema.parse(input))
+  .handler(async ({ data }) => {
+    const { clienteContabil } = await import("./contabil.server");
+    const supabase = clienteContabil();
+    const registro: Record<string, unknown> = { ibm: data.ibm, mes: data.mes };
+    for (const l of linhasEbitda) registro[snake(l.chave)] = data[l.chave];
+    const { error } = await supabase
+      .from("contabil_ebitda")
+      .upsert(registro, { onConflict: "ibm,mes" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
