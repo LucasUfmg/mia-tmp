@@ -267,6 +267,11 @@ export function EbitdaDialog({
                         {origem}
                       </span>
                     )}
+                    {!travada && daPlanilha.includes(l.chave) && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        Base DRE
+                      </span>
+                    )}
                   </Label>
                   {travada ? (
                     <Input
