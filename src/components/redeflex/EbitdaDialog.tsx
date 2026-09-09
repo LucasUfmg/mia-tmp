@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { salvarEbitda } from "@/lib/contabil.functions";
+import { getReceitaCusto } from "@/lib/redeflex.functions";
 import { IBM_REDE, mesesDoAno, rotuloMes } from "@/lib/contabil";
 import {
   calcularEbitda,
@@ -31,6 +33,10 @@ import {
 } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
+
+/** Linhas que vêm dos dados de venda e não podem ser editadas. */
+const travadas: LinhaEbitdaChave[] = ["receitaVendas", "custo"];
+
 
 type Props = {
   aberto: boolean;
@@ -98,15 +104,35 @@ export function EbitdaDialog({
     setForm(paraForm(calculos.find((c) => c.ibm === ibm && c.mes === mes)));
   }, [ibm, mes, calculos]);
 
-  const numeros = useMemo(
-    () =>
-      Object.fromEntries(linhasEbitda.map((l) => [l.chave, paraNumero(form[l.chave])])) as Record<
-        LinhaEbitdaChave,
-        number
-      >,
-    [form],
-  );
+  // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
+  const { data: doPainel, isPending: carregandoPainel } = useQuery({
+    queryKey: ["contabil", "ebitda-bi", ibm, mes],
+    queryFn: () =>
+      getReceitaCusto({ data: { mes, ...(ibm && ibm !== IBM_REDE ? { ibm } : {}) } }),
+    enabled: aberto && !!ibm,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const numeros = useMemo(() => {
+    const base = Object.fromEntries(
+      linhasEbitda.map((l) => [l.chave, paraNumero(form[l.chave])]),
+    ) as Record<LinhaEbitdaChave, number>;
+    base.receitaVendas = doPainel?.receita ?? 0;
+    base.custo = doPainel?.custo ?? 0;
+    return base;
+  }, [form, doPainel]);
   const resultado = useMemo(() => calcularEbitda(numeros), [numeros]);
+
+  const semVendas = !carregandoPainel && (doPainel?.receita ?? 0) === 0;
+  const origem = carregandoPainel
+    ? "Carregando dados de venda…"
+    : doPainel
+      ? doPainel.parcial
+        ? `Do painel — acumulado até ${doPainel.ate.slice(8, 10)}/${doPainel.ate.slice(5, 7)}`
+        : "Do painel — mês fechado"
+      : "Do painel";
+
 
   const mutation = useMutation({
     mutationFn: async () => await salvar({ data: { ibm, mes, ...numeros } }),
@@ -138,10 +164,18 @@ export function EbitdaDialog({
         <DialogHeader>
           <DialogTitle>Calcular EBITDA</DialogTitle>
           <DialogDescription>
-            Preencha as linhas do resultado do posto no mês. Os totais são calculados
-            automaticamente e podem ser levados para o lançamento contábil.
+            Receita de vendas e custo vêm dos dados de venda do posto e não podem ser alterados.
+            Preencha as demais linhas: os totais são calculados automaticamente e podem ser levados
+            para o lançamento contábil.
           </DialogDescription>
         </DialogHeader>
+
+        {semVendas && (
+          <p className="rounded-xl bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
+            Sem vendas registradas neste período para o posto/mês selecionado.
+          </p>
+        )}
+
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
@@ -181,20 +215,42 @@ export function EbitdaDialog({
         <div className="grid gap-3">
           {linhasEbitda.map((l) => {
             const total = totaisApos[l.chave];
+            const travada = travadas.includes(l.chave);
             return (
               <div key={l.chave} className="grid gap-3">
                 <div className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3">
                   <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
                     {l.label}
+                    {travada && (
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {origem}
+                      </span>
+                    )}
                   </Label>
-                  <Input
-                    id={`ebitda-${l.chave}`}
-                    inputMode="decimal"
-                    placeholder="0,00"
-                    value={form[l.chave]}
-                    onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
-                  />
+                  {travada ? (
+                    <Input
+                      id={`ebitda-${l.chave}`}
+                      readOnly
+                      tabIndex={-1}
+                      aria-readonly="true"
+                      className="cursor-not-allowed bg-surface-muted font-semibold text-muted-foreground"
+                      value={
+                        carregandoPainel && !doPainel
+                          ? "carregando…"
+                          : moeda(Math.abs(numeros[l.chave]))
+                      }
+                    />
+                  ) : (
+                    <Input
+                      id={`ebitda-${l.chave}`}
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={form[l.chave]}
+                      onChange={(e) => setForm((f) => ({ ...f, [l.chave]: e.target.value }))}
+                    />
+                  )}
                 </div>
+
                 {total && (
                   <div
                     className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm font-bold ${
