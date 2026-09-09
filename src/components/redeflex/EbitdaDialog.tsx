@@ -104,15 +104,35 @@ export function EbitdaDialog({
     setForm(paraForm(calculos.find((c) => c.ibm === ibm && c.mes === mes)));
   }, [ibm, mes, calculos]);
 
-  const numeros = useMemo(
-    () =>
-      Object.fromEntries(linhasEbitda.map((l) => [l.chave, paraNumero(form[l.chave])])) as Record<
-        LinhaEbitdaChave,
-        number
-      >,
-    [form],
-  );
+  // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
+  const { data: doPainel, isPending: carregandoPainel } = useQuery({
+    queryKey: ["contabil", "ebitda-bi", ibm, mes],
+    queryFn: () =>
+      getReceitaCusto({ data: { mes, ...(ibm && ibm !== IBM_REDE ? { ibm } : {}) } }),
+    enabled: aberto && !!ibm,
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+
+  const numeros = useMemo(() => {
+    const base = Object.fromEntries(
+      linhasEbitda.map((l) => [l.chave, paraNumero(form[l.chave])]),
+    ) as Record<LinhaEbitdaChave, number>;
+    base.receitaVendas = doPainel?.receita ?? 0;
+    base.custo = doPainel?.custo ?? 0;
+    return base;
+  }, [form, doPainel]);
   const resultado = useMemo(() => calcularEbitda(numeros), [numeros]);
+
+  const semVendas = !carregandoPainel && (doPainel?.receita ?? 0) === 0;
+  const origem = carregandoPainel
+    ? "Carregando dados de venda…"
+    : doPainel
+      ? doPainel.parcial
+        ? `Do painel — acumulado até ${doPainel.ate.slice(8, 10)}/${doPainel.ate.slice(5, 7)}`
+        : "Do painel — mês fechado"
+      : "Do painel";
+
 
   const mutation = useMutation({
     mutationFn: async () => await salvar({ data: { ibm, mes, ...numeros } }),
