@@ -141,6 +141,15 @@ export function LancamentoDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {calculo && (
+          <p className="rounded-xl bg-gold/15 px-4 py-3 text-xs font-semibold text-foreground">
+            Receita líquida, EBITDA e EBIT vindos do cálculo de EBITDA deste posto/mês — pode
+            editar à mão se precisar.
+          </p>
+        )}
+
+
+
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Posto</Label>
