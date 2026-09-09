@@ -1,74 +1,48 @@
-# Preparar o painel para atender várias redes de postos
+# Menu de navegação + Calculadora de EBITDA na aba Contábil
 
-Objetivo: deixar a base pronta para ligar uma segunda rede (com sistema de origem
-diferente) sem reescrever o painel, e com cada cliente vendo só os seus postos.
+Três entregas: o menu lateral passa a aparecer também em telas menores, a aba Contábil ganha um botão **Calcular EBITDA** com o detalhamento da DRE da planilha, e o resultado calculado entra já preenchido no formulário **Lançar dados contábeis**.
 
-## Estratégia em uma frase
+## 1. Navegação visível em qualquer tela
 
-Tudo passa a pertencer a uma "rede" (cliente). O painel nunca fala direto com o
-banco de origem: ele lê de um formato único interno, e cada rede tem um pequeno
-"tradutor" que converte o formato dela para esse padrão.
+O menu lateral (Visão Geral, Contábil, Manual) hoje só aparece em telas grandes. Em telas menores entra um botão de menu no topo da página que abre o mesmo menu em painel deslizante, com os mesmos itens e o mesmo destaque dourado do item ativo. Vale para a Visão Geral e para a Contábil.
 
-```text
-Rede A (banco atual)  --> tradutor A --\
-                                        >-- formato único --> painel / Mia / contábil
-Rede B (outro sistema) --> tradutor B --/
-```
+## 2. Botão "Calcular EBITDA"
 
-## Etapas
+Novo botão ao lado de **Lançar dados contábeis**. Abre um formulário de **um posto e um mês** (ou Rede consolidado) com as linhas da primeira aba da planilha (BASE DRE), na mesma ordem:
 
-### 1. Cadastro de redes e usuários
-- Nova tabela de redes (nome, apelido curto, situação ativa/inativa).
-- Nova tabela de postos por rede (código do posto, nome, cidade, bairro,
-  coordenadas) — hoje a lista de postos está fixa no código.
-- Vínculo entre pessoa que faz login e rede, com dois papéis: administrador da
-  plataforma (vê todas as redes) e usuário da rede (vê apenas a sua).
-- Login por e-mail e senha, mais Google. As telas do painel passam a ficar atrás
-  do login; a página de vendas da Mia continua aberta.
+- (+) Receita de vendas
+- (-) Deduções da receita bruta
+- Ajuste Energy
+- **= Receita operacional líquida** (calculado)
+- (-) Custo
+- **= Resultado operacional bruto** (calculado)
+- Ajuste transporte
+- Ajuste gestão
+- (-) Despesas com pessoal
+- (-) Administrativas
+- (-) Despesas tributárias
+- (-) Furtos e roubos
+- (+) Apropriação de contratos
+- (-) Participações de empregados
+- **= EBITDA** (calculado)
+- (-) Depreciação/amortização
+- **= EBIT** (calculado)
 
-### 2. Toda leitura passa a ser por rede
-- As consultas de vendas, mapa, ranking de vendedores e indicadores contábeis
-  recebem a rede como parâmetro obrigatório.
-- Os lançamentos contábeis e os contatos de WhatsApp da Mia ganham a coluna de
-  rede, com regra de acesso que impede um cliente de ver dados do outro.
-- No WhatsApp, o número cadastrado define a rede da conversa automaticamente.
+Comportamento:
 
-### 3. Tradutor por rede (o ponto que dá escala)
-- Uma "porta de entrada de dados" com um contrato fixo: dado um período e uma
-  lista de postos, devolver volume, receita, margem, tempos e vendedores.
-- O tradutor da rede atual é o código Mongo que já existe, movido para trás desse
-  contrato, sem mudar fórmulas.
-- Para uma rede nova basta escrever um tradutor novo e apontar as credenciais
-  dela no cadastro; nada do painel muda.
-- As credenciais de cada rede ficam guardadas no backend, referenciadas pelo
-  cadastro da rede — nunca no navegador.
+- Os totais recalculam a cada digitação, com destaque para o EBITDA e sinalização de resultado negativo.
+- Valores negativos podem ser digitados com sinal ou sem — as linhas marcadas com (-) são tratadas como redutoras.
+- Um cálculo por posto/mês: reabrir o mesmo posto/mês traz os valores já digitados para ajuste.
+- Botão **Usar no lançamento contábil**: salva o detalhamento e abre o formulário de lançamento com Receita líquida, EBITDA e EBIT já preenchidos.
 
-### 4. Ligar a segunda rede depois
-Checklist que sobra para o futuro: cadastrar a rede, cadastrar os postos,
-guardar as credenciais, escrever o tradutor, criar o usuário. Sem tocar em telas.
+## 3. Resultado no "Lançar dados contábeis"
+
+Quando o posto/mês selecionado no formulário de lançamento tiver um cálculo de EBITDA salvo, os campos **Receita líquida**, **EBITDA** e **EBIT** aparecem preenchidos a partir do cálculo, com um aviso "vindo do cálculo de EBITDA" e a opção de editar manualmente. Os demais campos (lucro líquido, alíquota, PL, dívida, caixa, WACC) continuam sendo digitados como hoje, e ROE/ROIC/margens seguem usando os valores do lançamento.
 
 ## Detalhes técnicos
 
-- Tabelas novas: `redes`, `rede_postos`, `rede_usuarios` (papel), e coluna
-  `rede_id` em `contabil_lancamentos` e `mia_contatos`. GRANTs + RLS via função
-  `security definer` `pertence_a_rede(rede_id)`, evitando recursão nas políticas.
-- Migração de dados: rede inicial `redeflex` criada na mesma migração, com os 41
-  postos de `src/data/postos-localizacao.ts` inseridos e as linhas existentes de
-  `contabil_lancamentos`/`mia_contatos` apontadas para ela.
-- Camada de dados: interface `FonteDeDados` (`vendasPorDia`, `vendasPorMes`,
-  `indices`, `vendedores`, `lojas`) em `src/lib/fontes/tipos.ts`; adaptador atual
-  em `src/lib/fontes/redeflex-mongo.ts` reusando `redeflex-mongo.server.ts` sem
-  alterar agregações; `resolverFonte(redeId)` faz o registro por rede.
-- Credenciais por rede: nome do secret guardado na linha da rede
-  (`secret_conexao`), lido com `process.env[nome]` dentro do handler — mantém a
-  regra de não fazer I/O em escopo global no Worker.
-- Rotas do painel movidas para `src/routes/_authenticated/` (índice, contábil,
-  manual); `/agente` e as rotas `api/public/*` seguem públicas.
-- `src/lib/mia/*` mantém prompt, memória e ferramentas; as ferramentas apenas
-  recebem `redeId` resolvido a partir do contato.
-- Cache (`src/lib/cache.server.ts` e `sessionStorage`) passa a incluir `redeId` na
-  chave.
-
-## Fora de escopo
-
-Fórmulas dos indicadores, layout, cores e o canal FZAP (segue em espera).
+- Nova tabela `contabil_ebitda` no Lovable Cloud: `ibm`, `mes` (dia 1), as linhas da DRE acima como numéricos com default 0, timestamps, chave única (`ibm`, `mes`), GRANTs e políticas abertas para `anon` no mesmo padrão de `contabil_lancamentos`.
+- `src/lib/ebitda.ts`: definição das linhas (chave, rótulo, sinal, se é total) e função pura `calcularEbitda` retornando receita líquida, resultado bruto, EBITDA e EBIT.
+- `src/lib/contabil.functions.ts`: `listarEbitda(ano)` e `salvarEbitda(...)` seguindo o padrão atual (`clienteContabil`, upsert por `ibm,mes`).
+- `src/components/redeflex/EbitdaDialog.tsx`: formulário com totais reativos; `LancamentoDialog` recebe `ebitda` (lista do ano) e pré-preenche `receitaLiquida`/`ebitda`/`ebit` quando existir registro do posto/mês.
+- `src/components/redeflex/Sidebar.tsx`: extrai a lista de itens para reuso e ganha uma variante em `Sheet` (shadcn) acionada por botão no topo; `src/routes/contabil.tsx` e `src/routes/index.tsx` passam a renderizar o gatilho no cabeçalho móvel.
