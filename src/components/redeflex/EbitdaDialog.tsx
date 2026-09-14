@@ -23,7 +23,14 @@ import {
 } from "@/components/ui/select";
 import { salvarEbitda } from "@/lib/contabil.functions";
 import { getReceitaCusto } from "@/lib/redeflex.functions";
-import { IBM_REDE, mesesDoAno, rotuloMes } from "@/lib/contabil";
+import {
+  IBM_REDE,
+  formatarBR,
+  mascaraBR,
+  mesesDoAno,
+  paraNumero,
+  rotuloMes,
+} from "@/lib/contabil";
 import {
   calcularEbitda,
   linhasEbitda,
@@ -55,16 +62,7 @@ type Form = Record<LinhaEbitdaChave, string>;
 
 const vazio = Object.fromEntries(linhasEbitda.map((l) => [l.chave, ""])) as Form;
 
-/** Aceita "1.234.567,89" e "1234567.89". */
-function paraNumero(valor: string): number {
-  const limpo = valor.trim().replace(/\s|R\$/g, "");
-  if (!limpo) return 0;
-  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
-  const n = Number(normalizado);
-  return Number.isFinite(n) ? n : 0;
-}
-
-const texto = (v: number) => (v === 0 ? "" : String(Math.abs(v)).replace(".", ","));
+const texto = (v: number) => formatarBR(v);
 
 function paraForm(c: Ebitda | undefined): Form {
   if (!c) return { ...vazio };
