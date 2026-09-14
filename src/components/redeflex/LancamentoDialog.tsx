@@ -226,6 +226,7 @@ export function LancamentoDialog({
               </div>
             );
           })}
+          </div>
         </div>
 
         <DialogFooter>
@@ -234,7 +235,7 @@ export function LancamentoDialog({
           </Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || carregando}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
             {mutation.isPending ? "Salvando…" : "Salvar lançamento"}
