@@ -81,6 +81,7 @@ export function LancamentoDialog({
   lojas,
   lancamentos,
   calculos = [],
+  carregando = false,
   ano,
   mesInicial,
   ibmInicial,
