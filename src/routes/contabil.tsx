@@ -66,14 +66,18 @@ function Contabil() {
     placeholderData: keepPreviousData,
   });
 
-  const { data: lancamentos = [], isPending } = useQuery({
+  const {
+    data: lancamentos = [],
+    isPending,
+    isFetching: buscandoLancamentos,
+  } = useQuery({
     queryKey: ["contabil", "lancamentos", ano],
     queryFn: () => listarLancamentos({ data: { ano } }),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: calculos = [] } = useQuery({
+  const { data: calculos = [], isFetching: buscandoCalculos } = useQuery({
     queryKey: ["contabil", "ebitda", ano],
     queryFn: () => listarEbitda({ data: { ano } }),
     staleTime: 60_000,
@@ -268,6 +272,7 @@ function Contabil() {
         lojas={lojas}
         lancamentos={lancamentos}
         calculos={calculos}
+        carregando={buscandoLancamentos || buscandoCalculos}
         ano={ano}
         mesInicial={edicao?.mes ?? mes}
         {...(edicao

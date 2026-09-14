@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -44,6 +45,8 @@ type Props = {
   lancamentos: Lancamento[];
   /** Cálculos de EBITDA do ano; preenchem receita líquida, EBITDA e EBIT. */
   calculos?: Ebitda[];
+  /** Enquanto os dados do posto/mês ainda estão sendo buscados. */
+  carregando?: boolean;
   ano: string;
   mesInicial: string;
   ibmInicial?: string;
@@ -78,6 +81,7 @@ export function LancamentoDialog({
   lojas,
   lancamentos,
   calculos = [],
+  carregando = false,
   ano,
   mesInicial,
   ibmInicial,
@@ -177,7 +181,18 @@ export function LancamentoDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
+        <div className="relative">
+          {carregando && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando dados do posto…
+            </div>
+          )}
+          <div
+            className={`grid gap-4 sm:grid-cols-2 ${carregando ? "pointer-events-none opacity-40" : ""}`}
+          >
           {campos.map((c) => {
             const travado = !!calculo && doCalculo.includes(c.chave);
             return (
@@ -213,6 +228,7 @@ export function LancamentoDialog({
               </div>
             );
           })}
+          </div>
         </div>
 
         <DialogFooter>
@@ -221,7 +237,7 @@ export function LancamentoDialog({
           </Button>
           <Button
             onClick={() => mutation.mutate()}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || carregando}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
             {mutation.isPending ? "Salvando…" : "Salvar lançamento"}

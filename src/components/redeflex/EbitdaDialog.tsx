@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import {
   Dialog,
@@ -152,7 +153,11 @@ export function EbitdaDialog({
   };
 
   // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
-  const { data: doPainel, isPending: carregandoPainel } = useQuery({
+  const {
+    data: doPainel,
+    isPending: carregandoPainel,
+    isFetching: buscandoPainel,
+  } = useQuery({
     queryKey: ["contabil", "ebitda-bi", ibm, mes],
     queryFn: () =>
       getReceitaCusto({ data: { mes, ...(ibm && ibm !== IBM_REDE ? { ibm } : {}) } }),
@@ -259,7 +264,16 @@ export function EbitdaDialog({
           </div>
         </div>
 
-        <div className="grid gap-3">
+        <div className="relative">
+          {buscandoPainel && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando dados do posto…
+            </div>
+          )}
+          <div
+            className={`grid gap-3 ${buscandoPainel ? "pointer-events-none opacity-40" : ""}`}
+          >
           {linhasEbitda.map((l) => {
             const total = totaisApos[l.chave];
             const travada = travadas.includes(l.chave);
@@ -324,25 +338,26 @@ export function EbitdaDialog({
               </div>
             );
           })}
+          </div>
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button variant="outline" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
-          <Button variant="ghost" onClick={limpar}>
+          <Button variant="ghost" onClick={limpar} disabled={buscandoPainel}>
             Limpar campos
           </Button>
           <Button
             variant="outline"
             onClick={() => concluir(false)}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || buscandoPainel}
           >
             {mutation.isPending ? "Salvando…" : "Salvar cálculo"}
           </Button>
           <Button
             onClick={() => concluir(true)}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || buscandoPainel}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
             Usar no lançamento contábil
