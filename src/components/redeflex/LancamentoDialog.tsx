@@ -23,8 +23,11 @@ import {
 import { salvarLancamento } from "@/lib/contabil.functions";
 import {
   campos,
+  formatarBR,
   IBM_REDE,
+  mascaraBR,
   mesesDoAno,
+  paraNumero,
   rotuloMes,
   type CampoChave,
   type Lancamento,
