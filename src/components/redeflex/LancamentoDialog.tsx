@@ -178,18 +178,41 @@ export function LancamentoDialog({
             </Select>
           </div>
 
-          {campos.map((c) => (
-            <div key={c.chave} className="grid gap-2">
-              <Label htmlFor={c.chave}>{c.label}</Label>
-              <Input
-                id={c.chave}
-                inputMode="decimal"
-                placeholder={c.tipo === "pct" ? "0,00" : "0,00"}
-                value={form[c.chave]}
-                onChange={(e) => setForm((f) => ({ ...f, [c.chave]: e.target.value }))}
-              />
-            </div>
-          ))}
+          {campos.map((c) => {
+            const travado = !!calculo && doCalculo.includes(c.chave);
+            return (
+              <div key={c.chave} className="grid gap-2">
+                <Label htmlFor={c.chave}>
+                  {c.label}
+                  {travado && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-info">
+                      Do cálculo de EBITDA
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id={c.chave}
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  readOnly={travado}
+                  aria-readonly={travado || undefined}
+                  className={
+                    travado
+                      ? "cursor-not-allowed border-info bg-info-soft font-semibold text-info-foreground"
+                      : undefined
+                  }
+                  value={form[c.chave]}
+                  onChange={(e) =>
+                    !travado &&
+                    setForm((f) => ({
+                      ...f,
+                      [c.chave]: mascaraBR(e.target.value, { milhar: c.tipo !== "pct" }),
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
 
         <DialogFooter>
