@@ -337,25 +337,26 @@ export function EbitdaDialog({
               </div>
             );
           })}
+          </div>
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button variant="outline" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
-          <Button variant="ghost" onClick={limpar}>
+          <Button variant="ghost" onClick={limpar} disabled={buscandoPainel}>
             Limpar campos
           </Button>
           <Button
             variant="outline"
             onClick={() => concluir(false)}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || buscandoPainel}
           >
             {mutation.isPending ? "Salvando…" : "Salvar cálculo"}
           </Button>
           <Button
             onClick={() => concluir(true)}
-            disabled={!ibm || mutation.isPending}
+            disabled={!ibm || mutation.isPending || buscandoPainel}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
             Usar no lançamento contábil
