@@ -272,6 +272,7 @@ function Contabil() {
         lojas={lojas}
         lancamentos={lancamentos}
         calculos={calculos}
+        carregando={buscandoLancamentos || buscandoCalculos}
         ano={ano}
         mesInicial={edicao?.mes ?? mes}
         {...(edicao
