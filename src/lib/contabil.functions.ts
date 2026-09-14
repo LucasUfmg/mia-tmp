@@ -169,6 +169,23 @@ export const salvarEbitda = createServerFn({ method: "POST" })
       .from("contabil_ebitda")
       .upsert(registro, { onConflict: "ibm,mes" });
     if (error) throw new Error(error.message);
+
+    // Mantém o lançamento contábil do mesmo posto/mês em sincronia com o cálculo,
+    // sem tocar nos demais campos (PL, dívida, caixa, alíquota, WACC, lucro líquido).
+    const { calcularEbitda } = await import("./ebitda");
+    const r = calcularEbitda(data as unknown as Record<LinhaEbitdaChave, number>);
+    const arredondar = (n: number) => Math.round(n * 100) / 100;
+    const { error: erroSync } = await supabase
+      .from("contabil_lancamentos")
+      .update({
+        receita_liquida: arredondar(r.receitaLiquida),
+        ebitda: arredondar(r.ebitda),
+        ebit: arredondar(r.ebit),
+      })
+      .eq("ibm", data.ibm)
+      .eq("mes", data.mes);
+    if (erroSync) throw new Error(erroSync.message);
+
     return { ok: true };
   });
 

@@ -62,7 +62,7 @@ type Form = Record<LinhaEbitdaChave, string>;
 
 const vazio = Object.fromEntries(linhasEbitda.map((l) => [l.chave, ""])) as Form;
 
-const texto = (v: number) => formatarBR(v);
+const texto = (v: number) => formatarBR(Math.abs(v));
 
 function paraForm(c: Ebitda | undefined): Form {
   if (!c) return { ...vazio };
