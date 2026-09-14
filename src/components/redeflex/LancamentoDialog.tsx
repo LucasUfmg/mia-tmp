@@ -179,7 +179,18 @@ export function LancamentoDialog({
               </SelectContent>
             </Select>
           </div>
+        </div>
 
+        <div className="relative">
+          {carregando && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando dados do posto…
+            </div>
+          )}
+          <div
+            className={`grid gap-4 sm:grid-cols-2 ${carregando ? "pointer-events-none opacity-40" : ""}`}
+          >
           {campos.map((c) => {
             const travado = !!calculo && doCalculo.includes(c.chave);
             return (
