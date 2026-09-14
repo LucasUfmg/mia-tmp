@@ -44,6 +44,8 @@ type Props = {
   lancamentos: Lancamento[];
   /** Cálculos de EBITDA do ano; preenchem receita líquida, EBITDA e EBIT. */
   calculos?: Ebitda[];
+  /** Enquanto os dados do posto/mês ainda estão sendo buscados. */
+  carregando?: boolean;
   ano: string;
   mesInicial: string;
   ibmInicial?: string;
