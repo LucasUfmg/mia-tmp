@@ -115,11 +115,11 @@ export function paraNumero(valor: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** 25637207.81 → "25.637.207,81". Zero vira campo vazio. */
+/** 25637207.81 → "25.637.207,81". Zero vira campo vazio; sinal negativo preservado. */
 export function formatarBR(n: number, opcoes?: { milhar?: boolean }): string {
   if (!n) return "";
   const milhar = opcoes?.milhar !== false;
-  return Math.abs(n).toLocaleString("pt-BR", {
+  return n.toLocaleString("pt-BR", {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
     useGrouping: milhar,
@@ -129,14 +129,16 @@ export function formatarBR(n: number, opcoes?: { milhar?: boolean }): string {
 /** Máscara aplicada enquanto o usuário digita: ponto de milhar e vírgula de centavos. */
 export function mascaraBR(valor: string, opcoes?: { milhar?: boolean }): string {
   const milhar = opcoes?.milhar !== false;
+  const negativo = valor.trim().startsWith("-");
   const limpo = valor.replace(/[^\d.,]/g, "").replace(/\./g, "");
   const [inteiro = "", ...resto] = limpo.split(",");
   const decimais = resto.join("").slice(0, 2);
   const inteiroLimpo = inteiro.replace(/^0+(?=\d)/, "");
   const inteiroFmt =
     milhar && inteiroLimpo ? Number(inteiroLimpo).toLocaleString("pt-BR") : inteiroLimpo;
-  if (limpo.includes(",")) return `${inteiroFmt || "0"},${decimais}`;
-  return inteiroFmt;
+  const sinal = negativo ? "-" : "";
+  if (limpo.includes(",")) return `${sinal}${inteiroFmt || "0"},${decimais}`;
+  return inteiroFmt ? `${sinal}${inteiroFmt}` : sinal;
 }
 
 function ponderada(linhas: Lancamento[], campo: "aliquotaEfetiva" | "wacc"): number {

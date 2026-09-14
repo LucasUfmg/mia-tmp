@@ -53,7 +53,10 @@ type Form = Record<CampoChave, string>;
 
 const vazio = Object.fromEntries(campos.map((c) => [c.chave, ""])) as Form;
 
-const texto = (n: number) => (n === 0 ? "" : String(n).replace(".", ","));
+const texto = (n: number) => formatarBR(n);
+
+/** Campos preenchidos pelo cálculo de EBITDA (somente leitura quando há cálculo). */
+const doCalculo: CampoChave[] = ["receitaLiquida", "ebitda", "ebit"];
 
 function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form {
   const base = l
@@ -67,18 +70,6 @@ function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form 
     ebitda: texto(Math.round(r.ebitda * 100) / 100),
     ebit: texto(Math.round(r.ebit * 100) / 100),
   };
-}
-
-
-/** Aceita "1.234.567,89" e "1234567.89". */
-function paraNumero(valor: string): number {
-  const limpo = valor.trim().replace(/\s|R\$|%/g, "");
-  if (!limpo) return 0;
-  const normalizado = limpo.includes(",")
-    ? limpo.replace(/\./g, "").replace(",", ".")
-    : limpo;
-  const n = Number(normalizado);
-  return Number.isFinite(n) ? n : 0;
 }
 
 export function LancamentoDialog({
