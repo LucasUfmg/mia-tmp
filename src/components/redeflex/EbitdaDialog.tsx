@@ -88,7 +88,12 @@ function paraFormDaPlanilha(base: Record<BaseDreChave, number>): {
 }
 
 const moeda = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export function EbitdaDialog({
   aberto,
