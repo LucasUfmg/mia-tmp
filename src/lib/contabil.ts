@@ -104,6 +104,43 @@ export function mesesDoAno(ano: string): string[] {
   return Array.from({ length: 12 }, (_, i) => `${ano}-${String(i + 1).padStart(2, "0")}-01`);
 }
 
+/* ------------------------- Números no padrão brasileiro ------------------------- */
+
+/** Aceita "1.234.567,89" e "1234567.89". */
+export function paraNumero(valor: string): number {
+  const limpo = valor.trim().replace(/\s|R\$|%/g, "");
+  if (!limpo) return 0;
+  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  const n = Number(normalizado);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** 25637207.81 → "25.637.207,81". Zero vira campo vazio; sinal negativo preservado. */
+export function formatarBR(n: number, opcoes?: { milhar?: boolean }): string {
+  if (!n) return "";
+  const milhar = opcoes?.milhar !== false;
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    useGrouping: milhar,
+  });
+}
+
+/** Máscara aplicada enquanto o usuário digita: ponto de milhar e vírgula de centavos. */
+export function mascaraBR(valor: string, opcoes?: { milhar?: boolean }): string {
+  const milhar = opcoes?.milhar !== false;
+  const negativo = valor.trim().startsWith("-");
+  const limpo = valor.replace(/[^\d.,]/g, "").replace(/\./g, "");
+  const [inteiro = "", ...resto] = limpo.split(",");
+  const decimais = resto.join("").slice(0, 2);
+  const inteiroLimpo = inteiro.replace(/^0+(?=\d)/, "");
+  const inteiroFmt =
+    milhar && inteiroLimpo ? Number(inteiroLimpo).toLocaleString("pt-BR") : inteiroLimpo;
+  const sinal = negativo ? "-" : "";
+  if (limpo.includes(",")) return `${sinal}${inteiroFmt || "0"},${decimais}`;
+  return inteiroFmt ? `${sinal}${inteiroFmt}` : sinal;
+}
+
 function ponderada(linhas: Lancamento[], campo: "aliquotaEfetiva" | "wacc"): number {
   const peso = linhas.reduce((s, l) => s + Math.abs(l.receitaLiquida), 0);
   if (peso > 0) {

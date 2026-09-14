@@ -27,6 +27,9 @@
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-soft: var(--gold-soft);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-soft: var(--info-soft);
   --color-surface: var(--surface);
   --color-surface-muted: var(--surface-muted);
   --color-wa: var(--wa);
@@ -87,6 +90,10 @@
   --gold: oklch(0.8 0.16 82);
   --gold-foreground: oklch(0.26 0.06 258);
   --gold-soft: oklch(0.95 0.06 88);
+  /* Azul claro — campos preenchidos automaticamente (painel/cálculo). */
+  --info: oklch(0.62 0.11 245);
+  --info-foreground: oklch(0.28 0.07 250);
+  --info-soft: oklch(0.95 0.03 245);
   --surface: oklch(1 0 0);
   --surface-muted: oklch(0.968 0.008 258);
   --wa: oklch(0.45 0.07 175);
@@ -159,6 +166,9 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
+  --info: oklch(0.7 0.1 245);
+  --info-foreground: oklch(0.95 0.02 245);
+  --info-soft: oklch(0.3 0.06 250);
 }
 
 @layer base {

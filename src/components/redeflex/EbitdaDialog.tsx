@@ -23,7 +23,14 @@ import {
 } from "@/components/ui/select";
 import { salvarEbitda } from "@/lib/contabil.functions";
 import { getReceitaCusto } from "@/lib/redeflex.functions";
-import { IBM_REDE, mesesDoAno, rotuloMes } from "@/lib/contabil";
+import {
+  IBM_REDE,
+  formatarBR,
+  mascaraBR,
+  mesesDoAno,
+  paraNumero,
+  rotuloMes,
+} from "@/lib/contabil";
 import {
   calcularEbitda,
   linhasEbitda,
@@ -55,16 +62,7 @@ type Form = Record<LinhaEbitdaChave, string>;
 
 const vazio = Object.fromEntries(linhasEbitda.map((l) => [l.chave, ""])) as Form;
 
-/** Aceita "1.234.567,89" e "1234567.89". */
-function paraNumero(valor: string): number {
-  const limpo = valor.trim().replace(/\s|R\$/g, "");
-  if (!limpo) return 0;
-  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
-  const n = Number(normalizado);
-  return Number.isFinite(n) ? n : 0;
-}
-
-const texto = (v: number) => (v === 0 ? "" : String(Math.abs(v)).replace(".", ","));
+const texto = (v: number) => formatarBR(Math.abs(v));
 
 function paraForm(c: Ebitda | undefined): Form {
   if (!c) return { ...vazio };
@@ -90,7 +88,12 @@ function paraFormDaPlanilha(base: Record<BaseDreChave, number>): {
 }
 
 const moeda = (n: number) =>
-  n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+  n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export function EbitdaDialog({
   aberto,
@@ -139,7 +142,7 @@ export function EbitdaDialog({
   }, [ibm, mes, calculos, lojas]);
 
   const editar = (chave: LinhaEbitdaChave, valor: string) => {
-    setForm((f) => ({ ...f, [chave]: valor }));
+    setForm((f) => ({ ...f, [chave]: mascaraBR(valor) }));
     setDaPlanilha((p) => p.filter((c) => c !== chave));
   };
 
@@ -266,7 +269,7 @@ export function EbitdaDialog({
                   <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
                     {l.label}
                     {travada && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-info">
                         {origem}
                       </span>
                     )}
@@ -282,7 +285,7 @@ export function EbitdaDialog({
                       readOnly
                       tabIndex={-1}
                       aria-readonly="true"
-                      className="cursor-not-allowed bg-surface-muted font-semibold text-muted-foreground"
+                      className="cursor-not-allowed border-info bg-info-soft font-semibold text-info-foreground"
                       value={
                         carregandoPainel && !doPainel
                           ? "carregando…"

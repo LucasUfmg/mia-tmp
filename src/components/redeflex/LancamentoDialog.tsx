@@ -23,8 +23,11 @@ import {
 import { salvarLancamento } from "@/lib/contabil.functions";
 import {
   campos,
+  formatarBR,
   IBM_REDE,
+  mascaraBR,
   mesesDoAno,
+  paraNumero,
   rotuloMes,
   type CampoChave,
   type Lancamento,
@@ -50,7 +53,10 @@ type Form = Record<CampoChave, string>;
 
 const vazio = Object.fromEntries(campos.map((c) => [c.chave, ""])) as Form;
 
-const texto = (n: number) => (n === 0 ? "" : String(n).replace(".", ","));
+const texto = (n: number) => formatarBR(n);
+
+/** Campos preenchidos pelo cálculo de EBITDA (somente leitura quando há cálculo). */
+const doCalculo: CampoChave[] = ["receitaLiquida", "ebitda", "ebit"];
 
 function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form {
   const base = l
@@ -64,18 +70,6 @@ function paraForm(l: Lancamento | undefined, calculo: Ebitda | undefined): Form 
     ebitda: texto(Math.round(r.ebitda * 100) / 100),
     ebit: texto(Math.round(r.ebit * 100) / 100),
   };
-}
-
-
-/** Aceita "1.234.567,89" e "1234567.89". */
-function paraNumero(valor: string): number {
-  const limpo = valor.trim().replace(/\s|R\$|%/g, "");
-  if (!limpo) return 0;
-  const normalizado = limpo.includes(",")
-    ? limpo.replace(/\./g, "").replace(",", ".")
-    : limpo;
-  const n = Number(normalizado);
-  return Number.isFinite(n) ? n : 0;
 }
 
 export function LancamentoDialog({
@@ -142,9 +136,9 @@ export function LancamentoDialog({
         </DialogHeader>
 
         {calculo && (
-          <p className="rounded-xl bg-gold/15 px-4 py-3 text-xs font-semibold text-foreground">
-            Receita líquida, EBITDA e EBIT vindos do cálculo de EBITDA deste posto/mês — pode
-            editar à mão se precisar.
+          <p className="rounded-xl border border-info bg-info-soft px-4 py-3 text-xs font-semibold text-info-foreground">
+            Receita líquida, EBITDA e EBIT (em azul) vêm do cálculo de EBITDA deste posto/mês e são
+            atualizados automaticamente.
           </p>
         )}
 
@@ -184,18 +178,41 @@ export function LancamentoDialog({
             </Select>
           </div>
 
-          {campos.map((c) => (
-            <div key={c.chave} className="grid gap-2">
-              <Label htmlFor={c.chave}>{c.label}</Label>
-              <Input
-                id={c.chave}
-                inputMode="decimal"
-                placeholder={c.tipo === "pct" ? "0,00" : "0,00"}
-                value={form[c.chave]}
-                onChange={(e) => setForm((f) => ({ ...f, [c.chave]: e.target.value }))}
-              />
-            </div>
-          ))}
+          {campos.map((c) => {
+            const travado = !!calculo && doCalculo.includes(c.chave);
+            return (
+              <div key={c.chave} className="grid gap-2">
+                <Label htmlFor={c.chave}>
+                  {c.label}
+                  {travado && (
+                    <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-info">
+                      Do cálculo de EBITDA
+                    </span>
+                  )}
+                </Label>
+                <Input
+                  id={c.chave}
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  readOnly={travado}
+                  aria-readonly={travado || undefined}
+                  className={
+                    travado
+                      ? "cursor-not-allowed border-info bg-info-soft font-semibold text-info-foreground"
+                      : undefined
+                  }
+                  value={form[c.chave]}
+                  onChange={(e) =>
+                    !travado &&
+                    setForm((f) => ({
+                      ...f,
+                      [c.chave]: mascaraBR(e.target.value, { milhar: c.tipo !== "pct" }),
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
         </div>
 
         <DialogFooter>
