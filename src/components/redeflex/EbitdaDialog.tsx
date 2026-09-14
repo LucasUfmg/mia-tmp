@@ -263,7 +263,16 @@ export function EbitdaDialog({
           </div>
         </div>
 
-        <div className="grid gap-3">
+        <div className="relative">
+          {buscandoPainel && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Carregando dados do posto…
+            </div>
+          )}
+          <div
+            className={`grid gap-3 ${buscandoPainel ? "pointer-events-none opacity-40" : ""}`}
+          >
           {linhasEbitda.map((l) => {
             const total = totaisApos[l.chave];
             const travada = travadas.includes(l.chave);
