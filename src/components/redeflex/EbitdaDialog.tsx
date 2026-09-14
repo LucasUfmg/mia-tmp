@@ -152,7 +152,11 @@ export function EbitdaDialog({
   };
 
   // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
-  const { data: doPainel, isPending: carregandoPainel } = useQuery({
+  const {
+    data: doPainel,
+    isPending: carregandoPainel,
+    isFetching: buscandoPainel,
+  } = useQuery({
     queryKey: ["contabil", "ebitda-bi", ibm, mes],
     queryFn: () =>
       getReceitaCusto({ data: { mes, ...(ibm && ibm !== IBM_REDE ? { ibm } : {}) } }),
