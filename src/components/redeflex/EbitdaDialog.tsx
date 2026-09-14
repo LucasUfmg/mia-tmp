@@ -137,7 +137,7 @@ export function EbitdaDialog({
   }, [ibm, mes, calculos, lojas]);
 
   const editar = (chave: LinhaEbitdaChave, valor: string) => {
-    setForm((f) => ({ ...f, [chave]: valor }));
+    setForm((f) => ({ ...f, [chave]: mascaraBR(valor) }));
     setDaPlanilha((p) => p.filter((c) => c !== chave));
   };
 
@@ -264,7 +264,7 @@ export function EbitdaDialog({
                   <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
                     {l.label}
                     {travada && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-info">
                         {origem}
                       </span>
                     )}
@@ -280,7 +280,7 @@ export function EbitdaDialog({
                       readOnly
                       tabIndex={-1}
                       aria-readonly="true"
-                      className="cursor-not-allowed bg-surface-muted font-semibold text-muted-foreground"
+                      className="cursor-not-allowed border-info bg-info-soft font-semibold text-info-foreground"
                       value={
                         carregandoPainel && !doPainel
                           ? "carregando…"
