@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Lancamento } from "./contabil";
-import { linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "./ebitda";
+import { calcularEbitda, linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "./ebitda";
 
 
 const mesRegex = /^\d{4}-\d{2}-01$/;
@@ -172,7 +172,6 @@ export const salvarEbitda = createServerFn({ method: "POST" })
 
     // Mantém o lançamento contábil do mesmo posto/mês em sincronia com o cálculo,
     // sem tocar nos demais campos (PL, dívida, caixa, alíquota, WACC, lucro líquido).
-    const { calcularEbitda } = await import("./ebitda");
     const r = calcularEbitda(data as unknown as Record<LinhaEbitdaChave, number>);
     const arredondar = (n: number) => Math.round(n * 100) / 100;
     const { error: erroSync } = await supabase
