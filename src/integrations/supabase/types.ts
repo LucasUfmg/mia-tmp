@@ -21,17 +21,25 @@ export type Database = {
           ajuste_gestao: number
           ajuste_transporte: number
           apropriacao_contratos: number
+          bonus_contrato: number
+          bonus_performance: number
           created_at: string
           custo: number
           deducoes: number
           depreciacao: number
+          despesas_financeiras: number
+          despesas_nao_contabeis: number
           despesas_pessoal: number
           despesas_tributarias: number
+          falta_sobra: number
           furtos_roubos: number
           ibm: string
           id: string
           mes: string
+          outras_operacionais: number
+          outras_receitas_nao_operacionais: number
           participacoes_empregados: number
+          rateios: number
           receita_vendas: number
           updated_at: string
         }
@@ -41,17 +49,25 @@ export type Database = {
           ajuste_gestao?: number
           ajuste_transporte?: number
           apropriacao_contratos?: number
+          bonus_contrato?: number
+          bonus_performance?: number
           created_at?: string
           custo?: number
           deducoes?: number
           depreciacao?: number
+          despesas_financeiras?: number
+          despesas_nao_contabeis?: number
           despesas_pessoal?: number
           despesas_tributarias?: number
+          falta_sobra?: number
           furtos_roubos?: number
           ibm: string
           id?: string
           mes: string
+          outras_operacionais?: number
+          outras_receitas_nao_operacionais?: number
           participacoes_empregados?: number
+          rateios?: number
           receita_vendas?: number
           updated_at?: string
         }
@@ -61,17 +77,25 @@ export type Database = {
           ajuste_gestao?: number
           ajuste_transporte?: number
           apropriacao_contratos?: number
+          bonus_contrato?: number
+          bonus_performance?: number
           created_at?: string
           custo?: number
           deducoes?: number
           depreciacao?: number
+          despesas_financeiras?: number
+          despesas_nao_contabeis?: number
           despesas_pessoal?: number
           despesas_tributarias?: number
+          falta_sobra?: number
           furtos_roubos?: number
           ibm?: string
           id?: string
           mes?: string
+          outras_operacionais?: number
+          outras_receitas_nao_operacionais?: number
           participacoes_empregados?: number
+          rateios?: number
           receita_vendas?: number
           updated_at?: string
         }
