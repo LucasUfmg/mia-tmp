@@ -134,6 +134,14 @@ function paraEbitda(linha: Record<string, unknown>): Ebitda {
   const valores = Object.fromEntries(
     [...linhasEbitda.map((l) => l.chave), ...linhasEbitdaLegadas].map((chave) => [chave, Number(linha[snake(chave)]) || 0]),
   ) as Omit<Ebitda, "ibm" | "mes">;
+  const legado = (chave: (typeof linhasEbitdaLegadas)[number]) => Number(linha[snake(chave)]) || 0;
+  // Registros anteriores à DRE completa são projetados nas rubricas equivalentes.
+  if (!valores.faltaSobra) valores.faltaSobra = legado("ajusteEnergy");
+  if (!valores.outrasOperacionais) valores.outrasOperacionais = legado("furtosRoubos");
+  if (!valores.despesasNaoContabeis) valores.despesasNaoContabeis = legado("participacoesEmpregados");
+  if (!valores.outrasReceitasNaoOperacionais) {
+    valores.outrasReceitasNaoOperacionais = legado("ajusteTransporte") + legado("ajusteGestao") + legado("apropriacaoContratos");
+  }
   return {
     ibm: String(linha["ibm"]),
     mes: String(linha["mes"]).slice(0, 10),
@@ -165,6 +173,7 @@ export const salvarEbitda = createServerFn({ method: "POST" })
     const supabase = clienteContabil();
     const registro: Record<string, unknown> = { ibm: data.ibm, mes: data.mes };
     for (const l of linhasEbitda) registro[snake(l.chave)] = data[l.chave];
+    for (const chave of linhasEbitdaLegadas) registro[snake(chave)] = 0;
     const { error } = await supabase
       .from("contabil_ebitda")
       .upsert(registro, { onConflict: "ibm,mes" });
@@ -180,6 +189,7 @@ export const salvarEbitda = createServerFn({ method: "POST" })
         receita_liquida: arredondar(r.receitaLiquida),
         ebitda: arredondar(r.ebitda),
         ebit: arredondar(r.ebit),
+        lucro_liquido: arredondar(r.lucroLiquido),
       })
       .eq("ibm", data.ibm)
       .eq("mes", data.mes);

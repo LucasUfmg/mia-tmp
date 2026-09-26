@@ -47,6 +47,8 @@ export type ResultadoEbitda = {
   lucroLiquido: number;
 };
 
+export type DreConsolidada = Record<LinhaEbitdaChave, number> & ResultadoEbitda;
+
 const sinais = Object.fromEntries(linhasEbitda.map((l) => [l.chave, l.sinal])) as Record<
   LinhaEbitdaChave,
   number
@@ -69,6 +71,21 @@ export function calcularEbitda(v: Record<LinhaEbitdaChave, number>): ResultadoEb
   const resultadoFinal = ebitda + s("outrasReceitasNaoOperacionais") + s("bonusPerformance") +
     s("rateios") + s("bonusContrato");
   return { receitaBruta, receitaLiquida, resultadoBruto, despesasTotais, ebitda, ebit: ebitda, resultadoFinal, lucroLiquido: resultadoFinal };
+}
+
+/** Consolida linhas da DRE sem misturar o registro de rede com seus postos. */
+export function consolidarEbitda(linhas: Ebitda[], selecao: string[], meses: string[]): DreConsolidada {
+  const periodo = new Set(meses);
+  const noPeriodo = linhas.filter((linha) => periodo.has(linha.mes));
+  const filtradas = selecao.length > 0
+    ? noPeriodo.filter((linha) => linha.ibm !== "REDE" && selecao.includes(linha.ibm))
+    : noPeriodo.some((linha) => linha.ibm === "REDE")
+      ? noPeriodo.filter((linha) => linha.ibm === "REDE")
+      : noPeriodo.filter((linha) => linha.ibm !== "REDE");
+  const somas = Object.fromEntries(
+    linhasEbitda.map((linha) => [linha.chave, filtradas.reduce((total, item) => total + (item[linha.chave] || 0), 0)]),
+  ) as Record<LinhaEbitdaChave, number>;
+  return { ...somas, ...calcularEbitda(somas) };
 }
 
 /** Onde cada total aparece na sequência de linhas (após a linha indicada). */
