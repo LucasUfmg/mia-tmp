@@ -5,31 +5,49 @@
  */
 
 export const linhasEbitda = [
-  { chave: "receitaVendas", label: "(+) Receita de vendas", sinal: 1 },
-  { chave: "deducoes", label: "(-) Deduções da receita bruta", sinal: -1 },
-  { chave: "ajusteEnergy", label: "Ajuste", sinal: 1 },
-  { chave: "custo", label: "(-) Custo", sinal: -1 },
-  { chave: "ajusteTransporte", label: "Ajuste transporte", sinal: 1 },
-  { chave: "ajusteGestao", label: "Ajuste gestão", sinal: 1 },
-  { chave: "despesasPessoal", label: "(-) Despesas com pessoal", sinal: -1 },
-  { chave: "administrativas", label: "(-) Administrativas", sinal: -1 },
-  { chave: "despesasTributarias", label: "(-) Despesas tributárias", sinal: -1 },
-  { chave: "furtosRoubos", label: "(-) Furtos e roubos", sinal: -1 },
-  { chave: "apropriacaoContratos", label: "(+) Apropriação de contratos", sinal: 1 },
-  { chave: "participacoesEmpregados", label: "(-) Participações de empregados", sinal: -1 },
-  { chave: "depreciacao", label: "(-) Depreciação/amortização", sinal: -1 },
+  { chave: "receitaVendas", label: "Receita bruta", sinal: 1 },
+  { chave: "deducoes", label: "Descontos e acréscimos", sinal: -1 },
+  { chave: "faltaSobra", label: "Falta / sobra", sinal: 1 },
+  { chave: "custo", label: "CMV", sinal: -1 },
+  { chave: "administrativas", label: "Despesas administrativas", sinal: -1 },
+  { chave: "despesasFinanceiras", label: "Despesas financeiras", sinal: -1 },
+  { chave: "despesasNaoContabeis", label: "Despesas não contábeis", sinal: -1 },
+  { chave: "despesasPessoal", label: "Despesas trabalhistas", sinal: -1 },
+  { chave: "despesasTributarias", label: "Despesas tributárias", sinal: -1 },
+  { chave: "outrasOperacionais", label: "Outras despesas operacionais", sinal: -1 },
+  { chave: "outrasReceitasNaoOperacionais", label: "Outras receitas não operacionais", sinal: 1 },
+  { chave: "bonusPerformance", label: "Bônus de performance", sinal: 1 },
+  { chave: "rateios", label: "Rateios", sinal: -1 },
+  { chave: "bonusContrato", label: "Bônus de contrato", sinal: 1 },
 ] as const;
 
 export type LinhaEbitdaChave = (typeof linhasEbitda)[number]["chave"];
 
-export type Ebitda = { ibm: string; mes: string } & Record<LinhaEbitdaChave, number>;
+export const linhasEbitdaLegadas = [
+  "ajusteEnergy",
+  "ajusteTransporte",
+  "ajusteGestao",
+  "furtosRoubos",
+  "apropriacaoContratos",
+  "participacoesEmpregados",
+  "depreciacao",
+] as const;
+
+export type LinhaEbitdaLegadaChave = (typeof linhasEbitdaLegadas)[number];
+export type Ebitda = { ibm: string; mes: string } & Record<LinhaEbitdaChave | LinhaEbitdaLegadaChave, number>;
 
 export type ResultadoEbitda = {
+  receitaBruta: number;
   receitaLiquida: number;
   resultadoBruto: number;
+  despesasTotais: number;
   ebitda: number;
   ebit: number;
+  resultadoFinal: number;
+  lucroLiquido: number;
 };
+
+export type DreConsolidada = Record<LinhaEbitdaChave, number> & ResultadoEbitda;
 
 const sinais = Object.fromEntries(linhasEbitda.map((l) => [l.chave, l.sinal])) as Record<
   LinhaEbitdaChave,
@@ -43,30 +61,39 @@ export function comSinal(chave: LinhaEbitdaChave, valor: number): number {
 
 export function calcularEbitda(v: Record<LinhaEbitdaChave, number>): ResultadoEbitda {
   const s = (chave: LinhaEbitdaChave) => comSinal(chave, v[chave]);
-
-  const receitaLiquida = s("receitaVendas") + s("deducoes") + s("ajusteEnergy");
+  const receitaBruta = s("receitaVendas");
+  const receitaLiquida = receitaBruta + s("deducoes") + s("faltaSobra");
   const resultadoBruto = receitaLiquida + s("custo");
-  const ebitda =
-    resultadoBruto +
-    s("ajusteTransporte") +
-    s("ajusteGestao") +
-    s("despesasPessoal") +
-    s("administrativas") +
-    s("despesasTributarias") +
-    s("furtosRoubos") +
-    s("apropriacaoContratos") +
-    s("participacoesEmpregados");
-  const ebit = ebitda + s("depreciacao");
+  const despesasTotais = Math.abs(s("administrativas")) + Math.abs(s("despesasFinanceiras")) +
+    Math.abs(s("despesasNaoContabeis")) + Math.abs(s("despesasPessoal")) +
+    Math.abs(s("despesasTributarias")) + Math.abs(s("outrasOperacionais"));
+  const ebitda = resultadoBruto - despesasTotais;
+  const resultadoFinal = ebitda + s("outrasReceitasNaoOperacionais") + s("bonusPerformance") +
+    s("rateios") + s("bonusContrato");
+  return { receitaBruta, receitaLiquida, resultadoBruto, despesasTotais, ebitda, ebit: ebitda, resultadoFinal, lucroLiquido: resultadoFinal };
+}
 
-  return { receitaLiquida, resultadoBruto, ebitda, ebit };
+/** Consolida linhas da DRE sem misturar o registro de rede com seus postos. */
+export function consolidarEbitda(linhas: Ebitda[], selecao: string[], meses: string[]): DreConsolidada {
+  const periodo = new Set(meses);
+  const noPeriodo = linhas.filter((linha) => periodo.has(linha.mes));
+  const filtradas = selecao.length > 0
+    ? noPeriodo.filter((linha) => linha.ibm !== "REDE" && selecao.includes(linha.ibm))
+    : noPeriodo.some((linha) => linha.ibm === "REDE")
+      ? noPeriodo.filter((linha) => linha.ibm === "REDE")
+      : noPeriodo.filter((linha) => linha.ibm !== "REDE");
+  const somas = Object.fromEntries(
+    linhasEbitda.map((linha) => [linha.chave, filtradas.reduce((total, item) => total + (item[linha.chave] || 0), 0)]),
+  ) as Record<LinhaEbitdaChave, number>;
+  return { ...somas, ...calcularEbitda(somas) };
 }
 
 /** Onde cada total aparece na sequência de linhas (após a linha indicada). */
 export const totaisApos: Partial<
   Record<LinhaEbitdaChave, { label: string; campo: keyof ResultadoEbitda; destaque?: boolean }>
 > = {
-  ajusteEnergy: { label: "= Receita operacional líquida", campo: "receitaLiquida" },
+  faltaSobra: { label: "= Receita líquida ajustada", campo: "receitaLiquida" },
   custo: { label: "= Resultado operacional bruto", campo: "resultadoBruto" },
-  participacoesEmpregados: { label: "= EBITDA", campo: "ebitda", destaque: true },
-  depreciacao: { label: "= EBIT", campo: "ebit" },
+  outrasOperacionais: { label: "= EBITDA", campo: "ebitda", destaque: true },
+  bonusContrato: { label: "= Resultado final", campo: "resultadoFinal", destaque: true },
 };

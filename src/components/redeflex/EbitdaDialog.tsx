@@ -73,13 +73,14 @@ function paraForm(c: Ebitda | undefined): Form {
 }
 
 /** Preenchimento inicial pela planilha BASE DRE (só campos editáveis). */
-function paraFormDaPlanilha(base: Record<BaseDreChave, number>): {
+function paraFormDaPlanilha(base: Partial<Record<BaseDreChave, number>>): {
   form: Form;
   daPlanilha: LinhaEbitdaChave[];
 } {
   const form = { ...vazio };
   const daPlanilha: LinhaEbitdaChave[] = [];
   for (const [chave, valor] of Object.entries(base) as [BaseDreChave, number][]) {
+    if (!linhasEbitda.some((linha) => linha.chave === chave)) continue;
     const t = texto(valor);
     if (!t) continue;
     form[chave] = t;
