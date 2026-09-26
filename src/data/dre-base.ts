@@ -10,7 +10,7 @@ import type { LinhaEbitdaChave } from "@/lib/ebitda";
  */
 export type BaseDreChave = Exclude<LinhaEbitdaChave, "receitaVendas" | "custo">;
 
-type BaseDre = Record<BaseDreChave, number>;
+type BaseDre = Partial<Record<BaseDreChave, number>> & Record<string, number>;
 
 const baseDre: Record<string, BaseDre> = {
   "POSTO AEROPORTO": { deducoes: 2736.14, ajusteEnergy: 0.0, ajusteTransporte: 7571.77, ajusteGestao: 0.0, despesasPessoal: 38625.39, administrativas: 117272.41, despesasTributarias: 3030.23, furtosRoubos: 0.0, apropriacaoContratos: 18064.23, participacoesEmpregados: 0.0, depreciacao: 93.91 },

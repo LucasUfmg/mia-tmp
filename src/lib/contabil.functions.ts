@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Lancamento } from "./contabil";
-import { calcularEbitda, linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "./ebitda";
+import { calcularEbitda, linhasEbitda, linhasEbitdaLegadas, type Ebitda, type LinhaEbitdaChave } from "./ebitda";
 
 
 const mesRegex = /^\d{4}-\d{2}-01$/;
@@ -119,7 +119,7 @@ export const excluirLancamento = createServerFn({ method: "POST" })
 /* ---------------------------- Cálculo de EBITDA ---------------------------- */
 
 const snake = (chave: string) => chave.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-const colunasEbitda = linhasEbitda.map((l) => snake(l.chave));
+const colunasEbitda = [...linhasEbitda.map((l) => snake(l.chave)), ...linhasEbitdaLegadas.map(snake)];
 
 const ebitdaSchema = z.object({
   ibm: z.string().min(1),
@@ -132,8 +132,8 @@ const ebitdaSchema = z.object({
 
 function paraEbitda(linha: Record<string, unknown>): Ebitda {
   const valores = Object.fromEntries(
-    linhasEbitda.map((l) => [l.chave, Number(linha[snake(l.chave)]) || 0]),
-  ) as Record<LinhaEbitdaChave, number>;
+    [...linhasEbitda.map((l) => l.chave), ...linhasEbitdaLegadas].map((chave) => [chave, Number(linha[snake(chave)]) || 0]),
+  ) as Omit<Ebitda, "ibm" | "mes">;
   return {
     ibm: String(linha["ibm"]),
     mes: String(linha["mes"]).slice(0, 10),
