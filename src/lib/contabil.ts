@@ -107,8 +107,8 @@ export function mesesDoAno(ano: string): string[] {
 /* ------------------------- Números no padrão brasileiro ------------------------- */
 
 /** Aceita "1.234.567,89" e "1234567.89". */
-export function paraNumero(valor: string): number {
-  const limpo = valor.trim().replace(/\s|R\$|%/g, "");
+export function paraNumero(valor: string | null | undefined): number {
+  const limpo = (valor ?? "").trim().replace(/\s|R\$|%/g, "");
   if (!limpo) return 0;
   // Sem vírgula, pontos seguidos de grupos de 3 dígitos são separadores de milhar
   // ("25.000" → 25000); um ponto solto segue sendo decimal ("1234.56").
