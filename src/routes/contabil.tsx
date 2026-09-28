@@ -5,8 +5,7 @@ import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
-import { ContabilCards, RoicVsWacc } from "@/components/redeflex/ContabilCards";
-import { ContabilTabela, linhasPorMes } from "@/components/redeflex/ContabilTabela";
+import { DreDashboard } from "@/components/redeflex/DreDashboard";
 import { LancamentoDialog } from "@/components/redeflex/LancamentoDialog";
 import { EbitdaDialog } from "@/components/redeflex/EbitdaDialog";
 import { Button } from "@/components/ui/button";
@@ -21,8 +20,6 @@ import { loadLojas } from "@/lib/redeflex-dashboard";
 import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
 import {
   anoDoMes,
-  consolidar,
-  filtrarEscopo,
   IBM_REDE,
   mesReferencia,
   mesesDoAno,
@@ -42,6 +39,8 @@ export const Route = createFileRoute("/contabil")({
       { name: "description", content: description },
       { property: "og:title", content: title },
       { property: "og:description", content: description },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Contabil,
@@ -89,19 +88,6 @@ function Contabil() {
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
 
-  const noEscopo = useMemo(
-    () => filtrarEscopo(lancamentos, selecao, mesesEscopo),
-    [lancamentos, selecao, mesesEscopo],
-  );
-  const consolidado = useMemo(() => consolidar(noEscopo), [noEscopo]);
-
-  const doAno = useMemo(
-    () => filtrarEscopo(lancamentos, selecao, mesesAno),
-    [lancamentos, selecao, mesesAno],
-  );
-  const linhasMes = useMemo(() => linhasPorMes(doAno, mesesAno), [doAno, mesesAno]);
-  const totalAno = useMemo(() => consolidar(doAno), [doAno]);
-
   const nomePosto = (ibm: string) =>
     ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`);
   const escopo =
@@ -110,13 +96,6 @@ function Contabil() {
       : selecao.length <= 2
         ? selecao.map(nomePosto).join(" + ")
         : `${selecao.length} postos`;
-
-  const usaRede = consolidado.postos.includes(IBM_REDE);
-  const selecionados = selecao.length === 0 ? lojas.map((l) => l.ibm) : selecao;
-  const semLancamento = usaRede
-    ? []
-    : selecionados.filter((ibm) => !consolidado.postos.includes(ibm));
-
 
   const anos = useMemo(() => {
     const atual = Number(anoDoMes(mesAtual));
@@ -239,31 +218,13 @@ function Contabil() {
           {isPending ? " · carregando lançamentos…" : ""}
         </p>
 
-        {semLancamento.length > 0 && !isPending && (
-          <p className="mt-2 rounded-xl bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
-            {semLancamento.length === selecionados.length
-              ? "Nenhum posto do escopo tem lançamento no período — os indicadores aparecem em branco."
-              : `${semLancamento.length} de ${selecionados.length} postos do escopo ainda não têm lançamento no período: ${semLancamento
-                  .slice(0, 3)
-                  .map(nomePosto)
-                  .join(", ")}${semLancamento.length > 3 ? "…" : ""}`}
-          </p>
-        )}
-
-        <div className="mt-6 grid gap-6">
-          <ContabilCards dados={consolidado} />
-          <RoicVsWacc dados={consolidado} />
-          <ContabilTabela
-            linhas={linhasMes}
-            total={totalAno}
-            totalLabel={`Ano ${ano}`}
-            nomePosto={nomePosto}
-            onEditar={(l) => {
-              setEdicao({ ibm: l.ibm, mes: l.mes });
-              setDialogo(true);
-            }}
-          />
-        </div>
+        <DreDashboard
+          calculos={calculos}
+          selecao={selecao}
+          meses={mesesEscopo}
+          mesAtual={mes}
+          lojas={lojas}
+        />
       </main>
 
       <LancamentoDialog
@@ -278,7 +239,7 @@ function Contabil() {
         {...(edicao
           ? { ibmInicial: edicao.ibm }
           : selecao.length === 1
-            ? { ibmInicial: selecao[0]! }
+            ? { ibmInicial: selecao[0] }
             : {})}
       />
 
@@ -293,7 +254,7 @@ function Contabil() {
           setEdicao(alvo);
           setDialogo(true);
         }}
-        {...(selecao.length === 1 ? { ibmInicial: selecao[0]! } : {})}
+        {...(selecao.length === 1 ? { ibmInicial: selecao[0] } : {})}
       />
 
     </div>
