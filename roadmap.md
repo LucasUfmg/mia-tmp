@@ -16,4 +16,4 @@
 - [x] Atualizar o manual com Visão Geral e Contábil
 - [x] Remover as páginas públicas Agente e Integração FZAP
 - [x] Trocar o fundo do mapa por uma fonte pública sem chave
-- [ ] Validar manual, mapa e rotas removidas em desktop/mobile
+- [x] Validar manual, mapa e rotas removidas em desktop/mobile
