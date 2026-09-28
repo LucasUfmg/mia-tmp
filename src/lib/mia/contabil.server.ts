@@ -117,6 +117,10 @@ const COLUNAS_EBITDA: Record<LinhaEbitdaChave, string> = {
   bonusPerformance: "bonus_performance",
   rateios: "rateios",
   bonusContrato: "bonus_contrato",
+  aluguel: "aluguel",
+  taxasCartao: "taxas_cartao",
+  frete: "frete",
+  irpjCsll: "irpj_csll",
 };
 
 /**
