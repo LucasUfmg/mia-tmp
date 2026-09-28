@@ -122,6 +122,16 @@
   --chart-3: oklch(0.62 0.12 250);
   --chart-4: oklch(0.3 0.1 262);
   --chart-5: oklch(0.88 0.09 92);
+  /* Paleta viva e distinta para gráficos de pizza (rubricas da DRE). */
+  --pie-1: oklch(0.55 0.2 258);
+  --pie-2: oklch(0.78 0.16 82);
+  --pie-3: oklch(0.62 0.17 155);
+  --pie-4: oklch(0.58 0.2 300);
+  --pie-5: oklch(0.62 0.22 15);
+  --pie-6: oklch(0.65 0.14 220);
+  --pie-7: oklch(0.7 0.18 55);
+  --pie-8: oklch(0.6 0.22 340);
+  --pie-9: oklch(0.72 0.19 120);
   --sidebar: oklch(0.29 0.105 260);
   --sidebar-foreground: oklch(0.95 0.015 258);
   --sidebar-primary: oklch(0.8 0.16 82);
