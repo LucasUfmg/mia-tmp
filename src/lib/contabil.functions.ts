@@ -185,14 +185,14 @@ export const salvarEbitda = createServerFn({ method: "POST" })
     const arredondar = (n: number) => Math.round(n * 100) / 100;
     const { error: erroSync } = await supabase
       .from("contabil_lancamentos")
-      .update({
+      .upsert({
+        ibm: data.ibm,
+        mes: data.mes,
         receita_liquida: arredondar(r.receitaLiquida),
         ebitda: arredondar(r.ebitda),
         ebit: arredondar(r.ebit),
         lucro_liquido: arredondar(r.lucroLiquido),
-      })
-      .eq("ibm", data.ibm)
-      .eq("mes", data.mes);
+      }, { onConflict: "ibm,mes" });
     if (erroSync) throw new Error(erroSync.message);
 
     return { ok: true };

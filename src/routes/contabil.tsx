@@ -163,7 +163,7 @@ function Contabil() {
                 }}
               >
                 <Sigma className="mr-1.5 h-4 w-4 text-gold" />
-                Calcular EBITDA
+                Lançar despesas
               </Button>
               <Button
                 onClick={() => {
@@ -250,10 +250,6 @@ function Contabil() {
         calculos={calculos}
         ano={ano}
         mesInicial={mes}
-        onUsarNoLancamento={(alvo) => {
-          setEdicao(alvo);
-          setDialogo(true);
-        }}
         {...(selecao.length === 1 ? { ibmInicial: selecao[0] } : {})}
       />
 
