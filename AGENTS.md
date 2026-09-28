@@ -12,3 +12,4 @@
 ## Project architecture
 
 - Keep all DRE line definitions and formulas centralized in `src/lib/ebitda.ts` so the editor, dashboard, and Mia never diverge.
+- Keep the public product surface limited to the dashboard, accounting, and manual routes; Mia remains a WhatsApp service rather than a public page.

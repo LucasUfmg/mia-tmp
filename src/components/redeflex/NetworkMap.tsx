@@ -24,19 +24,15 @@ const brl0 = new Intl.NumberFormat("pt-BR", {
 const BELO_HORIZONTE: [number, number] = [-43.9345, -19.9167];
 const ZOOM_INICIAL = 11;
 
-/** Fundo claro e minimalista (CARTO Positron) — sem chave de API. */
+/** Fundo público do OpenStreetMap — sem chave de API. */
 const ESTILO_CLEAN: StyleSpecification = {
   version: 8,
   sources: {
     base: {
       type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}@2x.png",
-      ],
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
       tileSize: 256,
-      attribution: "© OpenStreetMap · © CARTO",
+      attribution: "© OpenStreetMap contributors",
     },
   },
   layers: [
@@ -158,7 +154,8 @@ export default function NetworkMap({ postos, carregando, erro, periodoLabel, onS
       });
       mapaRef.current = mapa;
     } catch (e: unknown) {
-      setErroMapa(e instanceof Error ? e.message : String(e));
+      console.warn("[RedeFlex] não foi possível iniciar o mapa", e);
+      setErroMapa("Não foi possível carregar o mapa agora.");
     }
     return () => {
       marcadoresRef.current.forEach((m) => m.remove());
