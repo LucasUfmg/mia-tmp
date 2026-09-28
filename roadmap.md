@@ -8,15 +8,6 @@
 - [x] Atualizar a leitura contábil da Mia
 - [x] Validar cálculos, gravação e visual em desktop/mobile
 
-## Mia no WhatsApp via FZAP (substituindo Twilio)
-- [x] Migração: tabelas fzap_eventos + fzap_config (RLS + grants)
-- [x] FzapService (src/lib/fzap/service.server.ts): validate/parse/send/handle/receive
-- [x] Webhook público /api/public/fzap (GET + POST, anti-loop, dedup)
-- [x] Secrets: FZAP_WEBHOOK_TOKEN gerado; faltam FZAP_BASE_URL, FZAP_ADMIN_TOKEN (e FZAP_INSTANCE_TOKEN opcional) — informados pelo usuário
-- [x] Tela /integracao-fzap (status, URL webhook, testar, eventos recentes)
-- [ ] Desativar rota Twilio /api/public/whatsapp (410)
-- [ ] Validar build/preview
-
 ## Canal WhatsApp
 - [x] Twilio reativado em /api/public/whatsapp (canal ativo)
 - [x] FZAP pausado (código preservado, rota 410, sem página pública) — reativar quando quiser
