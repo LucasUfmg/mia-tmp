@@ -19,4 +19,10 @@
 
 ## Canal WhatsApp
 - [x] Twilio reativado em /api/public/whatsapp (canal ativo)
-- [ ] FZAP pausado (código preservado, rota 410, tela em espera) — reativar quando quiser
+- [x] FZAP pausado (código preservado, rota 410, sem página pública) — reativar quando quiser
+
+## Manual e navegação
+- [x] Atualizar o manual com Visão Geral e Contábil
+- [x] Remover as páginas públicas Agente e Integração FZAP
+- [x] Trocar o fundo do mapa por uma fonte pública sem chave
+- [ ] Validar manual, mapa e rotas removidas em desktop/mobile
