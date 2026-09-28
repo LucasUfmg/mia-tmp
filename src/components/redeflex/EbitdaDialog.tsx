@@ -32,18 +32,11 @@ import {
   paraNumero,
   rotuloMes,
 } from "@/lib/contabil";
-import {
-  calcularEbitda,
-  linhasEbitda,
-  totaisApos,
-  type Ebitda,
-  type LinhaEbitdaChave,
-} from "@/lib/ebitda";
-import { baseDrePorPosto, baseDreRedeConsolidada, type BaseDreChave } from "@/data/dre-base";
+import { linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
-/** Linhas que vêm dos dados de venda e não podem ser editadas. */
+/** Receita e custo vêm do BI: gravados em segundo plano, nunca exibidos aqui. */
 const travadas: LinhaEbitdaChave[] = ["receitaVendas", "custo"];
 
 
@@ -70,31 +63,6 @@ function paraForm(c: Ebitda | undefined): Form {
   ) as Form;
 }
 
-/** Preenchimento inicial pela planilha BASE DRE (só campos editáveis). */
-function paraFormDaPlanilha(base: Partial<Record<BaseDreChave, number>>): {
-  form: Form;
-  daPlanilha: LinhaEbitdaChave[];
-} {
-  const form = { ...vazio };
-  const daPlanilha: LinhaEbitdaChave[] = [];
-  for (const [chave, valor] of Object.entries(base) as [BaseDreChave, number][]) {
-    if (!linhasEbitda.some((linha) => linha.chave === chave)) continue;
-    const t = texto(valor);
-    if (!t) continue;
-    form[chave] = t;
-    daPlanilha.push(chave);
-  }
-  return { form, daPlanilha };
-}
-
-const moeda = (n: number) =>
-  n.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-
 export function EbitdaDialog({
   aberto,
   onAberto,
@@ -107,7 +75,6 @@ export function EbitdaDialog({
   const [ibm, setIbm] = useState(ibmInicial ?? lojas[0]?.ibm ?? "");
   const [mes, setMes] = useState(mesInicial);
   const [form, setForm] = useState<Form>({ ...vazio });
-  const [daPlanilha, setDaPlanilha] = useState<LinhaEbitdaChave[]>([]);
   const queryClient = useQueryClient();
   const salvar = useServerFn(salvarEbitda);
 
@@ -121,39 +88,20 @@ export function EbitdaDialog({
 
   useEffect(() => {
     const salvo = calculos.find((c) => c.ibm === ibm && c.mes === mes);
-    if (salvo) {
-      setForm(paraForm(salvo));
-      setDaPlanilha([]);
-      return;
-    }
-    const base =
-      ibm === IBM_REDE
-        ? baseDreRedeConsolidada()
-        : baseDrePorPosto(lojas.find((l) => l.ibm === ibm)?.nome);
-    if (!base) {
-      setForm({ ...vazio });
-      setDaPlanilha([]);
-      return;
-    }
-    const inicial = paraFormDaPlanilha(base);
-    setForm(inicial.form);
-    setDaPlanilha(inicial.daPlanilha);
-  }, [ibm, mes, calculos, lojas]);
+    setForm(paraForm(salvo));
+  }, [ibm, mes, calculos]);
 
   const editar = (chave: LinhaEbitdaChave, valor: string) => {
     setForm((f) => ({ ...f, [chave]: mascaraBR(valor) }));
-    setDaPlanilha((p) => p.filter((c) => c !== chave));
   };
 
   const limpar = () => {
     setForm({ ...vazio });
-    setDaPlanilha([]);
   };
 
   // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
   const {
     data: doPainel,
-    isPending: carregandoPainel,
     isFetching: buscandoPainel,
   } = useQuery({
     queryKey: ["contabil", "ebitda-bi", ibm, mes],
@@ -172,17 +120,6 @@ export function EbitdaDialog({
     base.custo = doPainel?.custo ?? 0;
     return base;
   }, [form, doPainel]);
-  const resultado = useMemo(() => calcularEbitda(numeros), [numeros]);
-
-  const semVendas = !carregandoPainel && (doPainel?.receita ?? 0) === 0;
-  const origem = carregandoPainel
-    ? "Carregando dados de venda…"
-    : doPainel
-      ? doPainel.parcial
-        ? `Do painel — acumulado até ${doPainel.ate.slice(8, 10)}/${doPainel.ate.slice(5, 7)}`
-        : "Do painel — mês fechado"
-      : "Do painel";
-
 
   const mutation = useMutation({
     mutationFn: async () => await salvar({ data: { ibm, mes, ...numeros } }),
@@ -200,7 +137,7 @@ export function EbitdaDialog({
     mutation.mutate(undefined, {
       onSuccess: () => {
         toast.success("Despesas salvas no lançamento contábil", {
-          description: `${nome} · ${rotuloMes(mes)} · EBITDA ${moeda(resultado.ebitda)}`,
+          description: `${nome} · ${rotuloMes(mes)}`,
         });
         onAberto(false);
       },
@@ -213,18 +150,10 @@ export function EbitdaDialog({
         <DialogHeader>
           <DialogTitle>Lançar despesas</DialogTitle>
           <DialogDescription>
-            Receita de vendas e custo vêm dos dados de venda do posto e não podem ser alterados.
-            Preencha as despesas: ao salvar, Receita líquida, EBITDA, EBIT e Lucro líquido são
-            gravados automaticamente no lançamento contábil do mesmo posto/mês.
+            Preencha as despesas do posto e do mês. Os resultados aparecem no painel Contábil
+            depois de salvar.
           </DialogDescription>
         </DialogHeader>
-
-        {semVendas && (
-          <p className="rounded-xl bg-surface-muted px-4 py-3 text-xs text-muted-foreground">
-            Sem vendas registradas neste período para o posto/mês selecionado.
-          </p>
-        )}
-
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
@@ -265,76 +194,31 @@ export function EbitdaDialog({
           {buscandoPainel && (
             <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando dados do posto…
+              Carregando…
             </div>
           )}
           <div
             className={`grid gap-3 ${buscandoPainel ? "pointer-events-none opacity-40" : ""}`}
           >
-          {linhasEbitda.map((l) => {
-            const total = totaisApos[l.chave];
-            const travada = travadas.includes(l.chave);
-            return (
-              <div key={l.chave} className="grid gap-3">
-                <div className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3">
-                  <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
-                    {l.label}
-                    {travada && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-info">
-                        {origem}
-                      </span>
-                    )}
-                    {!travada && daPlanilha.includes(l.chave) && (
-                      <span className="ml-2 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Base DRE
-                      </span>
-                    )}
-                  </Label>
-                  {travada ? (
-                    <Input
-                      id={`ebitda-${l.chave}`}
-                      readOnly
-                      tabIndex={-1}
-                      aria-readonly="true"
-                      className="cursor-not-allowed border-info bg-info-soft font-semibold text-info-foreground"
-                      value={
-                        carregandoPainel && !doPainel
-                          ? "carregando…"
-                          : moeda(Math.abs(numeros[l.chave]))
-                      }
-                    />
-                  ) : (
-                    <Input
-                      id={`ebitda-${l.chave}`}
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={form[l.chave]}
-                      onChange={(e) => editar(l.chave, e.target.value)}
-                    />
-                  )}
-                </div>
-
-                {total && (
-                  <div
-                    className={`flex items-center justify-between gap-3 rounded-xl px-4 py-2.5 text-sm font-bold ${
-                      total.destaque
-                        ? "bg-gold/15 text-foreground"
-                        : "bg-surface-muted text-muted-foreground"
-                    }`}
-                  >
-                    <span>{total.label}</span>
-                    <span
-                      className={
-                        resultado[total.campo] < 0 ? "text-destructive" : "text-foreground"
-                      }
-                    >
-                      {moeda(resultado[total.campo])}
-                    </span>
-                  </div>
-                )}
+          {linhasEbitda
+            .filter((l) => !travadas.includes(l.chave))
+            .map((l) => (
+              <div
+                key={l.chave}
+                className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3"
+              >
+                <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
+                  {l.label}
+                </Label>
+                <Input
+                  id={`ebitda-${l.chave}`}
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={form[l.chave]}
+                  onChange={(e) => editar(l.chave, e.target.value)}
+                />
               </div>
-            );
-          })}
+            ))}
           </div>
         </div>
 
