@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { loadLojas } from "@/lib/redeflex-dashboard";
 import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
+import { listarReceitaCusto } from "@/lib/redeflex.functions";
 import {
   anoDoMes,
   IBM_REDE,
@@ -76,7 +77,7 @@ function Contabil() {
     placeholderData: keepPreviousData,
   });
 
-  const { data: calculos = [], isFetching: buscandoCalculos } = useQuery({
+  const { data: calculosBrutos = [], isFetching: buscandoCalculos } = useQuery({
     queryKey: ["contabil", "ebitda", ano],
     queryFn: () => listarEbitda({ data: { ano } }),
     staleTime: 60_000,
@@ -91,7 +92,30 @@ function Contabil() {
     queryFn: () => listarEbitda({ data: { ano: anoAnterior } }),
     staleTime: 60_000,
   });
-  const calculosComAnterior = useMemo(() => [...calculosAnt, ...calculos], [calculosAnt, calculos]);
+  // Receita e CMV vêm do BI e são mesclados às despesas salvas.
+  const pares = useMemo(
+    () => [...calculosAnt, ...calculosBrutos].map((c) => ({ ibm: c.ibm, mes: c.mes })),
+    [calculosAnt, calculosBrutos],
+  );
+  const { data: doBi = [] } = useQuery({
+    queryKey: ["contabil", "bi-receita-custo", pares],
+    queryFn: () => listarReceitaCusto({ data: { pares } }),
+    enabled: pares.length > 0,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const mesclar = useMemo(() => {
+    const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
+    return (c: (typeof calculosBrutos)[number]) => {
+      const b = mapa.get(`${c.ibm}|${c.mes}`);
+      return b ? { ...c, receitaVendas: b.receita, custo: b.custo } : c;
+    };
+  }, [doBi]);
+  const calculos = useMemo(() => calculosBrutos.map(mesclar), [calculosBrutos, mesclar]);
+  const calculosComAnterior = useMemo(
+    () => [...calculosAnt.map(mesclar), ...calculos],
+    [calculosAnt, calculos, mesclar],
+  );
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);

@@ -161,6 +161,21 @@ export async function lerDetalheEbitda(opcoes: {
     };
   });
 
+  const { receitaCustoDoBi } = await import("../receita-custo.server");
+  await Promise.all(
+    linhas
+      .filter((l) => meses.includes(l.mes))
+      .map(async (l) => {
+        try {
+          const b = await receitaCustoDoBi({ mes: l.mes, ...(l.ibm !== "REDE" ? { ibm: l.ibm } : {}) });
+          l.valores.receitaVendas = b.receita;
+          l.valores.custo = b.custo;
+        } catch {
+          /* mantém o valor salvo */
+        }
+      }),
+  );
+
   const escopo = filtrarEscopo(
     linhas as unknown as Lancamento[],
     opcoes.ibms ?? [],
