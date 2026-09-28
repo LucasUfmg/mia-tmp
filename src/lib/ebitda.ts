@@ -103,7 +103,6 @@ export const totaisApos: Partial<
 > = {
   faltaSobra: { label: "= Receita líquida ajustada", campo: "receitaLiquida" },
   custo: { label: "= Resultado operacional bruto", campo: "resultadoBruto" },
-  outrasOperacionais: { label: "Subtotal antes de Financeiras e Não operacionais", campo: "resultadoAntesFin", destaque: true },
   despesasNaoContabeis: { label: "= EBITDA", campo: "ebitda", destaque: true },
   bonusContrato: { label: "= Resultado final", campo: "resultadoFinal", destaque: true },
   irpjCsll: { label: "= Lucro líquido", campo: "lucroLiquido", destaque: true },
