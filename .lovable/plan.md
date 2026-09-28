@@ -3,7 +3,7 @@
 ## O que muda para o usuário
 - Ao abrir "Lançar despesas" e escolher posto/mês, os campos de despesa aparecem **vazios** (ou com o que o próprio usuário já salvou antes para aquele posto/mês). Nada vem mais da planilha base.
 - Receita de vendas e CMV **saem do formulário** (não são despesas; continuam vindo do BI automaticamente).
-- Somem da tela as linhas de total ("= Result. Operacional Bruto", "= EBITDA", "= Resultado final", "= Lucro líquido") e qualquer resumo calculado.
+- A tela não faz nenhum cálculo e não mostra Receita líquida, EBITDA, EBIT nem qualquer total ("= Result. Operacional Bruto", "= Resultado final", "= Lucro líquido"). É apenas preenchimento.
 - Ao clicar em "Salvar despesas", só os valores digitados são gravados.
 - O cálculo (Result. Op. Bruto, EBITDA, Resultado final, Lucro líquido) é feito depois, na aba Contábil (Visão Geral, DRE Gerencial, Comparativo), juntando as despesas salvas com Receita e CMV do BI.
 
