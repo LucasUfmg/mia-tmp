@@ -20,6 +20,7 @@ export type Database = {
           ajuste_energy: number
           ajuste_gestao: number
           ajuste_transporte: number
+          aluguel: number
           apropriacao_contratos: number
           bonus_contrato: number
           bonus_performance: number
@@ -32,15 +33,18 @@ export type Database = {
           despesas_pessoal: number
           despesas_tributarias: number
           falta_sobra: number
+          frete: number
           furtos_roubos: number
           ibm: string
           id: string
+          irpj_csll: number
           mes: string
           outras_operacionais: number
           outras_receitas_nao_operacionais: number
           participacoes_empregados: number
           rateios: number
           receita_vendas: number
+          taxas_cartao: number
           updated_at: string
         }
         Insert: {
@@ -48,6 +52,7 @@ export type Database = {
           ajuste_energy?: number
           ajuste_gestao?: number
           ajuste_transporte?: number
+          aluguel?: number
           apropriacao_contratos?: number
           bonus_contrato?: number
           bonus_performance?: number
@@ -60,15 +65,18 @@ export type Database = {
           despesas_pessoal?: number
           despesas_tributarias?: number
           falta_sobra?: number
+          frete?: number
           furtos_roubos?: number
           ibm: string
           id?: string
+          irpj_csll?: number
           mes: string
           outras_operacionais?: number
           outras_receitas_nao_operacionais?: number
           participacoes_empregados?: number
           rateios?: number
           receita_vendas?: number
+          taxas_cartao?: number
           updated_at?: string
         }
         Update: {
@@ -76,6 +84,7 @@ export type Database = {
           ajuste_energy?: number
           ajuste_gestao?: number
           ajuste_transporte?: number
+          aluguel?: number
           apropriacao_contratos?: number
           bonus_contrato?: number
           bonus_performance?: number
@@ -88,15 +97,18 @@ export type Database = {
           despesas_pessoal?: number
           despesas_tributarias?: number
           falta_sobra?: number
+          frete?: number
           furtos_roubos?: number
           ibm?: string
           id?: string
+          irpj_csll?: number
           mes?: string
           outras_operacionais?: number
           outras_receitas_nao_operacionais?: number
           participacoes_empregados?: number
           rateios?: number
           receita_vendas?: number
+          taxas_cartao?: number
           updated_at?: string
         }
         Relationships: []
