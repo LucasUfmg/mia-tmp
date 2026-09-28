@@ -172,28 +172,15 @@ export const salvarEbitda = createServerFn({ method: "POST" })
     const { clienteContabil } = await import("./contabil.server");
     const supabase = clienteContabil();
     const registro: Record<string, unknown> = { ibm: data.ibm, mes: data.mes };
-    for (const l of linhasEbitda) registro[snake(l.chave)] = data[l.chave];
+    for (const l of linhasEbitda) {
+      if (l.chave === "receitaVendas" || l.chave === "custo") continue;
+      registro[snake(l.chave)] = data[l.chave];
+    }
     for (const chave of linhasEbitdaLegadas) registro[snake(chave)] = 0;
     const { error } = await supabase
       .from("contabil_ebitda")
       .upsert(registro, { onConflict: "ibm,mes" });
     if (error) throw new Error(error.message);
-
-    // Mantém o lançamento contábil do mesmo posto/mês em sincronia com o cálculo,
-    // sem tocar nos demais campos (PL, dívida, caixa, alíquota, WACC, lucro líquido).
-    const r = calcularEbitda(data as unknown as Record<LinhaEbitdaChave, number>);
-    const arredondar = (n: number) => Math.round(n * 100) / 100;
-    const { error: erroSync } = await supabase
-      .from("contabil_lancamentos")
-      .upsert({
-        ibm: data.ibm,
-        mes: data.mes,
-        receita_liquida: arredondar(r.receitaLiquida),
-        ebitda: arredondar(r.ebitda),
-        ebit: arredondar(r.ebit),
-        lucro_liquido: arredondar(r.lucroLiquido),
-      }, { onConflict: "ibm,mes" });
-    if (erroSync) throw new Error(erroSync.message);
 
     return { ok: true };
   });

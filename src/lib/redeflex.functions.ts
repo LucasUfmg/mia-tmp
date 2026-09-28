@@ -328,60 +328,31 @@ export type ReceitaCusto = {
 export const getReceitaCusto = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => receitaCustoSchema.parse(input))
   .handler(async ({ data }): Promise<ReceitaCusto> => {
-    const hoje = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(new Date());
+    const { receitaCustoDoBi } = await import("./receita-custo.server");
+    return await receitaCustoDoBi(data);
+  });
 
-    const [ano, mesNum] = data.mes.split("-").map(Number) as [number, number];
-    const ultimoDia = new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
-    const fimDoMes = `${data.mes.slice(0, 7)}-${String(ultimoDia).padStart(2, "0")}`;
-    const parcial = hoje >= data.mes && hoje <= fimDoMes;
-    const ate = parcial ? hoje : fimDoMes;
-
-    let cutoffMinutes: number | undefined;
-    if (parcial) {
-      const [hora, minuto] = new Intl.DateTimeFormat("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      })
-        .format(new Date())
-        .split(":")
-        .map(Number);
-      cutoffMinutes = (hora ?? 0) * 60 + (minuto ?? 0);
-    }
-
-    const escopo = {
-      dates: [ate],
-      desde: data.mes,
-      ...(data.ibm ? { ibm: data.ibm } : {}),
-      ...(cutoffMinutes !== undefined ? { cutoffMinutes } : {}),
-    };
-
-    try {
-      const { comCache, chaveDeCache } = await import("./cache.server");
-      const indicadores = await comCache(
-        chaveDeCache("receitaCusto", escopo),
-        data.fresh,
-        async () => {
-          const { comSessao } = await import("./mongo.server");
-          const { getIndicadores } = await import("./redeflex-mongo.server");
-          return await comSessao(
-            async () =>
-              await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
-          );
-        },
+/** Receita e custo do BI para vários pares posto/mês (painel Contábil). */
+export const listarReceitaCusto = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z.object({ pares: z.array(z.object({ ibm: z.string().min(1), mes: z.string().regex(/^\d{4}-\d{2}-01$/) })).max(400) }).parse(input),
+  )
+  .handler(async ({ data }) => {
+    const { receitaCustoDoBi } = await import("./receita-custo.server");
+    const saida: { ibm: string; mes: string; receita: number; custo: number }[] = [];
+    for (let i = 0; i < data.pares.length; i += 6) {
+      const lote = data.pares.slice(i, i + 6);
+      const r = await Promise.all(
+        lote.map(async (p) => {
+          try {
+            const v = await receitaCustoDoBi({ mes: p.mes, ...(p.ibm !== "REDE" ? { ibm: p.ibm } : {}) });
+            return { ...p, receita: v.receita, custo: v.custo };
+          } catch {
+            return null;
+          }
+        }),
       );
-
-      const receita = indicadores.combustivel.receita + indicadores.produto.receita;
-      const lucroBruto = indicadores.combustivel.lucroBruto + indicadores.produto.lucroBruto;
-      return { receita, custo: receita - lucroBruto, parcial, ate };
-    } catch (error) {
-      console.error("[RedeFlex:getReceitaCusto]", error);
-      throw error;
+      for (const x of r) if (x) saida.push(x);
     }
+    return saida;
   });

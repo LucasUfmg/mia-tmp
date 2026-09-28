@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { salvarEbitda } from "@/lib/contabil.functions";
-import { getReceitaCusto } from "@/lib/redeflex.functions";
 import {
   IBM_REDE,
   formatarBR,
@@ -99,27 +98,14 @@ export function EbitdaDialog({
     setForm({ ...vazio });
   };
 
-  // Receita de vendas e custo vêm dos dados de venda do posto (não editáveis).
-  const {
-    data: doPainel,
-    isFetching: buscandoPainel,
-  } = useQuery({
-    queryKey: ["contabil", "ebitda-bi", ibm, mes],
-    queryFn: () =>
-      getReceitaCusto({ data: { mes, ...(ibm && ibm !== IBM_REDE ? { ibm } : {}) } }),
-    enabled: aberto && !!ibm,
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
-  });
-
   const numeros = useMemo(() => {
     const base = Object.fromEntries(
       linhasEbitda.map((l) => [l.chave, paraNumero(form[l.chave])]),
     ) as Record<LinhaEbitdaChave, number>;
-    base.receitaVendas = doPainel?.receita ?? 0;
-    base.custo = doPainel?.custo ?? 0;
+    base.receitaVendas = 0;
+    base.custo = 0;
     return base;
-  }, [form, doPainel]);
+  }, [form]);
 
   const mutation = useMutation({
     mutationFn: async () => await salvar({ data: { ibm, mes, ...numeros } }),
@@ -191,14 +177,8 @@ export function EbitdaDialog({
         </div>
 
         <div className="relative">
-          {buscandoPainel && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 rounded-xl bg-background/70 text-xs font-semibold text-muted-foreground backdrop-blur-[1px]">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Carregando…
-            </div>
-          )}
           <div
-            className={`grid gap-3 ${buscandoPainel ? "pointer-events-none opacity-40" : ""}`}
+            className="grid gap-3"
           >
           {linhasEbitda
             .filter((l) => !travadas.includes(l.chave))
@@ -226,12 +206,12 @@ export function EbitdaDialog({
           <Button variant="outline" onClick={() => onAberto(false)}>
             Cancelar
           </Button>
-          <Button variant="ghost" onClick={limpar} disabled={buscandoPainel}>
+          <Button variant="ghost" onClick={limpar}>
             Limpar campos
           </Button>
           <Button
             onClick={() => concluir()}
-            disabled={!ibm || mutation.isPending || buscandoPainel}
+            disabled={!ibm || mutation.isPending}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
             {mutation.isPending ? "Salvando…" : "Salvar despesas"}
