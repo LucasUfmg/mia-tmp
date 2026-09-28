@@ -3,15 +3,16 @@
  * As linhas marcadas com sinal -1 são redutoras: o valor digitado é tratado
  * pelo módulo (com ou sem sinal) e subtraído.
  *
- * Cascata dos big numbers: Receita bruta → CMV → Resultado operacional bruto
- * → Despesas totais → EBITDA (Result. Op. Bruto − Despesas totais) → Resultado final.
+ * Cascata dos big numbers: Receita bruta → CMV → Result. Operacional Bruto
+ * (Receita bruta − CMV, exato) → descontos e falta/sobra → Despesas totais
+ * → EBITDA → Resultado final.
  */
 
 export const linhasEbitda = [
   { chave: "receitaVendas", label: "Receita bruta", sinal: 1 },
+  { chave: "custo", label: "CMV", sinal: -1 },
   { chave: "deducoes", label: "Descontos e acréscimos", sinal: -1 },
   { chave: "faltaSobra", label: "Falta / sobra", sinal: 1 },
-  { chave: "custo", label: "CMV", sinal: -1 },
   { chave: "despesasPessoal", label: "Pessoal", sinal: -1 },
   { chave: "administrativas", label: "Operação/Administrativas", sinal: -1 },
   { chave: "aluguel", label: "Aluguel", sinal: -1 },
@@ -69,13 +70,13 @@ export function comSinal(chave: LinhaEbitdaChave, valor: number): number {
 export function calcularEbitda(v: Record<LinhaEbitdaChave, number>): ResultadoEbitda {
   const s = (chave: LinhaEbitdaChave) => comSinal(chave, v[chave]);
   const receitaBruta = s("receitaVendas");
-  const receitaLiquida = receitaBruta + s("deducoes") + s("faltaSobra");
-  const resultadoBruto = receitaLiquida + s("custo");
+  const resultadoBruto = receitaBruta + s("custo");
+  const receitaLiquida = resultadoBruto + s("deducoes") + s("faltaSobra");
   const a = (chave: LinhaEbitdaChave) => Math.abs(s(chave));
   const operacionais = a("despesasPessoal") + a("administrativas") + a("aluguel") + a("taxasCartao") +
     a("frete") + a("despesasTributarias") + a("outrasOperacionais");
   const despesasTotais = operacionais + a("despesasFinanceiras") + a("despesasNaoContabeis");
-  const ebitda = resultadoBruto - despesasTotais;
+  const ebitda = receitaLiquida - despesasTotais;
   const resultadoFinal = ebitda + s("outrasReceitasNaoOperacionais") + s("bonusPerformance") +
     s("rateios") + s("bonusContrato");
   const lucroLiquido = resultadoFinal - a("irpjCsll");
@@ -101,8 +102,8 @@ export function consolidarEbitda(linhas: Ebitda[], selecao: string[], meses: str
 export const totaisApos: Partial<
   Record<LinhaEbitdaChave, { label: string; campo: keyof ResultadoEbitda; destaque?: boolean }>
 > = {
+  custo: { label: "= Result. Operacional Bruto", campo: "resultadoBruto" },
   faltaSobra: { label: "= Receita líquida ajustada", campo: "receitaLiquida" },
-  custo: { label: "= Resultado operacional bruto", campo: "resultadoBruto" },
   despesasNaoContabeis: { label: "= EBITDA", campo: "ebitda", destaque: true },
   bonusContrato: { label: "= Resultado final", campo: "resultadoFinal", destaque: true },
   irpjCsll: { label: "= Lucro líquido", campo: "lucroLiquido", destaque: true },
