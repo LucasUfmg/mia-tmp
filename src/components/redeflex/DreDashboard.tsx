@@ -7,6 +7,7 @@ import {
   Cell,
   Line,
   LineChart,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -25,7 +26,10 @@ const numero = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 const moeda = (v: number) => brl.format(v);
 const percentual = (v: number | null) => (v === null ? "—" : `${numero.format(v)}%`);
 const razao = (a: number, b: number) => (b ? (a / b) * 100 : null);
-const cores = ["var(--color-chart-1)", "var(--color-chart-2)", "var(--color-chart-3)", "var(--color-chart-4)", "var(--color-chart-5)"];
+const cores = [
+  "var(--pie-1)", "var(--pie-2)", "var(--pie-3)", "var(--pie-4)", "var(--pie-5)",
+  "var(--pie-6)", "var(--pie-7)", "var(--pie-8)", "var(--pie-9)",
+];
 
 type Props = {
   calculos: Ebitda[];
