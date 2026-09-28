@@ -9,16 +9,20 @@ export const linhasEbitda = [
   { chave: "deducoes", label: "Descontos e acréscimos", sinal: -1 },
   { chave: "faltaSobra", label: "Falta / sobra", sinal: 1 },
   { chave: "custo", label: "CMV", sinal: -1 },
-  { chave: "administrativas", label: "Despesas administrativas", sinal: -1 },
-  { chave: "despesasFinanceiras", label: "Despesas financeiras", sinal: -1 },
-  { chave: "despesasNaoContabeis", label: "Despesas não contábeis", sinal: -1 },
-  { chave: "despesasPessoal", label: "Despesas trabalhistas", sinal: -1 },
-  { chave: "despesasTributarias", label: "Despesas tributárias", sinal: -1 },
+  { chave: "despesasPessoal", label: "Pessoal", sinal: -1 },
+  { chave: "administrativas", label: "Operação/Administrativas", sinal: -1 },
+  { chave: "aluguel", label: "Aluguel", sinal: -1 },
+  { chave: "taxasCartao", label: "Taxas de Cartão", sinal: -1 },
+  { chave: "frete", label: "Frete", sinal: -1 },
+  { chave: "despesasTributarias", label: "Tributárias", sinal: -1 },
   { chave: "outrasOperacionais", label: "Outras despesas operacionais", sinal: -1 },
+  { chave: "despesasFinanceiras", label: "Despesas Financeiras", sinal: -1 },
+  { chave: "despesasNaoContabeis", label: "Despesas Não Operacionais", sinal: -1 },
   { chave: "outrasReceitasNaoOperacionais", label: "Outras receitas não operacionais", sinal: 1 },
   { chave: "bonusPerformance", label: "Bônus de performance", sinal: 1 },
   { chave: "rateios", label: "Rateios", sinal: -1 },
   { chave: "bonusContrato", label: "Bônus de contrato", sinal: 1 },
+  { chave: "irpjCsll", label: "IRPJ e CSLL", sinal: -1 },
 ] as const;
 
 export type LinhaEbitdaChave = (typeof linhasEbitda)[number]["chave"];
@@ -64,13 +68,15 @@ export function calcularEbitda(v: Record<LinhaEbitdaChave, number>): ResultadoEb
   const receitaBruta = s("receitaVendas");
   const receitaLiquida = receitaBruta + s("deducoes") + s("faltaSobra");
   const resultadoBruto = receitaLiquida + s("custo");
-  const despesasTotais = Math.abs(s("administrativas")) + Math.abs(s("despesasFinanceiras")) +
-    Math.abs(s("despesasNaoContabeis")) + Math.abs(s("despesasPessoal")) +
-    Math.abs(s("despesasTributarias")) + Math.abs(s("outrasOperacionais"));
-  const ebitda = resultadoBruto - despesasTotais;
-  const resultadoFinal = ebitda + s("outrasReceitasNaoOperacionais") + s("bonusPerformance") +
-    s("rateios") + s("bonusContrato");
-  return { receitaBruta, receitaLiquida, resultadoBruto, despesasTotais, ebitda, ebit: ebitda, resultadoFinal, lucroLiquido: resultadoFinal };
+  const a = (chave: LinhaEbitdaChave) => Math.abs(s(chave));
+  const operacionais = a("despesasPessoal") + a("administrativas") + a("aluguel") + a("taxasCartao") +
+    a("frete") + a("despesasTributarias") + a("outrasOperacionais");
+  const despesasTotais = operacionais + a("despesasFinanceiras") + a("despesasNaoContabeis");
+  const ebitda = resultadoBruto - operacionais;
+  const resultadoFinal = ebitda - a("despesasFinanceiras") - a("despesasNaoContabeis") +
+    s("outrasReceitasNaoOperacionais") + s("bonusPerformance") + s("rateios") + s("bonusContrato");
+  const lucroLiquido = resultadoFinal - a("irpjCsll");
+  return { receitaBruta, receitaLiquida, resultadoBruto, despesasTotais, ebitda, ebit: ebitda, resultadoFinal, lucroLiquido };
 }
 
 /** Consolida linhas da DRE sem misturar o registro de rede com seus postos. */
@@ -96,4 +102,5 @@ export const totaisApos: Partial<
   custo: { label: "= Resultado operacional bruto", campo: "resultadoBruto" },
   outrasOperacionais: { label: "= EBITDA", campo: "ebitda", destaque: true },
   bonusContrato: { label: "= Resultado final", campo: "resultadoFinal", destaque: true },
+  irpjCsll: { label: "= Lucro líquido", campo: "lucroLiquido", destaque: true },
 };
