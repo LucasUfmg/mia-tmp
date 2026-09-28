@@ -6,7 +6,7 @@
 - [x] Criar Visão Geral, DRE Gerencial e Comparativo entre Postos
 - [x] Reaproveitar filtros, lançamentos, calculadora e dados automáticos do BI
 - [x] Atualizar a leitura contábil da Mia
-- [ ] Validar cálculos, gravação e visual em desktop/mobile
+- [x] Validar cálculos, gravação e visual em desktop/mobile
 
 ## Mia no WhatsApp via FZAP (substituindo Twilio)
 - [x] Migração: tabelas fzap_eventos + fzap_config (RLS + grants)
