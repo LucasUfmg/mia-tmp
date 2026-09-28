@@ -1,5 +1,13 @@
 # Roadmap
 
+## Dashboard DRE na aba Contábil
+- [x] Ampliar rubricas de despesas preservando os registros existentes
+- [x] Unificar linhas e fórmulas da DRE
+- [x] Criar Visão Geral, DRE Gerencial e Comparativo entre Postos
+- [x] Reaproveitar filtros, lançamentos, calculadora e dados automáticos do BI
+- [x] Atualizar a leitura contábil da Mia
+- [ ] Validar cálculos, gravação e visual em desktop/mobile
+
 ## Mia no WhatsApp via FZAP (substituindo Twilio)
 - [x] Migração: tabelas fzap_eventos + fzap_config (RLS + grants)
 - [x] FzapService (src/lib/fzap/service.server.ts): validate/parse/send/handle/receive

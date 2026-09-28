@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { BarChart3, CircleDollarSign, Gauge, Landmark, ReceiptText, TrendingUp } from "lucide-react";
 import {
   Bar,
@@ -134,7 +134,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
   );
 }
 
-function ChartCard({ titulo, subtitulo, children }: { titulo: string; subtitulo: string; children: React.ReactNode }) {
+function ChartCard({ titulo, subtitulo, children }: { titulo: string; subtitulo: string; children: ReactNode }) {
   return <section className="card-elevated p-5"><h3 className="text-sm font-bold">{titulo}</h3><p className="text-xs text-muted-foreground">{subtitulo}</p><div className="mt-4 h-[280px]">{children}</div></section>;
 }
 
