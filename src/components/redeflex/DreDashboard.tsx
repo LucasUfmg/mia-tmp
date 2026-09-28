@@ -36,15 +36,25 @@ type Props = {
 };
 
 const despesas: { chave: LinhaEbitdaChave; label: string }[] = [
-  { chave: "administrativas", label: "Administrativas" },
-  { chave: "despesasFinanceiras", label: "Financeiras" },
-  { chave: "despesasNaoContabeis", label: "Não contábeis" },
-  { chave: "despesasPessoal", label: "Trabalhistas" },
+  { chave: "despesasPessoal", label: "Pessoal" },
+  { chave: "administrativas", label: "Operação/Adm." },
+  { chave: "aluguel", label: "Aluguel" },
+  { chave: "taxasCartao", label: "Taxas de Cartão" },
+  { chave: "frete", label: "Frete" },
   { chave: "despesasTributarias", label: "Tributárias" },
+  { chave: "despesasFinanceiras", label: "Financeiras" },
+  { chave: "despesasNaoContabeis", label: "Não operacionais" },
   { chave: "outrasOperacionais", label: "Outras operacionais" },
 ];
 
-function Card({ icon: Icon, label, valor, detalhe }: { icon: typeof TrendingUp; label: string; valor: string; detalhe: string }) {
+const mesAnterior = (m: string) => {
+  const [a, mm] = m.split("-").map(Number);
+  const d = new Date(Date.UTC(a!, mm! - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
+};
+
+function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon: typeof TrendingUp; label: string; valor: string; detalhe: string; variacao?: number | null; inverter?: boolean }) {
+  const bom = variacao != null && (inverter ? variacao <= 0 : variacao >= 0);
   return (
     <article className="card-elevated min-w-0 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -53,6 +63,9 @@ function Card({ icon: Icon, label, valor, detalhe }: { icon: typeof TrendingUp; 
       </div>
       <p className="mt-3 truncate text-2xl font-extrabold tabular-nums">{valor}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{detalhe}</p>
+      <p className={`mt-1 text-[11px] font-bold ${variacao == null ? "text-muted-foreground" : bom ? "text-success" : "text-destructive"}`}>
+        {variacao == null ? "— vs mês anterior" : `${variacao >= 0 ? "▲" : "▼"} ${numero.format(Math.abs(variacao))}% vs mês anterior`}
+      </p>
     </article>
   );
 }
@@ -67,15 +80,20 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
     () => meses.map((mes) => ({ mes, ...consolidarEbitda(calculos, selecao, [mes]) })),
     [calculos, selecao, meses],
   );
+  const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
+  const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
+  const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
+  const margem = (d: typeof consolidado) => razao(d.resultadoFinal, d.receitaBruta);
   const composicao = despesas.map((item) => ({ name: item.label, value: Math.abs(consolidado[item.chave]) }));
   const maiores = [...composicao].sort((a, b) => b.value - a.value);
   const cards = [
-    { icon: CircleDollarSign, label: "Receita bruta", valor: moeda(consolidado.receitaBruta), detalhe: "Vendas vindas do BI" },
-    { icon: TrendingUp, label: "Lucro bruto", valor: moeda(consolidado.resultadoBruto), detalhe: percentual(razao(consolidado.resultadoBruto, consolidado.receitaBruta)) + " da receita" },
-    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: percentual(razao(consolidado.ebitda, consolidado.receitaBruta)) + " de margem" },
-    { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo" },
-    { icon: ReceiptText, label: "Despesas totais", valor: moeda(consolidado.despesasTotais), detalhe: percentual(razao(consolidado.despesasTotais, consolidado.receitaBruta)) + " da receita" },
-    { icon: BarChart3, label: "Margem líquida", valor: percentual(razao(consolidado.resultadoFinal, consolidado.receitaBruta)), detalhe: "Resultado final sobre receita" },
+    { icon: CircleDollarSign, label: "Receita bruta", valor: moeda(consolidado.receitaBruta), detalhe: "Vendas vindas do BI", variacao: varia(consolidado.receitaBruta, anterior.receitaBruta) },
+    { icon: ReceiptText, label: "CMV", valor: moeda(Math.abs(consolidado.custo)), detalhe: percentual(razao(Math.abs(consolidado.custo), consolidado.receitaBruta)) + " da receita · BI", variacao: varia(Math.abs(consolidado.custo), Math.abs(anterior.custo)), inverter: true },
+    { icon: TrendingUp, label: "Lucro bruto", valor: moeda(consolidado.resultadoBruto), detalhe: percentual(razao(consolidado.resultadoBruto, consolidado.receitaBruta)) + " da receita", variacao: varia(consolidado.resultadoBruto, anterior.resultadoBruto) },
+    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: percentual(razao(consolidado.ebitda, consolidado.receitaBruta)) + " de margem", variacao: varia(consolidado.ebitda, anterior.ebitda) },
+    { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo", variacao: varia(consolidado.resultadoFinal, anterior.resultadoFinal) },
+    { icon: ReceiptText, label: "Despesas totais", valor: moeda(consolidado.despesasTotais), detalhe: percentual(razao(consolidado.despesasTotais, consolidado.receitaBruta)) + " da receita", variacao: varia(consolidado.despesasTotais, anterior.despesasTotais), inverter: true },
+    { icon: BarChart3, label: "Margem líquida", valor: percentual(razao(consolidado.resultadoFinal, consolidado.receitaBruta)), detalhe: "Resultado final sobre receita", variacao: (() => { const a = margem(consolidado), b = margem(anterior); return a == null || b == null ? null : a - b; })() },
   ];
 
   const alternarMes = (mes: string) => setMesesDre((atuais) => atuais.includes(mes) ? (atuais.length === 1 ? atuais : atuais.filter((m) => m !== mes)) : [...atuais, mes].sort());
@@ -100,7 +118,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
       </TabsList>
 
       <TabsContent value="geral" className="mt-5 space-y-5">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
           <ChartCard titulo="Evolução da receita" subtitulo="Receita bruta por mês">
             <ResponsiveContainer width="100%" height="100%"><LineChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>

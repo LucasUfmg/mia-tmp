@@ -85,6 +85,14 @@ function Contabil() {
 
 
 
+  const anoAnterior = String(Number(ano) - 1);
+  const { data: calculosAnt = [] } = useQuery({
+    queryKey: ["contabil", "ebitda", anoAnterior],
+    queryFn: () => listarEbitda({ data: { ano: anoAnterior } }),
+    staleTime: 60_000,
+  });
+  const calculosComAnterior = useMemo(() => [...calculosAnt, ...calculos], [calculosAnt, calculos]);
+
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
 
@@ -219,7 +227,7 @@ function Contabil() {
         </p>
 
         <DreDashboard
-          calculos={calculos}
+          calculos={calculosComAnterior}
           selecao={selecao}
           meses={mesesEscopo}
           mesAtual={mes}
