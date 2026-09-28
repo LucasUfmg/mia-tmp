@@ -110,7 +110,14 @@ export function mesesDoAno(ano: string): string[] {
 export function paraNumero(valor: string): number {
   const limpo = valor.trim().replace(/\s|R\$|%/g, "");
   if (!limpo) return 0;
-  const normalizado = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
+  // Sem vírgula, pontos seguidos de grupos de 3 dígitos são separadores de milhar
+  // ("25.000" → 25000); um ponto solto segue sendo decimal ("1234.56").
+  const ehMilhar = /^-?\d{1,3}(\.\d{3})+$/.test(limpo);
+  const normalizado = limpo.includes(",")
+    ? limpo.replace(/\./g, "").replace(",", ".")
+    : ehMilhar
+      ? limpo.replace(/\./g, "")
+      : limpo;
   const n = Number(normalizado);
   return Number.isFinite(n) ? n : 0;
 }
