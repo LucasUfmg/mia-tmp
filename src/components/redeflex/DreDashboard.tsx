@@ -65,7 +65,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon:
         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-brand" />
       </div>
-      <p className="mt-3 truncate text-2xl font-extrabold tabular-nums">{valor}</p>
+      <p className="mt-3 whitespace-nowrap text-xl font-extrabold tabular-nums 2xl:text-2xl">{valor}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{detalhe}</p>
       <p className={`mt-1 text-[11px] font-bold ${variacao == null ? "text-muted-foreground" : bom ? "text-wa" : "text-destructive"}`}>
         {variacao == null ? "— vs mês anterior" : `${variacao >= 0 ? "▲" : "▼"} ${numero.format(Math.abs(variacao))}% vs mês anterior`}
@@ -122,7 +122,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
       </TabsList>
 
       <TabsContent value="geral" className="mt-5 space-y-5">
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-7">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
           <ChartCard titulo="Evolução da receita" subtitulo="Receita bruta por mês">
             <ResponsiveContainer width="100%" height="100%"><LineChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
