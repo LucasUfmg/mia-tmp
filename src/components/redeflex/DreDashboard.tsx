@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { BarChart3, CircleDollarSign, Gauge, Landmark, ReceiptText, TrendingUp } from "lucide-react";
+import { CircleDollarSign, Gauge, Landmark, ReceiptText, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -87,17 +87,15 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
   const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
   const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
   const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
-  const margem = (d: typeof consolidado) => razao(d.resultadoFinal, d.receitaBruta);
   const composicao = despesas.map((item) => ({ name: item.label, value: Math.abs(consolidado[item.chave]) }));
   const maiores = [...composicao].sort((a, b) => b.value - a.value);
   const cards = [
     { icon: CircleDollarSign, label: "Receita bruta", valor: moeda(consolidado.receitaBruta), detalhe: "Vendas vindas do BI", variacao: varia(consolidado.receitaBruta, anterior.receitaBruta) },
     { icon: ReceiptText, label: "CMV", valor: moeda(Math.abs(consolidado.custo)), detalhe: percentual(razao(Math.abs(consolidado.custo), consolidado.receitaBruta)) + " da receita · BI", variacao: varia(Math.abs(consolidado.custo), Math.abs(anterior.custo)), inverter: true },
-    { icon: TrendingUp, label: "Lucro bruto", valor: moeda(consolidado.resultadoBruto), detalhe: percentual(razao(consolidado.resultadoBruto, consolidado.receitaBruta)) + " da receita", variacao: varia(consolidado.resultadoBruto, anterior.resultadoBruto) },
-    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: percentual(razao(consolidado.ebitda, consolidado.receitaBruta)) + " de margem", variacao: varia(consolidado.ebitda, anterior.ebitda) },
-    { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo", variacao: varia(consolidado.resultadoFinal, anterior.resultadoFinal) },
+    { icon: TrendingUp, label: "Result. Operacional Bruto", valor: moeda(consolidado.resultadoBruto), detalhe: "Receita bruta − CMV", variacao: varia(consolidado.resultadoBruto, anterior.resultadoBruto) },
     { icon: ReceiptText, label: "Despesas totais", valor: moeda(consolidado.despesasTotais), detalhe: percentual(razao(consolidado.despesasTotais, consolidado.receitaBruta)) + " da receita", variacao: varia(consolidado.despesasTotais, anterior.despesasTotais), inverter: true },
-    { icon: BarChart3, label: "Margem líquida", valor: percentual(razao(consolidado.resultadoFinal, consolidado.receitaBruta)), detalhe: "Resultado final sobre receita", variacao: (() => { const a = margem(consolidado), b = margem(anterior); return a == null || b == null ? null : a - b; })() },
+    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: "Result. Operacional Bruto − Despesas totais", variacao: varia(consolidado.ebitda, anterior.ebitda) },
+    { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo", variacao: varia(consolidado.resultadoFinal, anterior.resultadoFinal) },
   ];
 
   const alternarMes = (mes: string) => setMesesDre((atuais) => atuais.includes(mes) ? (atuais.length === 1 ? atuais : atuais.filter((m) => m !== mes)) : [...atuais, mes].sort());
@@ -122,7 +120,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
       </TabsList>
 
       <TabsContent value="geral" className="mt-5 space-y-5">
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
           <ChartCard titulo="Evolução da receita" subtitulo="Receita bruta por mês">
             <ResponsiveContainer width="100%" height="100%"><LineChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
@@ -141,7 +139,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
 
       <TabsContent value="dre" className="mt-5 space-y-4">
         <div className="flex flex-wrap gap-2">{meses.map((mes) => <Button key={mes} size="sm" variant={mesesDre.includes(mes) ? "default" : "outline"} onClick={() => alternarMes(mes)}>{rotuloMes(mes)}</Button>)}</div>
-        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasEbitda.map((linha) => <tr key={linha.chave} className="border-b border-border/70"><td className="sticky left-0 bg-card px-5 py-2.5 font-medium">{linha.label}</td>{colunasDre.map(({ mes, dados }) => <ValueCells key={mes} valor={linha.sinal * Math.abs(dados[linha.chave])} receita={dados.receitaBruta} />)}</tr>)}<TotalRow label="Lucro bruto" colunas={colunasDre} campo="resultadoBruto" /><TotalRow label="Despesas totais" colunas={colunasDre} campo="despesasTotais" /><TotalRow label="EBITDA" colunas={colunasDre} campo="ebitda" destaque /><TotalRow label="Resultado final" colunas={colunasDre} campo="resultadoFinal" destaque /></tbody></table></section>
+        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasEbitda.map((linha) => <tr key={linha.chave} className="border-b border-border/70"><td className="sticky left-0 bg-card px-5 py-2.5 font-medium">{linha.label}</td>{colunasDre.map(({ mes, dados }) => <ValueCells key={mes} valor={linha.sinal * Math.abs(dados[linha.chave])} receita={dados.receitaBruta} />)}</tr>)}<TotalRow label="Result. Operacional Bruto" colunas={colunasDre} campo="resultadoBruto" /><TotalRow label="Despesas totais" colunas={colunasDre} campo="despesasTotais" /><TotalRow label="EBITDA" colunas={colunasDre} campo="ebitda" destaque /><TotalRow label="Resultado final" colunas={colunasDre} campo="resultadoFinal" destaque /></tbody></table></section>
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">

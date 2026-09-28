@@ -2,6 +2,9 @@
  * Cálculo do EBITDA por posto e mês, seguindo a DRE da planilha "BASE DRE".
  * As linhas marcadas com sinal -1 são redutoras: o valor digitado é tratado
  * pelo módulo (com ou sem sinal) e subtraído.
+ *
+ * Cascata dos big numbers: Receita bruta → CMV → Resultado operacional bruto
+ * → Despesas totais → EBITDA (Result. Op. Bruto − Despesas totais) → Resultado final.
  */
 
 export const linhasEbitda = [
@@ -72,9 +75,9 @@ export function calcularEbitda(v: Record<LinhaEbitdaChave, number>): ResultadoEb
   const operacionais = a("despesasPessoal") + a("administrativas") + a("aluguel") + a("taxasCartao") +
     a("frete") + a("despesasTributarias") + a("outrasOperacionais");
   const despesasTotais = operacionais + a("despesasFinanceiras") + a("despesasNaoContabeis");
-  const ebitda = resultadoBruto - operacionais;
-  const resultadoFinal = ebitda - a("despesasFinanceiras") - a("despesasNaoContabeis") +
-    s("outrasReceitasNaoOperacionais") + s("bonusPerformance") + s("rateios") + s("bonusContrato");
+  const ebitda = resultadoBruto - despesasTotais;
+  const resultadoFinal = ebitda + s("outrasReceitasNaoOperacionais") + s("bonusPerformance") +
+    s("rateios") + s("bonusContrato");
   const lucroLiquido = resultadoFinal - a("irpjCsll");
   return { receitaBruta, receitaLiquida, resultadoBruto, despesasTotais, ebitda, ebit: ebitda, resultadoFinal, lucroLiquido };
 }
@@ -100,7 +103,7 @@ export const totaisApos: Partial<
 > = {
   faltaSobra: { label: "= Receita líquida ajustada", campo: "receitaLiquida" },
   custo: { label: "= Resultado operacional bruto", campo: "resultadoBruto" },
-  outrasOperacionais: { label: "= EBITDA", campo: "ebitda", destaque: true },
+  despesasNaoContabeis: { label: "= EBITDA", campo: "ebitda", destaque: true },
   bonusContrato: { label: "= Resultado final", campo: "resultadoFinal", destaque: true },
   irpjCsll: { label: "= Lucro líquido", campo: "lucroLiquido", destaque: true },
 };
