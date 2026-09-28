@@ -1,7 +1,7 @@
 import type { ReceitaCusto } from "./redeflex.functions";
 
 /** Receita e custo do BI para um posto (ou rede) em um mês. */
-export async function receitaCustoDoBi(data: { mes: string; ibm?: string; fresh?: boolean }): Promise<ReceitaCusto> {
+export async function receitaCustoDoBi(data: { mes: string; ibm?: string | undefined; fresh?: boolean }): Promise<ReceitaCusto> {
   const fresh = data.fresh ?? false;
     const hoje = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Sao_Paulo",
