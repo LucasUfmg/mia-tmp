@@ -128,7 +128,7 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
             <ResponsiveContainer width="100%" height="100%"><LineChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
           </ChartCard>
           <ChartCard titulo="Composição das despesas" subtitulo="Participação por rubrica no período">
-            <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={composicao} dataKey="value" nameKey="name" innerRadius="50%" outerRadius="78%">{composicao.map((item, i) => <Cell key={item.name} fill={cores[i % cores.length]} />)}</Pie><Tooltip formatter={(v: number) => moeda(v)} contentStyle={tooltipStyle} /></PieChart></ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={composicao} dataKey="value" nameKey="name" innerRadius="50%" outerRadius="78%" paddingAngle={1.5}>{composicao.map((item, i) => <Cell key={item.name} fill={cores[i % cores.length]} />)}</Pie><Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => <span style={{ color: "var(--foreground)" }}>{value}</span>} /><Tooltip formatter={(v: number) => moeda(v)} contentStyle={tooltipStyle} /></PieChart></ResponsiveContainer>
           </ChartCard>
         </section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
@@ -162,7 +162,7 @@ function ChartCard({ titulo, subtitulo, children }: { titulo: string; subtitulo:
 }
 
 function MemoCells() { return <><th className="px-3 py-2 text-right">Valor</th><th className="px-3 py-2 text-right">AV</th></>; }
-function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(valor, receita))}</td></>; }
+function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 ? "text-wa" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(valor, receita))}</td></>; }
 function TotalRow({ label, colunas, campo, destaque = false }: { label: string; colunas: { mes: string; dados: ReturnType<typeof calcularEbitda> & Record<LinhaEbitdaChave, number> }[]; campo: "resultadoBruto" | "despesasTotais" | "ebitda" | "resultadoFinal"; destaque?: boolean }) {
   return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : "bg-surface-muted font-bold"}><td className="sticky left-0 bg-inherit px-5 py-3">{label}</td>{colunas.map(({ mes, dados }) => <ValueCells key={mes} valor={dados[campo]} receita={dados.receitaBruta} />)}</tr>;
 }
