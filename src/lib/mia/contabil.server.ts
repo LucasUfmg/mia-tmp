@@ -105,17 +105,18 @@ export async function lerContabil(opcoes: {
 const COLUNAS_EBITDA: Record<LinhaEbitdaChave, string> = {
   receitaVendas: "receita_vendas",
   deducoes: "deducoes",
-  ajusteEnergy: "ajuste_energy",
+  faltaSobra: "falta_sobra",
   custo: "custo",
-  ajusteTransporte: "ajuste_transporte",
-  ajusteGestao: "ajuste_gestao",
   despesasPessoal: "despesas_pessoal",
   administrativas: "administrativas",
+  despesasFinanceiras: "despesas_financeiras",
+  despesasNaoContabeis: "despesas_nao_contabeis",
   despesasTributarias: "despesas_tributarias",
-  furtosRoubos: "furtos_roubos",
-  apropriacaoContratos: "apropriacao_contratos",
-  participacoesEmpregados: "participacoes_empregados",
-  depreciacao: "depreciacao",
+  outrasOperacionais: "outras_operacionais",
+  outrasReceitasNaoOperacionais: "outras_receitas_nao_operacionais",
+  bonusPerformance: "bonus_performance",
+  rateios: "rateios",
+  bonusContrato: "bonus_contrato",
 };
 
 /**
@@ -184,7 +185,10 @@ export async function lerDetalheEbitda(opcoes: {
     detalhamento,
     receitaOperacionalLiquida: r0(totais.receitaLiquida),
     resultadoOperacionalBruto: r0(totais.resultadoBruto),
+    despesasTotais: r0(totais.despesasTotais),
     ebitda: r0(totais.ebitda),
     ebit: r0(totais.ebit),
+    resultadoFinal: r0(totais.resultadoFinal),
+    lucroLiquido: r0(totais.lucroLiquido),
   };
 }

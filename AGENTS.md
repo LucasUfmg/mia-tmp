@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+## Project architecture
+
+- Keep all DRE line definitions and formulas centralized in `src/lib/ebitda.ts` so the editor, dashboard, and Mia never diverge.
