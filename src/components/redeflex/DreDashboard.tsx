@@ -63,7 +63,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon:
       </div>
       <p className="mt-3 truncate text-2xl font-extrabold tabular-nums">{valor}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{detalhe}</p>
-      <p className={`mt-1 text-[11px] font-bold ${variacao == null ? "text-muted-foreground" : bom ? "text-success" : "text-destructive"}`}>
+      <p className={`mt-1 text-[11px] font-bold ${variacao == null ? "text-muted-foreground" : bom ? "text-wa" : "text-destructive"}`}>
         {variacao == null ? "— vs mês anterior" : `${variacao >= 0 ? "▲" : "▼"} ${numero.format(Math.abs(variacao))}% vs mês anterior`}
       </p>
     </article>
