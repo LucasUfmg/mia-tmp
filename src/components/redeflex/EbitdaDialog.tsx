@@ -55,8 +55,6 @@ type Props = {
   ano: string;
   mesInicial: string;
   ibmInicial?: string;
-  /** Chamado depois de salvar, para abrir o lançamento contábil do mesmo posto/mês. */
-  onUsarNoLancamento: (alvo: { ibm: string; mes: string }) => void;
 };
 
 type Form = Record<LinhaEbitdaChave, string>;
@@ -105,7 +103,6 @@ export function EbitdaDialog({
   ano,
   mesInicial,
   ibmInicial,
-  onUsarNoLancamento,
 }: Props) {
   const [ibm, setIbm] = useState(ibmInicial ?? lojas[0]?.ibm ?? "");
   const [mes, setMes] = useState(mesInicial);
@@ -194,19 +191,18 @@ export function EbitdaDialog({
       return { ibm, mes };
     },
     onError: (erro: Error) =>
-      toast.error("Não foi possível salvar o cálculo", { description: erro.message }),
+      toast.error("Não foi possível salvar as despesas", { description: erro.message }),
   });
 
   const nome = ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? ibm);
 
-  const concluir = (usarNoLancamento: boolean) => {
+  const concluir = () => {
     mutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Cálculo de EBITDA salvo", {
+        toast.success("Despesas salvas no lançamento contábil", {
           description: `${nome} · ${rotuloMes(mes)} · EBITDA ${moeda(resultado.ebitda)}`,
         });
         onAberto(false);
-        if (usarNoLancamento) onUsarNoLancamento({ ibm, mes });
       },
     });
   };
@@ -215,11 +211,11 @@ export function EbitdaDialog({
     <Dialog open={aberto} onOpenChange={onAberto}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Calcular EBITDA</DialogTitle>
+          <DialogTitle>Lançar despesas</DialogTitle>
           <DialogDescription>
             Receita de vendas e custo vêm dos dados de venda do posto e não podem ser alterados.
-            Preencha as demais linhas: os totais são calculados automaticamente e podem ser levados
-            para o lançamento contábil.
+            Preencha as despesas: ao salvar, Receita líquida, EBITDA, EBIT e Lucro líquido são
+            gravados automaticamente no lançamento contábil do mesmo posto/mês.
           </DialogDescription>
         </DialogHeader>
 
@@ -350,18 +346,11 @@ export function EbitdaDialog({
             Limpar campos
           </Button>
           <Button
-            variant="outline"
-            onClick={() => concluir(false)}
-            disabled={!ibm || mutation.isPending || buscandoPainel}
-          >
-            {mutation.isPending ? "Salvando…" : "Salvar cálculo"}
-          </Button>
-          <Button
-            onClick={() => concluir(true)}
+            onClick={() => concluir()}
             disabled={!ibm || mutation.isPending || buscandoPainel}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
-            Usar no lançamento contábil
+            {mutation.isPending ? "Salvando…" : "Salvar despesas"}
           </Button>
         </DialogFooter>
       </DialogContent>
