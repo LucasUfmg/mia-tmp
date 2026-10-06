@@ -31,7 +31,7 @@ import {
   paraNumero,
   rotuloMes,
 } from "@/lib/contabil";
-import { linhasDespesas, linhasEbitda, rotuloComSinal, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { gruposLancamentoDre, linhasEbitda, rotuloComSinal, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
@@ -110,7 +110,7 @@ export function EbitdaDialog({
       return { ibm, mes };
     },
     onError: (erro: Error) =>
-      toast.error("Não foi possível salvar as despesas", { description: erro.message }),
+      toast.error("Não foi possível salvar os valores", { description: erro.message }),
   });
 
   const nome = ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? ibm);
@@ -118,7 +118,7 @@ export function EbitdaDialog({
   const concluir = () => {
     mutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Despesas salvas no lançamento contábil", {
+        toast.success("Valores salvos no lançamento contábil", {
           description: `${nome} · ${rotuloMes(mes)}`,
         });
         onAberto(false);
@@ -128,7 +128,7 @@ export function EbitdaDialog({
 
   return (
     <Dialog open={aberto} onOpenChange={onAberto}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>Lançar valores da DRE</DialogTitle>
           <DialogDescription>
@@ -171,28 +171,34 @@ export function EbitdaDialog({
           </div>
         </div>
 
-        <div className="relative">
-          <div
-            className="grid gap-3"
-          >
-           {linhasDespesas.map((l) => (
-              <div
-                key={l.chave}
-                className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3"
-              >
-                <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
-                   {rotuloComSinal(l.chave, l.label)}
-                </Label>
-                <Input
-                  id={`ebitda-${l.chave}`}
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={form[l.chave]}
-                  onChange={(e) => editar(l.chave, e.target.value)}
-                />
+        <div className="space-y-4">
+          {gruposLancamentoDre.map((grupo) => (
+            <section key={grupo.titulo} className="overflow-hidden rounded-md border border-border">
+              <header className="border-b border-border bg-surface-muted px-4 py-2.5">
+                <h3 className="text-sm font-bold text-foreground">{grupo.titulo}</h3>
+              </header>
+              <div className="grid gap-x-4 gap-y-3 p-4 sm:grid-cols-2">
+                {grupo.chaves.map((chave) => {
+                  const linha = linhasEbitda.find((item) => item.chave === chave);
+                  if (!linha) return null;
+                  return (
+                    <div key={chave} className="grid min-w-0 gap-1.5">
+                      <Label htmlFor={`ebitda-${chave}`} className="text-xs sm:text-sm">
+                        {rotuloComSinal(chave, linha.label)}
+                      </Label>
+                      <Input
+                        id={`ebitda-${chave}`}
+                        inputMode="decimal"
+                        placeholder="0,00"
+                        value={form[chave]}
+                        onChange={(e) => editar(chave, e.target.value)}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </section>
+          ))}
         </div>
 
         <DialogFooter className="flex-col gap-2 sm:flex-row">

@@ -1,6 +1,7 @@
 # Roadmap
 
 ## Dashboard DRE na aba Contábil
+- [x] Organizar o formulário de lançamento nas mesmas faixas contábeis da DRE
 - [x] Mover litros, abastecimentos e margens para o topo da DRE
 - [x] Exibir sinais (+) e (−) nas linhas que compõem os cálculos
 - [x] Liberar todas as rubricas sem origem automática para lançamento manual
