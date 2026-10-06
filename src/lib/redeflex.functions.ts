@@ -357,6 +357,7 @@ export const receitaCustoMes = createServerFn({ method: "POST" })
         ibm: z.string().min(1),
         mes: z.string().regex(/^\d{4}-\d{2}-01$/),
         mesmoPeriodo: z.boolean().optional(),
+        fresh: z.boolean().optional(),
       })
       .parse(input),
   )
@@ -379,6 +380,7 @@ export const receitaCustoMes = createServerFn({ method: "POST" })
     }
     return await receitaCustoDoBi({
       mes: data.mes,
+      ...(data.fresh ? { fresh: true } : {}),
       ...(data.ibm !== "REDE" ? { ibm: data.ibm } : {}),
       ...(corte ? { corte } : {}),
     });

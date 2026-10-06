@@ -168,14 +168,14 @@ export type LinhaDre =
   | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda; sinal?: -1 }
   | { tipo: "bi"; label: string; campo: keyof DadosBiDre; sinal?: -1 }
   | { tipo: "manual"; label: string; chave: LinhaEbitdaChave }
-  | { tipo: "metrica"; label: string; campo: keyof DadosBiDre };
+  | { tipo: "metrica"; label: string; campo: keyof DadosBiDre; formula?: string };
 
 /** Ordem visual idêntica ao modelo de DRE fornecido. */
 export const linhasDre: LinhaDre[] = [
   { tipo: "metrica", label: "Litros Vendidos", campo: "litrosVendidos" },
   { tipo: "metrica", label: "Abastecimentos Realizados", campo: "abastecimentosRealizados" },
-  { tipo: "metrica", label: "Margem Produto", campo: "margemProduto" },
-  { tipo: "metrica", label: "Margem Combustível", campo: "margemCombustivel" },
+  { tipo: "metrica", label: "Margem Produto", campo: "margemProduto", formula: "(Venda Mercadorias − Custo Mercadoria) ÷ Venda Mercadorias × 100" },
+  { tipo: "metrica", label: "Margem Combustível", campo: "margemCombustivel", formula: "(Venda Combustível − Custo Combustível) ÷ Venda Combustível × 100" },
   { tipo: "grupo", label: "Total Receita", campo: "totalReceita" },
   { tipo: "bi", label: "Venda de Combustível", campo: "vendaCombustivel" },
   { tipo: "bi", label: "Venda de Mercadorias (Produtos)", campo: "vendaMercadorias" },
