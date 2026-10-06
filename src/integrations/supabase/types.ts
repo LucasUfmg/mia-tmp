@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       contabil_ebitda: {
         Row: {
+          acrescimos: number
           administrativas: number
           ajuste_energy: number
           ajuste_gestao: number
@@ -28,26 +29,47 @@ export type Database = {
           custo: number
           deducoes: number
           depreciacao: number
+          despesa_distribuidora: number
+          despesa_financeira_distribuidora: number
           despesas_financeiras: number
+          despesas_gestao: number
           despesas_nao_contabeis: number
           despesas_pessoal: number
           despesas_tributarias: number
+          distribuicao_lucros: number
           falta_sobra: number
           frete: number
           furtos_roubos: number
           ibm: string
           id: string
+          impostos_faturamento_distribuidora: number
+          impostos_faturamento_logistica: number
+          impostos_faturamento_patrimonial: number
+          impostos_faturamento_postos: number
+          impostos_faturamento_satelites: number
+          investimentos: number
           irpj_csll: number
+          irpj_csll_distribuidora: number
+          irpj_csll_gestao: number
+          irpj_csll_logistica: number
+          irpj_csll_patrimonial: number
           mes: string
           outras_operacionais: number
           outras_receitas_nao_operacionais: number
+          over_aluguel: number
           participacoes_empregados: number
           rateios: number
+          receita_financeira_distribuidora: number
+          receita_liquida_distribuidora: number
           receita_vendas: number
+          receitas_diversas: number
+          receitas_financeiras: number
+          socios: number
           taxas_cartao: number
           updated_at: string
         }
         Insert: {
+          acrescimos?: number
           administrativas?: number
           ajuste_energy?: number
           ajuste_gestao?: number
@@ -60,26 +82,47 @@ export type Database = {
           custo?: number
           deducoes?: number
           depreciacao?: number
+          despesa_distribuidora?: number
+          despesa_financeira_distribuidora?: number
           despesas_financeiras?: number
+          despesas_gestao?: number
           despesas_nao_contabeis?: number
           despesas_pessoal?: number
           despesas_tributarias?: number
+          distribuicao_lucros?: number
           falta_sobra?: number
           frete?: number
           furtos_roubos?: number
           ibm: string
           id?: string
+          impostos_faturamento_distribuidora?: number
+          impostos_faturamento_logistica?: number
+          impostos_faturamento_patrimonial?: number
+          impostos_faturamento_postos?: number
+          impostos_faturamento_satelites?: number
+          investimentos?: number
           irpj_csll?: number
+          irpj_csll_distribuidora?: number
+          irpj_csll_gestao?: number
+          irpj_csll_logistica?: number
+          irpj_csll_patrimonial?: number
           mes: string
           outras_operacionais?: number
           outras_receitas_nao_operacionais?: number
+          over_aluguel?: number
           participacoes_empregados?: number
           rateios?: number
+          receita_financeira_distribuidora?: number
+          receita_liquida_distribuidora?: number
           receita_vendas?: number
+          receitas_diversas?: number
+          receitas_financeiras?: number
+          socios?: number
           taxas_cartao?: number
           updated_at?: string
         }
         Update: {
+          acrescimos?: number
           administrativas?: number
           ajuste_energy?: number
           ajuste_gestao?: number
@@ -92,22 +135,42 @@ export type Database = {
           custo?: number
           deducoes?: number
           depreciacao?: number
+          despesa_distribuidora?: number
+          despesa_financeira_distribuidora?: number
           despesas_financeiras?: number
+          despesas_gestao?: number
           despesas_nao_contabeis?: number
           despesas_pessoal?: number
           despesas_tributarias?: number
+          distribuicao_lucros?: number
           falta_sobra?: number
           frete?: number
           furtos_roubos?: number
           ibm?: string
           id?: string
+          impostos_faturamento_distribuidora?: number
+          impostos_faturamento_logistica?: number
+          impostos_faturamento_patrimonial?: number
+          impostos_faturamento_postos?: number
+          impostos_faturamento_satelites?: number
+          investimentos?: number
           irpj_csll?: number
+          irpj_csll_distribuidora?: number
+          irpj_csll_gestao?: number
+          irpj_csll_logistica?: number
+          irpj_csll_patrimonial?: number
           mes?: string
           outras_operacionais?: number
           outras_receitas_nao_operacionais?: number
+          over_aluguel?: number
           participacoes_empregados?: number
           rateios?: number
+          receita_financeira_distribuidora?: number
+          receita_liquida_distribuidora?: number
           receita_vendas?: number
+          receitas_diversas?: number
+          receitas_financeiras?: number
+          socios?: number
           taxas_cartao?: number
           updated_at?: string
         }
