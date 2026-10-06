@@ -284,6 +284,7 @@ function Contabil() {
 
         <DreDashboard
           calculos={calculosComAnterior}
+          {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
           meses={mesesEscopo}
           mesAtual={mes}
