@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
@@ -18,7 +18,22 @@ import {
 } from "@/components/ui/select";
 import { loadLojas } from "@/lib/redeflex-dashboard";
 import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
-import { listarReceitaCusto } from "@/lib/redeflex.functions";
+import { receitaCustoMes } from "@/lib/redeflex.functions";
+
+/** Limita as consultas ao BI em paralelo (fila na ordem de chamada). */
+const LIMITE_BI = 4;
+let biAtivas = 0;
+const filaBi: (() => void)[] = [];
+async function limitarBi<T>(fn: () => Promise<T>): Promise<T> {
+  if (biAtivas >= LIMITE_BI) await new Promise<void>((r) => filaBi.push(r));
+  biAtivas++;
+  try {
+    return await fn();
+  } finally {
+    biAtivas--;
+    filaBi.shift()?.();
+  }
+}
 import { fatorDiasDoMes, proporcionalizarDespesas } from "@/lib/ebitda";
 import {
   anoDoMes,
@@ -93,18 +108,66 @@ function Contabil() {
     queryFn: () => listarEbitda({ data: { ano: anoAnterior } }),
     staleTime: 60_000,
   });
-  // Receita e CMV vêm do BI e são mesclados às despesas salvas.
-  const pares = useMemo(
-    () => [...calculosAnt, ...calculosBrutos].map((c) => ({ ibm: c.ibm, mes: c.mes })),
-    [calculosAnt, calculosBrutos],
-  );
-  const { data: doBi = [], isPending: carregandoBi, isError: erroBi, refetch: recarregarBi } = useQuery({
-    queryKey: ["contabil", "bi-receita-custo", pares],
-    queryFn: () => listarReceitaCusto({ data: { pares } }),
-    enabled: pares.length > 0,
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
+  // Receita e CMV vêm do BI (uma consulta curta por posto/mês, igual à Visão
+  // Geral) e são mesclados às despesas salvas. Meses futuros não são pedidos.
+  const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
+  const mesesPrioritarios = useMemo(() => {
+    const escopo = visao === "mes" ? [mes] : mesesDoAno(ano).filter((m) => m <= mes);
+    const primeiro = escopo[0] ?? mes;
+    const [a, m] = primeiro.split("-").map(Number) as [number, number];
+    const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+    return new Set([...escopo, anterior]);
+  }, [visao, mes, ano]);
+  const pares = useMemo(() => {
+    const [a, m] = mes.split("-").map(Number) as [number, number];
+    const limiteInicio = new Date(Date.UTC(a, m - 13, 1)).toISOString().slice(0, 10);
+    const vistos = new Set<string>();
+    const lista = [...calculosAnt, ...calculosBrutos]
+      .filter((c) => c.mes <= mesCorrente && c.mes >= limiteInicio)
+      .filter((c) => {
+        const k = `${c.ibm}|${c.mes}`;
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+      })
+      .map((c) => ({ ibm: c.ibm, mes: c.mes, prioridade: mesesPrioritarios.has(c.mes) }));
+    // Prioritários primeiro (cards/DRE); o restante alimenta os gráficos.
+    return lista.sort((x, y) => Number(y.prioridade) - Number(x.prioridade) || y.mes.localeCompare(x.mes));
+  }, [calculosAnt, calculosBrutos, mesCorrente, mes, mesesPrioritarios]);
+
+  const consultasBi = useQueries({
+    queries: pares.map((p) => ({
+      queryKey: ["contabil", "bi-mes", p.ibm, p.mes],
+      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes } })),
+      staleTime: p.mes < mesCorrente ? 12 * 60 * 60_000 : 5 * 60_000,
+      retry: 1,
+    })),
   });
+  const consultasMesmoPeriodo = useQueries({
+    queries: pares.map((p) => ({
+      queryKey: ["contabil", "bi-mes-mesmo-periodo", p.ibm, p.mes],
+      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, mesmoPeriodo: true } })),
+      staleTime: 5 * 60_000,
+      retry: 1,
+    })),
+  });
+  const doBi = useMemo(
+    () => pares.flatMap((p, i) => { const d = consultasBi[i]?.data; return d ? [{ ...p, ...d }] : []; }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pares, consultasBi.map((q) => q.dataUpdatedAt).join(",")],
+  );
+  const doBiMesmoPeriodo = useMemo(
+    () => pares.flatMap((p, i) => { const d = consultasMesmoPeriodo[i]?.data; return d ? [{ ...p, ...d }] : []; }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [pares, consultasMesmoPeriodo.map((q) => q.dataUpdatedAt).join(",")],
+  );
+  const prioritarias = pares.map((p, i) => ({ p, q: consultasBi[i] })).filter((x) => x.p.prioridade && x.p.mes !== [...mesesPrioritarios][mesesPrioritarios.size - 1]);
+  const carregandoBi = prioritarias.some((x) => x.q?.isPending);
+  const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
+  const recarregarBi = () => {
+    consultasBi.forEach((q) => q.isError && void q.refetch());
+    consultasMesmoPeriodo.forEach((q) => q.isError && void q.refetch());
+  };
   const mesclar = useMemo(() => {
     const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return (c: (typeof calculosBrutos)[number]) => {
@@ -127,7 +190,6 @@ function Contabil() {
   }, [doBi]);
   const calculos = useMemo(() => calculosBrutos.map(mesclar), [calculosBrutos, mesclar]);
   // Painel: despesas do mês corrente proporcionais aos dias decorridos.
-  const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
   const calculosComAnterior = useMemo(
     () =>
       [...calculosAnt.map(mesclar), ...calculos].map((c) =>
@@ -137,15 +199,8 @@ function Contabil() {
   );
 
   // Evolução da receita: cada mês cortado no mesmo dia e hora de agora.
-  const { data: doBiMesmoPeriodo } = useQuery({
-    queryKey: ["contabil", "bi-mesmo-periodo", pares],
-    queryFn: () => listarReceitaCusto({ data: { pares, mesmoPeriodo: true } }),
-    enabled: pares.length > 0,
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
-  });
   const calculosMesmoPeriodo = useMemo(() => {
-    if (!doBiMesmoPeriodo) return undefined;
+    if (doBiMesmoPeriodo.length === 0) return undefined;
     const mapa = new Map(doBiMesmoPeriodo.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return calculosComAnterior.map((c) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
@@ -294,8 +349,8 @@ function Contabil() {
           calculos={calculosComAnterior}
           {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
-          biStatus={pares.length === 0 ? "ok" : erroBi ? "erro" : carregandoBi ? "carregando" : "ok"}
-          onRecarregarBi={() => void recarregarBi()}
+          biStatus={pares.length === 0 ? "ok" : carregandoBi ? "carregando" : erroBi ? "erro" : "ok"}
+          onRecarregarBi={recarregarBi}
           meses={mesesEscopo}
           mesAtual={mes}
           lojas={lojas}
