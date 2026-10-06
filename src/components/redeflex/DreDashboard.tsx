@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, linhasDre, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, linhasDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -185,7 +185,12 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
     return dados[linha.campo];
   };
   const exibir = (dados: DreConsolidada) => metrica && (linha.campo === "margemProduto" || linha.campo === "margemCombustivel") ? percentual(valor(dados)) : metrica ? numero.format(valor(dados)) : moeda(valor(dados));
-   return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{linha.label}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
+  const rotulo = linha.tipo === "manual"
+    ? rotuloComSinal(linha.chave, linha.label)
+    : linha.tipo === "bi"
+      ? `(${linha.sinal === -1 ? "−" : "+"}) ${linha.label}`
+      : linha.label;
+   return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
 }
 
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
