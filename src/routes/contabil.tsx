@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
@@ -18,7 +18,22 @@ import {
 } from "@/components/ui/select";
 import { loadLojas } from "@/lib/redeflex-dashboard";
 import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
-import { listarReceitaCusto } from "@/lib/redeflex.functions";
+import { receitaCustoMes } from "@/lib/redeflex.functions";
+
+/** Limita as consultas ao BI em paralelo (fila na ordem de chamada). */
+const LIMITE_BI = 4;
+let biAtivas = 0;
+const filaBi: (() => void)[] = [];
+async function limitarBi<T>(fn: () => Promise<T>): Promise<T> {
+  if (biAtivas >= LIMITE_BI) await new Promise<void>((r) => filaBi.push(r));
+  biAtivas++;
+  try {
+    return await fn();
+  } finally {
+    biAtivas--;
+    filaBi.shift()?.();
+  }
+}
 import { fatorDiasDoMes, proporcionalizarDespesas } from "@/lib/ebitda";
 import {
   anoDoMes,
@@ -93,18 +108,74 @@ function Contabil() {
     queryFn: () => listarEbitda({ data: { ano: anoAnterior } }),
     staleTime: 60_000,
   });
-  // Receita e CMV vêm do BI e são mesclados às despesas salvas.
-  const pares = useMemo(
-    () => [...calculosAnt, ...calculosBrutos].map((c) => ({ ibm: c.ibm, mes: c.mes })),
-    [calculosAnt, calculosBrutos],
-  );
-  const { data: doBi = [], isPending: carregandoBi, isError: erroBi, refetch: recarregarBi } = useQuery({
-    queryKey: ["contabil", "bi-receita-custo", pares],
-    queryFn: () => listarReceitaCusto({ data: { pares } }),
-    enabled: pares.length > 0,
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
+  // Receita e CMV vêm do BI (uma consulta curta por posto/mês, igual à Visão
+  // Geral) e são mesclados às despesas salvas. Meses futuros não são pedidos.
+  const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
+  const mesesPrioritarios = useMemo(() => {
+    const escopo = visao === "mes" ? [mes] : mesesDoAno(ano).filter((m) => m <= mes);
+    const primeiro = escopo[0] ?? mes;
+    const [a, m] = primeiro.split("-").map(Number) as [number, number];
+    const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+    return new Set([...escopo, anterior]);
+  }, [visao, mes, ano]);
+  const pares = useMemo(() => {
+    const [a, m] = mes.split("-").map(Number) as [number, number];
+    const limiteInicio = new Date(Date.UTC(a, m - 13, 1)).toISOString().slice(0, 10);
+    const vistos = new Set<string>();
+    const lista = [...calculosAnt, ...calculosBrutos]
+      .filter((c) => c.mes <= mesCorrente && c.mes >= limiteInicio)
+      .filter((c) => {
+        const k = `${c.ibm}|${c.mes}`;
+        if (vistos.has(k)) return false;
+        vistos.add(k);
+        return true;
+      })
+      .map((c) => ({ ibm: c.ibm, mes: c.mes, prioridade: mesesPrioritarios.has(c.mes) }));
+    // Prioritários primeiro (cards/DRE); o restante alimenta os gráficos.
+    return lista.sort((x, y) => Number(y.prioridade) - Number(x.prioridade) || y.mes.localeCompare(x.mes));
+  }, [calculosAnt, calculosBrutos, mesCorrente, mes, mesesPrioritarios]);
+
+  // Ordem da fila: meses escolhidos (mês cheio e mesmo período) primeiro,
+  // depois o restante dos gráficos. O mês corrente já é "mesmo período".
+  const tarefas = useMemo(() => {
+    const t = (lista: typeof pares, mesmo: boolean) =>
+      lista.filter((p) => !mesmo || p.mes !== mesCorrente).map((p) => ({ ...p, mesmo }));
+    const prio = pares.filter((p) => p.prioridade);
+    const resto = pares.filter((p) => !p.prioridade);
+    return [...t(prio, false), ...t(prio, true), ...t(resto, false), ...t(resto, true)];
+  }, [pares, mesCorrente]);
+  const consultas = useQueries({
+    queries: tarefas.map((p) => ({
+      queryKey: ["contabil", p.mesmo ? "bi-mes-mesmo-periodo" : "bi-mes", p.ibm, p.mes],
+      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, ...(p.mesmo ? { mesmoPeriodo: true } : {}) } })),
+      staleTime: p.mes < mesCorrente && !p.mesmo ? 12 * 60 * 60_000 : 5 * 60_000,
+      retry: 1,
+    })),
   });
+  const versao = consultas.map((q) => q.dataUpdatedAt).join(",");
+  const doBi = useMemo(
+    () => tarefas.flatMap((p, i) => { const d = consultas[i]?.data; return !p.mesmo && d ? [{ ...p, ...d }] : []; }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tarefas, versao],
+  );
+  const doBiMesmoPeriodo = useMemo(
+    () => tarefas.flatMap((p, i) => {
+      const d = consultas[i]?.data;
+      // Mês corrente: o mês cheio já é o mesmo período.
+      if (!p.mesmo && p.mes === mesCorrente && d) return [{ ...p, ...d }];
+      return p.mesmo && d ? [{ ...p, ...d }] : [];
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tarefas, versao, mesCorrente],
+  );
+  // Cards/DRE esperam só os meses escolhidos; gráficos chegam depois.
+  const escolhido = (m: string) => (visao === "mes" ? m === mes : m.slice(0, 4) === ano && m <= mes);
+  const prioritarias = tarefas.map((p, i) => ({ p, q: consultas[i] })).filter((x) => !x.p.mesmo && escolhido(x.p.mes));
+  const carregandoBi = prioritarias.some((x) => x.q?.isPending);
+  const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
+  // Comparação "mesmo período" só aparece quando os meses prioritários chegaram.
+  const mesmoPeriodoPronto = tarefas.every((p, i) => !p.prioridade || !p.mesmo || !consultas[i]?.isPending);
+  const recarregarBi = () => consultas.forEach((q) => q.isError && void q.refetch());
   const mesclar = useMemo(() => {
     const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return (c: (typeof calculosBrutos)[number]) => {
@@ -127,7 +198,6 @@ function Contabil() {
   }, [doBi]);
   const calculos = useMemo(() => calculosBrutos.map(mesclar), [calculosBrutos, mesclar]);
   // Painel: despesas do mês corrente proporcionais aos dias decorridos.
-  const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
   const calculosComAnterior = useMemo(
     () =>
       [...calculosAnt.map(mesclar), ...calculos].map((c) =>
@@ -137,15 +207,8 @@ function Contabil() {
   );
 
   // Evolução da receita: cada mês cortado no mesmo dia e hora de agora.
-  const { data: doBiMesmoPeriodo } = useQuery({
-    queryKey: ["contabil", "bi-mesmo-periodo", pares],
-    queryFn: () => listarReceitaCusto({ data: { pares, mesmoPeriodo: true } }),
-    enabled: pares.length > 0,
-    staleTime: 5 * 60_000,
-    placeholderData: keepPreviousData,
-  });
   const calculosMesmoPeriodo = useMemo(() => {
-    if (!doBiMesmoPeriodo) return undefined;
+    if (!mesmoPeriodoPronto || doBiMesmoPeriodo.length === 0) return undefined;
     const mapa = new Map(doBiMesmoPeriodo.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return calculosComAnterior.map((c) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
@@ -153,9 +216,9 @@ function Contabil() {
       const base = c.mes < mesCorrente ? proporcionalizarDespesas(c, fatorDiasDoMes(c.mes)) : c;
       return b
         ? { ...base, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias, custoCombustivel: b.custoCombustivel, custoMercadoria: b.custoMercadoria }
-        : base;
+        : { ...base, receitaVendas: 0, custo: 0, vendaCombustivel: 0, vendaMercadorias: 0, custoCombustivel: 0, custoMercadoria: 0 };
     });
-  }, [doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
+  }, [mesmoPeriodoPronto, doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
@@ -294,8 +357,8 @@ function Contabil() {
           calculos={calculosComAnterior}
           {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
-          biStatus={pares.length === 0 ? "ok" : erroBi ? "erro" : carregandoBi ? "carregando" : "ok"}
-          onRecarregarBi={() => void recarregarBi()}
+          biStatus={pares.length === 0 ? "ok" : carregandoBi ? "carregando" : erroBi ? "erro" : "ok"}
+          onRecarregarBi={recarregarBi}
           meses={mesesEscopo}
           mesAtual={mes}
           lojas={lojas}

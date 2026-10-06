@@ -341,16 +341,23 @@ export const getReceitaCusto = createServerFn({ method: "POST" })
     return await receitaCustoDoBi(data);
   });
 
-/** Receita e custo do BI para vários pares posto/mês (painel Contábil). */
-export const listarReceitaCusto = createServerFn({ method: "POST" })
+/**
+ * Receita e custo do BI de UM posto (ou "REDE") em UM mês — mesma consulta da
+ * Visão Geral (intervalo contínuo do dia 1 até o corte). `mesmoPeriodo` corta
+ * o mês no mesmo dia e hora de agora (São Paulo).
+ */
+export const receitaCustoMes = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
-    z.object({
-      pares: z.array(z.object({ ibm: z.string().min(1), mes: z.string().regex(/^\d{4}-\d{2}-01$/) })).max(400),
-      mesmoPeriodo: z.boolean().optional(),
-    }).parse(input),
+    z
+      .object({
+        ibm: z.string().min(1),
+        mes: z.string().regex(/^\d{4}-\d{2}-01$/),
+        mesmoPeriodo: z.boolean().optional(),
+      })
+      .parse(input),
   )
-  .handler(async ({ data }) => {
-    const { receitaCustoPorMes } = await import("./receita-custo.server");
+  .handler(async ({ data }): Promise<ReceitaCusto> => {
+    const { receitaCustoDoBi } = await import("./receita-custo.server");
     let corte: { dia: number; minutos: number } | undefined;
     if (data.mesmoPeriodo) {
       const partes = Object.fromEntries(
@@ -366,25 +373,10 @@ export const listarReceitaCusto = createServerFn({ method: "POST" })
       );
       corte = { dia: Number(partes["day"]), minutos: (Number(partes["hour"]) % 24) * 60 + Number(partes["minute"]) };
     }
-    // Uma consulta por posto (todos os meses agrupados), com concorrência limitada.
-    const porIbm = new Map<string, string[]>();
-    for (const p of data.pares) porIbm.set(p.ibm, [...(porIbm.get(p.ibm) ?? []), p.mes]);
-    const saida: ({ ibm: string; mes: string } & ReceitaCusto)[] = [];
-    const entradas = [...porIbm.entries()];
-    let falhas = 0;
-    for (let i = 0; i < entradas.length; i += 3) {
-      await Promise.all(
-        entradas.slice(i, i + 3).map(async ([ibm, meses]) => {
-          try {
-            const r = await receitaCustoPorMes({ meses, ...(ibm !== "REDE" ? { ibm } : {}), corte });
-            for (const mes of meses) if (r[mes]) saida.push({ ibm, mes, ...r[mes]! });
-          } catch (e) {
-            falhas++;
-            console.error("[RedeFlex:listarReceitaCusto]", ibm, e);
-          }
-        }),
-      );
-    }
-    if (falhas > 0 && saida.length === 0) throw new Error("Não foi possível consultar o BI.");
-    return saida;
+    return await receitaCustoDoBi({
+      mes: data.mes,
+      ...(data.ibm !== "REDE" ? { ibm: data.ibm } : {}),
+      ...(corte ? { corte } : {}),
+    });
   });
+

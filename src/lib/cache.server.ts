@@ -13,6 +13,7 @@ export async function comCache<T>(
   chave: string,
   fresh: boolean,
   fn: () => Promise<T>,
+  ttlMs: number = TTL_MS,
 ): Promise<T> {
   const agora = Date.now();
 
@@ -22,7 +23,7 @@ export async function comCache<T>(
   }
 
   const valor = await fn();
-  memoria.set(chave, { expiraEm: agora + TTL_MS, valor });
+  memoria.set(chave, { expiraEm: agora + ttlMs, valor });
 
   if (memoria.size > LIMITE) {
     for (const [k, v] of memoria) {
