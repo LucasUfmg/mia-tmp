@@ -161,7 +161,10 @@ function Contabil() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [pares, consultasMesmoPeriodo.map((q) => q.dataUpdatedAt).join(",")],
   );
-  const prioritarias = pares.map((p, i) => ({ p, q: consultasBi[i] })).filter((x) => x.p.prioridade && x.p.mes !== [...mesesPrioritarios][mesesPrioritarios.size - 1]);
+  // Cards/DRE esperam só os meses escolhidos; comparação e gráficos chegam depois.
+  const prioritarias = pares
+    .map((p, i) => ({ p, q: consultasBi[i] }))
+    .filter((x) => (visao === "mes" ? x.p.mes === mes : x.p.mes.slice(0, 4) === ano && x.p.mes <= mes));
   const carregandoBi = prioritarias.some((x) => x.q?.isPending);
   const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
   const recarregarBi = () => {
