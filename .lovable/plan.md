@@ -1,17 +1,14 @@
-# Receita e CMV do BI sempre visíveis na aba Contábil
-
-## Causa (confirmada)
-- Hoje o painel só busca Receita e CMV no BI para os postos e meses que já têm despesas salvas.
-- No banco existem só 2 registros de despesas, ambos de setembro/2026 (Rede e um posto de teste). Outubro, mês aberto por padrão, não tem nenhum, então o painel fica vazio, mesmo com vendas no BI.
-- Antes, Receita e CMV eram gravados junto com as despesas. Por isso o problema só apareceu depois que Lançar despesas parou de buscar esses valores.
+# Replicar as despesas de setembro/2026 para todos os meses
 
 ## O que muda
-- Receita bruta, CMV e Result. Operacional Bruto aparecem sempre, direto do BI, para cada posto e mês do período, com ou sem despesas salvas.
-- Sem despesas lançadas, as despesas contam como zero. EBITDA e Resultado final aparecem e são atualizados quando você salvar despesas.
-- Vale para Visão Geral, DRE Gerencial, Comparativo entre Postos e para os campos azuis de Lançar dados contábeis.
+- As despesas salvas em setembro/2026 serão copiadas para os outros 11 meses de 2026 (janeiro a dezembro, menos setembro).
+- Hoje só há 2 registros em setembro: a Rede (consolidado) e um posto de teste. Os dois serão copiados.
+- Só as despesas são copiadas. Receita e CMV continuam vindo do BI de cada mês.
+- Nenhum outro mês tem despesas salvas hoje, então nada será sobrescrito.
+
+## Atenção
+- Com a regra atual, a aba Contábil só mostra os números de postos e meses que têm despesas salvas. Depois da cópia, a Rede e o posto de teste aparecem em todos os meses. Os demais postos continuam vazios até alguém lançar despesas para eles.
 
 ## Detalhes técnicos
-- `contabil.tsx`: montar `pares` a partir de todos os postos (`lojas`) e de REDE × meses do escopo (mais o mês anterior, usado na comparação), e não só de `calculos`. Criar um registro de Ebitda zerado para pares sem despesas e mesclar receita/custo do BI.
-- `listarReceitaCusto`: manter os lotes e o cache. Revisar o limite de 400 pares (no acumulado do ano, até cerca de 28 × 13). Se precisar, buscar só a rede e os postos selecionados.
-- Mia (`lerDetalheEbitda`): usar o mesmo fallback, ou seja, BI com despesas zeradas quando não houver registro.
-- Validar no preview: em outubro, sem despesas, os 6 cards precisam mostrar Receita e CMV.
+- Alteração só nos dados: copiar as linhas de `contabil_ebitda` com `mes = '2026-09-01'` para cada mês de 2026 sem registro, mantendo as colunas de despesa. Isso usa `on conflict (ibm, mes) do nothing`.
+- Conferir no final: 24 registros, 12 meses × 2.
