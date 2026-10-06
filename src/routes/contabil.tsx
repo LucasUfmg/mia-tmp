@@ -130,6 +130,25 @@ function Contabil() {
     [calculosAnt, calculos, mesclar],
   );
 
+  // Evolução da receita: cada mês cortado no mesmo dia e hora de agora.
+  const { data: doBiMesmoPeriodo } = useQuery({
+    queryKey: ["contabil", "bi-mesmo-periodo", pares],
+    queryFn: () => listarReceitaCusto({ data: { pares, mesmoPeriodo: true } }),
+    enabled: pares.length > 0,
+    staleTime: 5 * 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const calculosMesmoPeriodo = useMemo(() => {
+    if (!doBiMesmoPeriodo) return undefined;
+    const mapa = new Map(doBiMesmoPeriodo.map((b) => [`${b.ibm}|${b.mes}`, b]));
+    return calculosComAnterior.map((c) => {
+      const b = mapa.get(`${c.ibm}|${c.mes}`);
+      return b
+        ? { ...c, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias }
+        : c;
+    });
+  }, [doBiMesmoPeriodo, calculosComAnterior]);
+
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
 
@@ -265,6 +284,7 @@ function Contabil() {
 
         <DreDashboard
           calculos={calculosComAnterior}
+          {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
           meses={mesesEscopo}
           mesAtual={mes}

@@ -33,11 +33,22 @@ const cores = [
 
 type Props = {
   calculos: Ebitda[];
+  /** Mesmos registros, com receita do BI cortada no mesmo dia/hora de agora. */
+  calculosMesmoPeriodo?: Ebitda[];
   selecao: string[];
   meses: string[];
   mesAtual: string;
   lojas: { ibm: string; nome: string }[];
 };
+
+function rotuloCorte() {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  return `Acumulado até dia ${p["day"]}, ${p["hour"]}:${p["minute"]}, de cada mês`;
+}
 
 const despesas: { chave: LinhaEbitdaChave; label: string }[] = [
   { chave: "despesasPessoal", label: "Pessoal" },
@@ -78,7 +89,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon:
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
-export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Props) {
+export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, mesAtual, lojas }: Props) {
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
@@ -90,6 +101,10 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
       .filter((d) => d.receitaBruta || d.resultadoFinal)
       .slice(-12);
   }, [calculos, selecao, mesAtual]);
+  const serieReceita = useMemo(() => {
+    if (!calculosMesmoPeriodo) return mensais;
+    return mensais.map((m) => ({ mes: m.mes, receitaBruta: consolidarEbitda(calculosMesmoPeriodo, selecao, [m.mes]).receitaBruta }));
+  }, [mensais, calculosMesmoPeriodo, selecao]);
   const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
   const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
   const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
@@ -135,8 +150,8 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
       <TabsContent value="geral" className="mt-5 space-y-5">
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-          <ChartCard titulo="Evolução da receita" subtitulo="Receita bruta por mês">
-            <ResponsiveContainer width="100%" height="100%"><LineChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
+          <ChartCard titulo="Evolução da receita" subtitulo={calculosMesmoPeriodo ? rotuloCorte() : "Receita bruta por mês"}>
+            <ResponsiveContainer width="100%" height="100%"><LineChart data={serieReceita}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
           </ChartCard>
           <ChartCard titulo="Composição das despesas" subtitulo="Participação por rubrica no período">
             <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={composicao} dataKey="value" nameKey="name" innerRadius="50%" outerRadius="78%" paddingAngle={1.5}>{composicao.map((item, i) => <Cell key={item.name} fill={cores[i % cores.length]} />)}</Pie><Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: 11 }} formatter={(value: string) => <span style={{ color: "var(--foreground)" }}>{value}</span>} /><Tooltip formatter={(v: number) => moeda(v)} contentStyle={tooltipStyle} /></PieChart></ResponsiveContainer>
