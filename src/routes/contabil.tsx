@@ -98,7 +98,7 @@ function Contabil() {
     () => [...calculosAnt, ...calculosBrutos].map((c) => ({ ibm: c.ibm, mes: c.mes })),
     [calculosAnt, calculosBrutos],
   );
-  const { data: doBi = [] } = useQuery({
+  const { data: doBi = [], isPending: carregandoBi, isError: erroBi, refetch: recarregarBi } = useQuery({
     queryKey: ["contabil", "bi-receita-custo", pares],
     queryFn: () => listarReceitaCusto({ data: { pares } }),
     enabled: pares.length > 0,
@@ -294,6 +294,8 @@ function Contabil() {
           calculos={calculosComAnterior}
           {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
+          biStatus={pares.length === 0 ? "ok" : erroBi ? "erro" : carregandoBi ? "carregando" : "ok"}
+          onRecarregarBi={() => void recarregarBi()}
           meses={mesesEscopo}
           mesAtual={mes}
           lojas={lojas}
