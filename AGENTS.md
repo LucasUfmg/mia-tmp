@@ -15,3 +15,4 @@
 - Keep the store comparison demonstrative and deterministic; simulated values must never be persisted or mixed into accounting records.
 - Keep the public product surface limited to the dashboard, accounting, and manual routes; Mia remains a WhatsApp service rather than a public page.
 - Contábil busca Receita/CMV do BI com uma consulta curta por posto/mês (mesmo formato da Visão Geral), em fila limitada; agregações anuais únicas estouram o tempo limite.
+- O fechamento da DRE calcula IRPJ/CSLL automaticamente em 34% do saldo positivo após o resultado não operacional; retiradas vêm depois do resultado líquido.

@@ -328,6 +328,10 @@ export type ReceitaCusto = {
   parcial: boolean;
   /** Último dia considerado ("YYYY-MM-DD"). */
   ate: string;
+  /** Início efetivo do intervalo no horário de São Paulo. */
+  inicioEm: string;
+  /** Fim efetivo do intervalo no horário de São Paulo. */
+  fimEm: string;
 };
 
 /**
