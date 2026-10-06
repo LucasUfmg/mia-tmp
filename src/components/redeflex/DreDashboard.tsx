@@ -103,7 +103,10 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, m
   }, [calculos, selecao, mesAtual]);
   const serieReceita = useMemo(() => {
     if (!calculosMesmoPeriodo) return mensais;
-    return mensais.map((m) => ({ mes: m.mes, receitaBruta: consolidarEbitda(calculosMesmoPeriodo, selecao, [m.mes]).receitaBruta }));
+    return mensais.map((m) => {
+      const c = consolidarEbitda(calculosMesmoPeriodo, selecao, [m.mes]);
+      return { mes: m.mes, receitaBruta: c.receitaBruta, resultadoFinal: c.resultadoFinal };
+    });
   }, [mensais, calculosMesmoPeriodo, selecao]);
   const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
   const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
@@ -158,8 +161,8 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, m
           </ChartCard>
         </section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
-          <ChartCard titulo="Resultado final mensal" subtitulo="Verde positivo · vermelho negativo">
-            <ResponsiveContainer width="100%" height="100%"><BarChart data={mensais}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1000)} mil`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Bar dataKey="resultadoFinal" name="Resultado" radius={[4, 4, 0, 0]}>{mensais.map((item) => <Cell key={item.mes} fill={item.resultadoFinal >= 0 ? "var(--color-chart-3)" : "var(--color-destructive)"} />)}</Bar></BarChart></ResponsiveContainer>
+          <ChartCard titulo="Resultado final mensal" subtitulo={calculosMesmoPeriodo ? `${rotuloCorte()} · verde positivo, vermelho negativo` : "Verde positivo · vermelho negativo"}>
+            <ResponsiveContainer width="100%" height="100%"><BarChart data={serieReceita}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1000)} mil`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Bar dataKey="resultadoFinal" name="Resultado" radius={[4, 4, 0, 0]}>{serieReceita.map((item) => <Cell key={item.mes} fill={item.resultadoFinal >= 0 ? "var(--color-chart-3)" : "var(--color-destructive)"} />)}</Bar></BarChart></ResponsiveContainer>
           </ChartCard>
           <section className="card-elevated p-5"><h3 className="text-sm font-bold">Maiores contas de despesa</h3><p className="text-xs text-muted-foreground">Somatório no período selecionado</p><div className="mt-4 divide-y divide-border">{maiores.map((item, i) => <div key={item.name} className="flex items-center gap-3 py-2.5"><span className="w-5 text-xs text-muted-foreground">{i + 1}</span><span className="flex-1 text-sm">{item.name}</span><span className="font-mono text-xs font-semibold">{moeda(item.value)}</span></div>)}</div></section>
         </section>
