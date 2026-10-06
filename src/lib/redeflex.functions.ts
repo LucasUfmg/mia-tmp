@@ -350,7 +350,7 @@ export const listarReceitaCusto = createServerFn({ method: "POST" })
     }).parse(input),
   )
   .handler(async ({ data }) => {
-    const { receitaCustoDoBi } = await import("./receita-custo.server");
+    const { receitaCustoPorMes } = await import("./receita-custo.server");
     let corte: { dia: number; minutos: number } | undefined;
     if (data.mesmoPeriodo) {
       const partes = Object.fromEntries(
@@ -366,20 +366,25 @@ export const listarReceitaCusto = createServerFn({ method: "POST" })
       );
       corte = { dia: Number(partes["day"]), minutos: (Number(partes["hour"]) % 24) * 60 + Number(partes["minute"]) };
     }
+    // Uma consulta por posto (todos os meses agrupados), com concorrência limitada.
+    const porIbm = new Map<string, string[]>();
+    for (const p of data.pares) porIbm.set(p.ibm, [...(porIbm.get(p.ibm) ?? []), p.mes]);
     const saida: ({ ibm: string; mes: string } & ReceitaCusto)[] = [];
-    for (let i = 0; i < data.pares.length; i += 6) {
-      const lote = data.pares.slice(i, i + 6);
-      const r = await Promise.all(
-        lote.map(async (p) => {
+    const entradas = [...porIbm.entries()];
+    let falhas = 0;
+    for (let i = 0; i < entradas.length; i += 3) {
+      await Promise.all(
+        entradas.slice(i, i + 3).map(async ([ibm, meses]) => {
           try {
-            const v = await receitaCustoDoBi({ mes: p.mes, ...(p.ibm !== "REDE" ? { ibm: p.ibm } : {}), ...(corte ? { corte } : {}) });
-            return { ...p, ...v };
-          } catch {
-            return null;
+            const r = await receitaCustoPorMes({ meses, ...(ibm !== "REDE" ? { ibm } : {}), corte });
+            for (const mes of meses) if (r[mes]) saida.push({ ibm, mes, ...r[mes]! });
+          } catch (e) {
+            falhas++;
+            console.error("[RedeFlex:listarReceitaCusto]", ibm, e);
           }
         }),
       );
-      for (const x of r) if (x) saida.push(x);
     }
+    if (falhas > 0 && saida.length === 0) throw new Error("Não foi possível consultar o BI.");
     return saida;
   });
