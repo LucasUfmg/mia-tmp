@@ -127,7 +127,7 @@ const somaAbs = (v: Record<LinhaEbitdaChave, number>, chaves: LinhaEbitdaChave[]
 
 export function calcularEbitda(v: Record<LinhaEbitdaChave, number> & Partial<DadosBiDre>): ResultadoEbitda {
   const s = (chave: LinhaEbitdaChave) => comSinal(chave, v[chave]);
-  const receitaBruta = (v.vendaCombustivel || 0) + (v.vendaMercadorias || 0) + s("vendaServicosManual") || s("receitaVendas");
+  const receitaBruta = ((v.vendaCombustivel || 0) + (v.vendaMercadorias || 0) || s("receitaVendas")) + s("vendaServicosManual");
   const totalReceita = receitaBruta + s("deducoes") + s("acrescimos");
   const impostos = ["impostosFaturamentoPostos", "impostosFaturamentoDistribuidora", "impostosFaturamentoSatelites", "impostosFaturamentoPatrimonial", "impostosFaturamentoLogistica"] as LinhaEbitdaChave[];
   const totalImpostos = somaAbs(v, impostos);
