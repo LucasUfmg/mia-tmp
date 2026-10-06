@@ -35,6 +35,8 @@ type Props = {
   calculos: Ebitda[];
   /** Mesmos registros, com receita do BI cortada no mesmo dia/hora de agora. */
   calculosMesmoPeriodo?: Ebitda[];
+  biStatus?: "ok" | "carregando" | "erro";
+  onRecarregarBi?: () => void;
   selecao: string[];
   meses: string[];
   mesAtual: string;
@@ -89,7 +91,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparaca
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
-export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, mesAtual, lojas }: Props) {
+export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas }: Props) {
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
@@ -161,7 +163,13 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, m
       </TabsList>
 
       <TabsContent value="geral" className="mt-5 space-y-5">
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">{cards.map((card) => <Card key={card.label} {...card} />)}</section>
+        {biStatus === "erro" && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Não foi possível carregar receita e CMV do BI.
+            <button onClick={onRecarregarBi} className="rounded-full bg-destructive px-3 py-1 font-bold text-destructive-foreground">Tentar novamente</button>
+          </div>
+        )}
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">{cards.map((card) => <Card key={card.label} {...card} comparacao={rotuloComparacao} {...(biStatus !== "ok" ? { valor: biStatus === "carregando" ? "carregando…" : "—", variacao: null } : {})} />)}</section>
         <section className="grid gap-5 xl:grid-cols-[1.35fr_1fr]">
           <ChartCard titulo="Evolução da receita" subtitulo={calculosMesmoPeriodo ? rotuloCorte() : "Receita bruta por mês"}>
             <ResponsiveContainer width="100%" height="100%"><LineChart data={serieReceita}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="mes" tickFormatter={rotuloMes} fontSize={11} /><YAxis tickFormatter={(v) => `${numero.format(v / 1_000_000)} mi`} fontSize={11} /><Tooltip formatter={(v: number) => moeda(v)} labelFormatter={rotuloMes} contentStyle={tooltipStyle} /><Line dataKey="receitaBruta" name="Receita" stroke="var(--color-chart-1)" strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
