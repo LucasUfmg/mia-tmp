@@ -33,12 +33,13 @@ export const linhasEbitda = [
   { chave: "despesasNaoContabeis", label: "Despesas Não Operacionais", sinal: -1, origem: "manual" },
   { chave: "despesaFinanceiraDistribuidora", label: "Despesa Financeira Distribuidora", sinal: -1, origem: "manual" },
   { chave: "bonusContrato", label: "Bônus de Contrato", sinal: 1, origem: "manual" },
-  { chave: "irpjCsll", label: "Provisões Postos", sinal: -1, origem: "manual" },
-  { chave: "irpjCsllDistribuidora", label: "Provisões Distribuidora", sinal: -1, origem: "manual" },
-  { chave: "irpjCsllGestao", label: "Provisões Gestão", sinal: -1, origem: "manual" },
-  { chave: "irpjCsllPatrimonial", label: "Provisões Patrimonial", sinal: -1, origem: "manual" },
-  { chave: "irpjCsllLogistica", label: "Provisões Logística", sinal: -1, origem: "manual" },
-  { chave: "socios", label: "Retiradas / Pró-labore", sinal: -1, origem: "manual" },
+  { chave: "irpjCsll", label: "Provisões Postos", sinal: -1, origem: "legado" },
+  { chave: "irpjCsllDistribuidora", label: "Provisões Distribuidora", sinal: -1, origem: "legado" },
+  { chave: "irpjCsllGestao", label: "Provisões Gestão", sinal: -1, origem: "legado" },
+  { chave: "irpjCsllPatrimonial", label: "Provisões Patrimonial", sinal: -1, origem: "legado" },
+  { chave: "irpjCsllLogistica", label: "Provisões Logística", sinal: -1, origem: "legado" },
+  { chave: "socios", label: "Retirada pró-labore", sinal: -1, origem: "manual" },
+  { chave: "distribuicaoLucros", label: "Distribuição de lucros", sinal: -1, origem: "manual" },
 ] as const;
 
 export type LinhaEbitdaChave = (typeof linhasEbitda)[number]["chave"];
@@ -50,8 +51,7 @@ export const gruposLancamentoDre = [
   { titulo: "Complementos de Custo", chaves: ["receitaLiquidaDistribuidora", "bonusPerformance", "frete"] },
   { titulo: "Total Despesas", chaves: ["despesasPessoal", "administrativas", "taxasCartao", "rateios", "despesasTributarias", "aluguel", "despesasGestao", "despesaDistribuidora", "overAluguel"] },
   { titulo: "Receitas e Despesas Não Operacionais", chaves: ["receitasFinanceiras", "receitasDiversas", "receitaFinanceiraDistribuidora", "despesasFinanceiras", "despesasNaoContabeis", "despesaFinanceiraDistribuidora", "bonusContrato"] },
-  { titulo: "IRPJ e CSLL", chaves: ["irpjCsll", "irpjCsllDistribuidora", "irpjCsllGestao", "irpjCsllPatrimonial", "irpjCsllLogistica"] },
-  { titulo: "Sócios", chaves: ["socios"] },
+  { titulo: "Resultado líquido", chaves: ["socios", "distribuicaoLucros"] },
 ] as const satisfies readonly { titulo: string; chaves: readonly LinhaEbitdaChave[] }[];
 
 export const linhasEbitdaLegadas = [
@@ -107,6 +107,7 @@ export type ResultadoEbitda = {
   ebit: number;
   totalNaoOperacional: number;
   totalIrpjCsll: number;
+  resultadoLiquido: number;
   resultadoFinal: number;
   lucroLiquido: number;
   receitaLiquida: number;
@@ -139,10 +140,11 @@ export function calcularEbitda(v: Record<LinhaEbitdaChave, number> & Partial<Dad
   const despesasTotais = somaAbs(v, despesas);
   const ebitda = resultadoOperacional - despesasTotais;
   const totalNaoOperacional = s("receitasFinanceiras") + s("receitasDiversas") + s("receitaFinanceiraDistribuidora") + s("despesasFinanceiras") + s("despesasNaoContabeis") + s("despesaFinanceiraDistribuidora") + s("bonusContrato");
-  const irpj = ["irpjCsll", "irpjCsllDistribuidora", "irpjCsllGestao", "irpjCsllPatrimonial", "irpjCsllLogistica"] as LinhaEbitdaChave[];
-  const totalIrpjCsll = somaAbs(v, irpj);
-  const resultadoFinal = ebitda + totalNaoOperacional - totalIrpjCsll - Math.abs(s("socios"));
-  return { receitaBruta, totalReceita, totalImpostos, custoTotal, resultadoBruto, resultadoOperacional, despesasTotais, ebitda, ebit: ebitda, totalNaoOperacional, totalIrpjCsll, resultadoFinal, lucroLiquido: resultadoFinal, receitaLiquida: totalReceita - totalImpostos };
+  const baseIrpjCsll = ebitda + totalNaoOperacional;
+  const totalIrpjCsll = Math.max(baseIrpjCsll, 0) * 0.34;
+  const resultadoLiquido = baseIrpjCsll - totalIrpjCsll;
+  const resultadoFinal = resultadoLiquido - Math.abs(s("socios")) - Math.abs(s("distribuicaoLucros"));
+  return { receitaBruta, totalReceita, totalImpostos, custoTotal, resultadoBruto, resultadoOperacional, despesasTotais, ebitda, ebit: ebitda, totalNaoOperacional, totalIrpjCsll, resultadoLiquido, resultadoFinal, lucroLiquido: resultadoLiquido, receitaLiquida: totalReceita - totalImpostos };
 }
 
 /** Consolida linhas da DRE sem misturar o registro de rede com seus postos. */
@@ -163,7 +165,7 @@ export function consolidarEbitda(linhas: Ebitda[], selecao: string[], meses: str
 }
 
 export type LinhaDre =
-  | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda }
+  | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda; sinal?: -1 }
   | { tipo: "bi"; label: string; campo: keyof DadosBiDre; sinal?: -1 }
   | { tipo: "manual"; label: string; chave: LinhaEbitdaChave }
   | { tipo: "metrica"; label: string; campo: keyof DadosBiDre };
@@ -186,22 +188,22 @@ export const linhasDre: LinhaDre[] = [
   { tipo: "manual", label: "Satélites", chave: "impostosFaturamentoSatelites" },
   { tipo: "manual", label: "Patrimonial", chave: "impostosFaturamentoPatrimonial" },
   { tipo: "manual", label: "Logística", chave: "impostosFaturamentoLogistica" },
-  { tipo: "grupo", label: "Custo", campo: "custoTotal" },
+  { tipo: "grupo", label: "Custo", campo: "custoTotal", sinal: -1 },
   { tipo: "bi", label: "Custo Combustível", campo: "custoCombustivel", sinal: -1 },
   { tipo: "bi", label: "Custo Mercadoria", campo: "custoMercadoria", sinal: -1 },
   { tipo: "manual", label: "Receita Líquida Distribuidora", chave: "receitaLiquidaDistribuidora" },
   { tipo: "manual", label: "Bônus de Performance", chave: "bonusPerformance" },
   { tipo: "manual", label: "Frete", chave: "frete" },
   { tipo: "total", label: "Resultado Operacional Bruto", campo: "resultadoOperacional" },
-  { tipo: "grupo", label: "Total Despesas", campo: "despesasTotais" },
+  { tipo: "grupo", label: "Total Despesas", campo: "despesasTotais", sinal: -1 },
   ...(["despesasPessoal", "administrativas", "taxasCartao", "rateios", "despesasTributarias", "aluguel", "despesasGestao", "despesaDistribuidora", "overAluguel"] as LinhaEbitdaChave[]).map((chave) => ({ tipo: "manual" as const, label: linhasEbitda.find((l) => l.chave === chave)?.label ?? chave, chave })),
   { tipo: "total", label: "EBITDA", campo: "ebitda" },
   { tipo: "grupo", label: "Receitas e Despesas Não Operacionais", campo: "totalNaoOperacional" },
   ...(["receitasFinanceiras", "receitasDiversas", "receitaFinanceiraDistribuidora", "despesasFinanceiras", "despesasNaoContabeis", "despesaFinanceiraDistribuidora", "bonusContrato"] as LinhaEbitdaChave[]).map((chave) => ({ tipo: "manual" as const, label: linhasEbitda.find((l) => l.chave === chave)?.label ?? chave, chave })),
-  { tipo: "grupo", label: "IRPJ e CSLL", campo: "totalIrpjCsll" },
-  ...(["irpjCsll", "irpjCsllDistribuidora", "irpjCsllGestao", "irpjCsllPatrimonial", "irpjCsllLogistica"] as LinhaEbitdaChave[]).map((chave) => ({ tipo: "manual" as const, label: linhasEbitda.find((l) => l.chave === chave)?.label ?? chave, chave })),
-  { tipo: "grupo", label: "Sócios", campo: "resultadoFinal" },
-  { tipo: "manual", label: "Retiradas / Pró-labore", chave: "socios" },
+  { tipo: "grupo", label: "IRPJ e CSLL (34%)", campo: "totalIrpjCsll", sinal: -1 },
+  { tipo: "total", label: "Resultado líquido", campo: "resultadoLiquido" },
+  { tipo: "manual", label: "Retirada pró-labore", chave: "socios" },
+  { tipo: "manual", label: "Distribuição de lucros", chave: "distribuicaoLucros" },
   { tipo: "total", label: "Resultado Empresa", campo: "resultadoFinal" },
 ];
 
