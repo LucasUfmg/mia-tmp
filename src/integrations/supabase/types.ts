@@ -67,6 +67,7 @@ export type Database = {
           socios: number
           taxas_cartao: number
           updated_at: string
+          venda_servicos_manual: number
         }
         Insert: {
           acrescimos?: number
@@ -120,6 +121,7 @@ export type Database = {
           socios?: number
           taxas_cartao?: number
           updated_at?: string
+          venda_servicos_manual?: number
         }
         Update: {
           acrescimos?: number
@@ -173,6 +175,7 @@ export type Database = {
           socios?: number
           taxas_cartao?: number
           updated_at?: string
+          venda_servicos_manual?: number
         }
         Relationships: []
       }
