@@ -13,9 +13,16 @@ A tabela seguirá a estrutura do modelo:
    - Venda de Combustível e Venda de Mercadorias virão desmembradas do BI; Venda de Serviços será mantida como linha mapeada e usará a fonte disponível no banco, ou zero quando não houver origem identificável.
    - Descontos e Acréscimos como linhas separadas.
 2. **Impostos sobre Faturamento**
+   - Impostos sobre Faturamento Postos
+   - Impostos sobre Faturamento Distribuidora
+   - Impostos sobre Faturamento Satélites
+   - Impostos sobre Faturamento Patrimonial
+   - Impostos sobre Faturamento Logística
 3. **Custo**
    - Custo Combustível e Custo Mercadoria virão desmembrados do BI, automáticos e não editáveis.
-   - Receita Líquida Distribuidora, Bônus de Performance e Frete permanecem como linhas distintas do HTML.
+   - Receita Líquida Distribuidora
+   - Bônus de Performance
+   - Frete
 4. **Resultado Operacional Bruto**
 5. **Total Despesas**
    - Pessoal
@@ -37,7 +44,11 @@ A tabela seguirá a estrutura do modelo:
    - Despesa Financeira Distribuidora
    - Bônus de Contrato
 8. **IRPJ e CSLL**
-   - Provisões de IRPJ e CSLL para Postos, Distribuidora, Gestão, Patrimonial e Logística como linhas separadas
+   - Provisão IRPJ e CSLL Postos
+   - Provisão IRPJ e CSLL Distribuidora
+   - Provisão IRPJ e CSLL Gestão
+   - Provisão IRPJ e CSLL Patrimonial
+   - Provisão IRPJ e CSLL Logística
    - Sócios (Retiradas/Pró-labore)
    - Distribuição de Lucros
    - Investimentos
@@ -87,6 +98,7 @@ A tabela terá:
 ## Detalhes técnicos
 - Evoluir `contabil_ebitda` com colunas para todas as rubricas manuais novas e atualizar validação, leitura e gravação.
 - Ampliar a consulta existente do BI, que hoje já calcula combustível e produtos separadamente, para retornar: venda de combustível, custo de combustível, venda de mercadorias, custo de mercadorias, litros e abastecimentos por posto/mês.
+- Manter Venda de Serviços visível como no HTML, mas sem inventar dados: a consulta atual exclui outros tipos de item e não há um mapeamento confirmado de serviços; a linha ficará zerada até existir uma origem verificável.
 - Refatorar a definição da DRE em `src/lib/ebitda.ts` para representar grupos, linhas de detalhe e checkpoints do HTML.
 - Adaptar `DreDashboard` e `EbitdaDialog` para consumir a mesma definição central.
 - Gerar os valores simulados no frontend a partir de uma semente estável por posto e mês, sem persistência.
