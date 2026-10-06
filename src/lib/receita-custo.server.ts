@@ -89,3 +89,55 @@ export async function receitaCustoDoBi(data: {
       throw error;
     }
 }
+
+/** Receita/custo do BI de vários meses de um posto (ou rede) em uma única consulta. */
+export async function receitaCustoPorMes(data: {
+  meses: string[];
+  ibm?: string | undefined;
+  corte?: { dia: number; minutos: number } | undefined;
+}): Promise<Record<string, ReceitaCusto>> {
+  const meses = [...new Set(data.meses)].sort();
+  if (meses.length === 0) return {};
+  const desde = meses[0]!;
+  const ultimo = meses[meses.length - 1]!;
+  const [a, m] = ultimo.split("-").map(Number) as [number, number];
+  const ate = `${ultimo.slice(0, 7)}-${String(new Date(Date.UTC(a, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  const hoje = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+
+  const { comCache, chaveDeCache } = await import("./cache.server");
+  const porMes = await comCache(
+    chaveDeCache("receitaCustoPorMes", { desde, ate, ibm: data.ibm ?? "", corte: data.corte ?? null, hoje }),
+    false,
+    async () => {
+      const { comSessao } = await import("./mongo.server");
+      const { getIndicadoresPorMes } = await import("./redeflex-mongo.server");
+      return await comSessao(async () => await getIndicadoresPorMes(desde, ate, data.ibm, data.corte));
+    },
+  );
+
+  const saida: Record<string, ReceitaCusto> = {};
+  for (const mes of meses) {
+    const i = porMes[mes.slice(0, 7)];
+    const vendaCombustivel = i?.receitaComb ?? 0;
+    const vendaMercadorias = i?.receitaProd ?? 0;
+    const custoCombustivel = i?.custoComb ?? 0;
+    const custoMercadoria = i?.custoProd ?? 0;
+    const parcial = hoje.slice(0, 7) === mes.slice(0, 7);
+    saida[mes] = {
+      receita: vendaCombustivel + vendaMercadorias,
+      custo: custoCombustivel + custoMercadoria,
+      vendaCombustivel,
+      vendaMercadorias,
+      vendaServicos: 0,
+      custoCombustivel,
+      custoMercadoria,
+      litrosVendidos: i?.litros ?? 0,
+      abastecimentosRealizados: i?.atendimentos ?? 0,
+      margemProduto: vendaMercadorias ? ((vendaMercadorias - custoMercadoria) / vendaMercadorias) * 100 : 0,
+      margemCombustivel: vendaCombustivel ? ((vendaCombustivel - custoCombustivel) / vendaCombustivel) * 100 : 0,
+      parcial,
+      ate: parcial ? hoje : mes,
+    };
+  }
+  return saida;
+}
