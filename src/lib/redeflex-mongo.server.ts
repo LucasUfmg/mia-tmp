@@ -818,3 +818,88 @@ export async function getRankingVendedores(
     };
   });
 }
+
+export type IndicadorMes = {
+  litros: number;
+  receitaComb: number;
+  custoComb: number;
+  atendimentos: number;
+  receitaProd: number;
+  custoProd: number;
+};
+
+/**
+ * Indicadores agrupados por mês (`YYYY-MM`) em uma única agregação por coleção.
+ * Com `corte`, cada mês vai do dia 1 até o mesmo dia/minuto (comparativo on-time).
+ */
+export async function getIndicadoresPorMes(
+  desde: string,
+  ate: string,
+  ibm?: string,
+  corte?: { dia: number; minutos: number },
+): Promise<Record<string, IndicadorMes>> {
+  const agora = new Date(Date.now() - 3 * 60 * 60 * 1000);
+  const fim = new Date(`${ate}T23:59:59.999Z`);
+  const dtHr = { $gte: new Date(`${desde}T00:00:00.000Z`), $lte: fim < agora ? fim : agora };
+  const dia = { $dayOfMonth: { date: "$dtHr", timezone: "-00:00" } };
+  const minuto = {
+    $add: [
+      { $multiply: [{ $hour: { date: "$dtHr", timezone: "-00:00" } }, 60] },
+      { $minute: { date: "$dtHr", timezone: "-00:00" } },
+    ],
+  };
+  const exprCorte = corte
+    ? {
+        $expr: {
+          $or: [
+            { $lt: [dia, corte.dia] },
+            { $and: [{ $eq: [dia, corte.dia] }, { $lte: [minuto, corte.minutos] }] },
+          ],
+        },
+      }
+    : {};
+  const base = { ...filtroDeIbm(ibm), dtHr, ...exprCorte };
+
+  const [comb, prod] = await Promise.all([
+    agregar<{ _id: string; litros: number; receita: number; custo: number; atendimentos: number }>(
+      "gasMonitor",
+      COLECAO_ABASTECIMENTOS,
+      [
+        { $match: { ori: { $in: ["0", "1"] }, ...base } },
+        {
+          $group: {
+            _id: mesFormatado,
+            litros: { $sum: num("$vol") },
+            receita: { $sum: num("$val") },
+            custo: { $sum: { $multiply: [num("$cus"), num("$vol")] } },
+            atendimentos: { $sum: 1 },
+          },
+        },
+      ],
+    ),
+    agregar<{ _id: string; receita: number; custo: number }>("sales", COLECAO_VENDAS, [
+      { $match: base },
+      { $unwind: "$items" },
+      { $match: { "items.iTip": { $eq: "0" } } },
+      {
+        $group: {
+          _id: mesFormatado,
+          receita: { $sum: num("$items.tot") },
+          custo: { $sum: { $multiply: [num("$items.pC"), num("$items.qd")] } },
+        },
+      },
+    ]),
+  ]);
+
+  const saida: Record<string, IndicadorMes> = {};
+  const vazio = (): IndicadorMes => ({ litros: 0, receitaComb: 0, custoComb: 0, atendimentos: 0, receitaProd: 0, custoProd: 0 });
+  for (const c of comb) {
+    const m = (saida[c._id] ??= vazio());
+    m.litros = c.litros; m.receitaComb = c.receita; m.custoComb = c.custo; m.atendimentos = c.atendimentos;
+  }
+  for (const p of prod) {
+    const m = (saida[p._id] ??= vazio());
+    m.receitaProd = p.receita; m.custoProd = p.custo;
+  }
+  return saida;
+}
