@@ -144,7 +144,7 @@ function Contabil() {
     return calculosComAnterior.map((c) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
       return b
-        ? { ...c, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias }
+        ? { ...c, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias, custoCombustivel: b.custoCombustivel, custoMercadoria: b.custoMercadoria }
         : c;
     });
   }, [doBiMesmoPeriodo, calculosComAnterior]);
