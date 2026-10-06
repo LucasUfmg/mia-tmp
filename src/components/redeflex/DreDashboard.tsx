@@ -41,6 +41,7 @@ type Props = {
   meses: string[];
   mesAtual: string;
   lojas: { ibm: string; nome: string }[];
+  periodoDados?: { inicioEm: string; fimEm: string };
 };
 
 function rotuloCorte() {
@@ -91,7 +92,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparaca
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
-export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas }: Props) {
+export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas, periodoDados }: Props) {
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
@@ -130,7 +131,7 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
     { icon: ReceiptText, label: "CMV", valor: moeda(Math.abs(consolidado.custo)), detalhe: percentual(razao(Math.abs(consolidado.custo), consolidado.receitaBruta)) + " da receita · BI", variacao: varia(Math.abs(consolidado.custo), Math.abs(anterior.custo)), inverter: true },
     { icon: TrendingUp, label: "Result. Operacional Bruto", valor: moeda(consolidado.resultadoBruto), detalhe: "Receita bruta − CMV", variacao: varia(consolidado.resultadoBruto, anterior.resultadoBruto) },
     { icon: ReceiptText, label: "Despesas totais", valor: moeda(consolidado.despesasTotais), detalhe: percentual(razao(consolidado.despesasTotais, consolidado.receitaBruta)) + " da receita", variacao: varia(consolidado.despesasTotais, anterior.despesasTotais), inverter: true },
-    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: "Result. Operacional Bruto − Despesas totais", variacao: varia(consolidado.ebitda, anterior.ebitda) },
+    { icon: Gauge, label: "EBITDA", valor: moeda(consolidado.ebitda), detalhe: `EBITDA por litro: ${consolidado.litrosVendidos ? `${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(consolidado.ebitda / consolidado.litrosVendidos)}/L` : "—"}`, variacao: varia(consolidado.ebitda, anterior.ebitda) },
     { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo", variacao: varia(consolidado.resultadoFinal, anterior.resultadoFinal) },
   ];
 
@@ -156,6 +157,12 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
 
   return (
     <Tabs defaultValue="geral" className="mt-6">
+      <section className="mb-5 border-y border-info/30 bg-info-soft px-4 py-4 sm:px-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-info-foreground">Período dos dados apresentados</p>
+        <p className="mt-1 text-lg font-extrabold tabular-nums text-foreground sm:text-2xl">
+          {biStatus === "carregando" ? "Carregando período…" : biStatus === "erro" || !periodoDados ? "Período indisponível" : `${formatarInstante(periodoDados.inicioEm)} → ${formatarInstante(periodoDados.fimEm)}`}
+        </p>
+      </section>
       <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         <TabsTrigger value="geral" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Visão Geral</TabsTrigger>
         <TabsTrigger value="dre" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">DRE Gerencial</TabsTrigger>
@@ -209,6 +216,18 @@ function ChartCard({ titulo, subtitulo, children, altura = "h-[280px]" }: { titu
   return <section className="card-elevated p-5"><h3 className="text-sm font-bold">{titulo}</h3><p className="text-xs text-muted-foreground">{subtitulo}</p><div className={`mt-4 ${altura}`}>{children}</div></section>;
 }
 
+function formatarInstante(valor: string) {
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(valor));
+}
+
 function MemoCells() { return <><th className="px-3 py-2 text-right">Valor</th><th className="px-3 py-2 text-right">AV</th></>; }
 function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 ? "text-wa" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(valor, receita))}</td></>; }
 function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas: { mes: string; dados: DreConsolidada }[] }) {
@@ -218,6 +237,7 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
   const valor = (dados: DreConsolidada) => {
     if (linha.tipo === "manual") return comSinal(linha.chave, dados[linha.chave]);
     if (linha.tipo === "bi") return dados[linha.campo] * (linha.sinal ?? 1);
+    if (linha.tipo === "grupo" || linha.tipo === "total") return dados[linha.campo] * (linha.sinal ?? 1);
     return dados[linha.campo];
   };
   const exibir = (dados: DreConsolidada) => metrica && (linha.campo === "margemProduto" || linha.campo === "margemCombustivel") ? percentual(valor(dados)) : metrica ? numero.format(valor(dados)) : moeda(valor(dados));
@@ -226,7 +246,8 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
     : linha.tipo === "bi"
       ? `(${linha.sinal === -1 ? "−" : "+"}) ${linha.label}`
       : linha.label;
-   return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
+    const negativoDestacado = (linha.tipo === "grupo" || linha.tipo === "total") && linha.sinal === -1 && (linha.label === "Custo" || linha.label === "Total Despesas");
+    return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? `bg-surface-muted font-bold ${negativoDestacado ? "text-destructive" : ""}` : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
 }
 
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {

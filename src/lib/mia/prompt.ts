@@ -23,6 +23,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "Contábil (lançado manualmente no painel): ROE = lucro líquido / PL médio.",
     "ROIC = NOPAT / capital investido médio, NOPAT = EBIT × (1 - alíquota efetiva).",
     "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
+    "Na DRE: IRPJ e CSLL = 34% do saldo positivo de EBITDA + resultado não operacional; Resultado líquido vem antes de pró-labore e distribuição de lucros.",
 
 
   ]

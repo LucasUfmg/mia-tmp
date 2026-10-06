@@ -1,6 +1,10 @@
 # Roadmap
 
 ## Dashboard DRE na aba Contábil
+- [x] Exibir no topo o intervalo completo de data e hora dos dados do BI
+- [x] Mostrar EBITDA por litro no cartão EBITDA
+- [x] Destacar custo e despesas com valores e percentuais negativos na DRE
+- [x] Automatizar IRPJ/CSLL em 34% e separar resultado líquido, pró-labore e distribuição de lucros
 - [x] Organizar o formulário de lançamento nas mesmas faixas contábeis da DRE
 - [x] Mover litros, abastecimentos e margens para o topo da DRE
 - [x] Exibir sinais (+) e (−) nas linhas que compõem os cálculos

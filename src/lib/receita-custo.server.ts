@@ -71,6 +71,9 @@ export async function receitaCustoDoBi(data: {
        const custoMercadoria = vendaMercadorias - indicadores.produto.lucroBruto;
        const receita = vendaCombustivel + vendaMercadorias;
        const custo = custoCombustivel + custoMercadoria;
+       const minutosFinais = cutoffMinutes ?? 23 * 60 + 59;
+       const horaFinal = String(Math.floor(minutosFinais / 60)).padStart(2, "0");
+       const minutoFinal = String(minutosFinais % 60).padStart(2, "0");
        return {
          receita,
          custo,
@@ -85,6 +88,8 @@ export async function receitaCustoDoBi(data: {
          margemCombustivel: vendaCombustivel ? ((vendaCombustivel - custoCombustivel) / vendaCombustivel) * 100 : 0,
          parcial,
          ate,
+         inicioEm: `${data.mes.slice(0, 10)}T00:00:00-03:00`,
+         fimEm: `${ate}T${horaFinal}:${minutoFinal}:00-03:00`,
        };
     } catch (error) {
       console.error("[RedeFlex:getReceitaCusto]", error);

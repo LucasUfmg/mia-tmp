@@ -176,6 +176,18 @@ function Contabil() {
   // Comparação "mesmo período" só aparece quando os meses prioritários chegaram.
   const mesmoPeriodoPronto = tarefas.every((p, i) => !p.prioridade || !p.mesmo || !consultas[i]?.isPending);
   const recarregarBi = () => consultas.forEach((q) => q.isError && void q.refetch());
+  const periodoDados = useMemo(() => {
+    const dados = tarefas.flatMap((p, i) => {
+      const d = consultas[i]?.data;
+      return !p.mesmo && escolhido(p.mes) && d ? [d] : [];
+    });
+    if (dados.length === 0) return undefined;
+    const inicios = dados.map((d) => d.inicioEm).sort();
+    const finais = dados.map((d) => d.fimEm).sort();
+    const inicioEm = inicios[0];
+    const fimEm = finais[finais.length - 1];
+    return inicioEm && fimEm ? { inicioEm, fimEm } : undefined;
+  }, [tarefas, consultas, versao]);
   const mesclar = useMemo(() => {
     const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return (c: (typeof calculosBrutos)[number]) => {
@@ -362,6 +374,7 @@ function Contabil() {
           meses={mesesEscopo}
           mesAtual={mes}
           lojas={lojas}
+          {...(periodoDados ? { periodoDados } : {})}
         />
       </main>
 

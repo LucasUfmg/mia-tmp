@@ -192,7 +192,7 @@ export async function lerDetalheEbitda(opcoes: {
 
   const totais = calcularEbitda(somas);
   const detalhamento = Object.fromEntries(
-    linhasEbitda.map((c) => [c.label, r0(somas[c.chave])]),
+    linhasEbitda.filter((c) => c.origem !== "legado").map((c) => [c.label, r0(somas[c.chave])]),
   );
 
   return {
@@ -215,6 +215,8 @@ export async function lerDetalheEbitda(opcoes: {
     despesasTotais: r0(totais.despesasTotais),
     ebitda: r0(totais.ebitda),
     ebit: r0(totais.ebit),
+    irpjCsll: r0(totais.totalIrpjCsll),
+    resultadoLiquido: r0(totais.resultadoLiquido),
     resultadoFinal: r0(totais.resultadoFinal),
     lucroLiquido: r0(totais.lucroLiquido),
   };
