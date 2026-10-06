@@ -185,5 +185,9 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
     return dados[linha.campo];
   };
   const exibir = (dados: DreConsolidada) => metrica && (linha.campo === "margemProduto" || linha.campo === "margemCombustivel") ? percentual(valor(dados)) : metrica ? numero.format(valor(dados)) : moeda(valor(dados));
-  return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{linha.label}</td>{colunas.map(({ mes, dados }) => <><td key={`${mes}-v`} className={`px-3 py-2.5 text-right font-mono text-xs ${valor(dados) < 0 ? "text-destructive" : valor(dados) > 0 && !metrica ? "text-wa" : ""}`}>{exibir(dados)}</td><td key={`${mes}-p`} className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor(dados), dados.receitaBruta))}</td></>)}</tr>;
+   return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{linha.label}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
+}
+
+function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
+  return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor, dados.receitaBruta))}</td></>;
 }
