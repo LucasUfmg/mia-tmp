@@ -135,42 +135,47 @@ function Contabil() {
     return lista.sort((x, y) => Number(y.prioridade) - Number(x.prioridade) || y.mes.localeCompare(x.mes));
   }, [calculosAnt, calculosBrutos, mesCorrente, mes, mesesPrioritarios]);
 
-  const consultasBi = useQueries({
-    queries: pares.map((p) => ({
-      queryKey: ["contabil", "bi-mes", p.ibm, p.mes],
-      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes } })),
-      staleTime: p.mes < mesCorrente ? 12 * 60 * 60_000 : 5 * 60_000,
+  // Ordem da fila: meses escolhidos (mês cheio e mesmo período) primeiro,
+  // depois o restante dos gráficos. O mês corrente já é "mesmo período".
+  const tarefas = useMemo(() => {
+    const t = (lista: typeof pares, mesmo: boolean) =>
+      lista.filter((p) => !mesmo || p.mes !== mesCorrente).map((p) => ({ ...p, mesmo }));
+    const prio = pares.filter((p) => p.prioridade);
+    const resto = pares.filter((p) => !p.prioridade);
+    return [...t(prio, false), ...t(prio, true), ...t(resto, false), ...t(resto, true)];
+  }, [pares, mesCorrente]);
+  const consultas = useQueries({
+    queries: tarefas.map((p) => ({
+      queryKey: ["contabil", p.mesmo ? "bi-mes-mesmo-periodo" : "bi-mes", p.ibm, p.mes],
+      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, ...(p.mesmo ? { mesmoPeriodo: true } : {}) } })),
+      staleTime: p.mes < mesCorrente && !p.mesmo ? 12 * 60 * 60_000 : 5 * 60_000,
       retry: 1,
     })),
   });
-  const consultasMesmoPeriodo = useQueries({
-    queries: pares.map((p) => ({
-      queryKey: ["contabil", "bi-mes-mesmo-periodo", p.ibm, p.mes],
-      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, mesmoPeriodo: true } })),
-      staleTime: 5 * 60_000,
-      retry: 1,
-    })),
-  });
+  const versao = consultas.map((q) => q.dataUpdatedAt).join(",");
   const doBi = useMemo(
-    () => pares.flatMap((p, i) => { const d = consultasBi[i]?.data; return d ? [{ ...p, ...d }] : []; }),
+    () => tarefas.flatMap((p, i) => { const d = consultas[i]?.data; return !p.mesmo && d ? [{ ...p, ...d }] : []; }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pares, consultasBi.map((q) => q.dataUpdatedAt).join(",")],
+    [tarefas, versao],
   );
   const doBiMesmoPeriodo = useMemo(
-    () => pares.flatMap((p, i) => { const d = consultasMesmoPeriodo[i]?.data; return d ? [{ ...p, ...d }] : []; }),
+    () => tarefas.flatMap((p, i) => {
+      const d = consultas[i]?.data;
+      // Mês corrente: o mês cheio já é o mesmo período.
+      if (!p.mesmo && p.mes === mesCorrente && d) return [{ ...p, ...d }];
+      return p.mesmo && d ? [{ ...p, ...d }] : [];
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [pares, consultasMesmoPeriodo.map((q) => q.dataUpdatedAt).join(",")],
+    [tarefas, versao, mesCorrente],
   );
-  // Cards/DRE esperam só os meses escolhidos; comparação e gráficos chegam depois.
-  const prioritarias = pares
-    .map((p, i) => ({ p, q: consultasBi[i] }))
-    .filter((x) => (visao === "mes" ? x.p.mes === mes : x.p.mes.slice(0, 4) === ano && x.p.mes <= mes));
+  // Cards/DRE esperam só os meses escolhidos; gráficos chegam depois.
+  const escolhido = (m: string) => (visao === "mes" ? m === mes : m.slice(0, 4) === ano && m <= mes);
+  const prioritarias = tarefas.map((p, i) => ({ p, q: consultas[i] })).filter((x) => !x.p.mesmo && escolhido(x.p.mes));
   const carregandoBi = prioritarias.some((x) => x.q?.isPending);
   const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
-  const recarregarBi = () => {
-    consultasBi.forEach((q) => q.isError && void q.refetch());
-    consultasMesmoPeriodo.forEach((q) => q.isError && void q.refetch());
-  };
+  // Comparação "mesmo período" só aparece quando os meses prioritários chegaram.
+  const mesmoPeriodoPronto = tarefas.every((p, i) => !p.prioridade || !p.mesmo || !consultas[i]?.isPending);
+  const recarregarBi = () => consultas.forEach((q) => q.isError && void q.refetch());
   const mesclar = useMemo(() => {
     const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return (c: (typeof calculosBrutos)[number]) => {
@@ -203,7 +208,7 @@ function Contabil() {
 
   // Evolução da receita: cada mês cortado no mesmo dia e hora de agora.
   const calculosMesmoPeriodo = useMemo(() => {
-    if (doBiMesmoPeriodo.length === 0) return undefined;
+    if (!mesmoPeriodoPronto || doBiMesmoPeriodo.length === 0) return undefined;
     const mapa = new Map(doBiMesmoPeriodo.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return calculosComAnterior.map((c) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
