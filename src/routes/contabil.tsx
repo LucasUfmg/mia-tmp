@@ -158,7 +158,7 @@ function Contabil() {
   // depois o restante dos gráficos. O mês corrente já é "mesmo período".
   const tarefas = useMemo(() => {
     const t = (lista: typeof pares, mesmo: boolean) =>
-      lista.filter((p) => !mesmo || (p.mes !== mesCorrente && (p.mes >= `${ano}-01-01` || p.mes === menosUmAno(mesCorrente) || p.mes.slice(5) !== mesCorrente.slice(5) || true))).map((p) => ({ ...p, mesmo }));
+      lista.filter((p) => !mesmo || (p.mes !== mesCorrente && (p.mes >= `${Number(ano) - 0}-01-01` || p.mes >= menosUmAno(mesCorrente).slice(0, 4) + "-12-01" || p.mes === menosUmAno(mesCorrente)))).map((p) => ({ ...p, mesmo }));
     const prio = pares.filter((p) => p.prioridade);
     const resto = pares.filter((p) => !p.prioridade);
     return [...t(prio, false), ...t(prio, true), ...t(resto, false), ...t(resto, true)];
