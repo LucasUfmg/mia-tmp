@@ -19,6 +19,7 @@ import {
 import { loadLojas } from "@/lib/redeflex-dashboard";
 import { listarEbitda, listarLancamentos } from "@/lib/contabil.functions";
 import { listarReceitaCusto } from "@/lib/redeflex.functions";
+import { fatorDiasDoMes, proporcionalizarDespesas } from "@/lib/ebitda";
 import {
   anoDoMes,
   IBM_REDE,
@@ -125,9 +126,14 @@ function Contabil() {
     };
   }, [doBi]);
   const calculos = useMemo(() => calculosBrutos.map(mesclar), [calculosBrutos, mesclar]);
+  // Painel: despesas do mês corrente proporcionais aos dias decorridos.
+  const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
   const calculosComAnterior = useMemo(
-    () => [...calculosAnt.map(mesclar), ...calculos],
-    [calculosAnt, calculos, mesclar],
+    () =>
+      [...calculosAnt.map(mesclar), ...calculos].map((c) =>
+        c.mes === mesCorrente ? proporcionalizarDespesas(c, fatorDiasDoMes(c.mes)) : c,
+      ),
+    [calculosAnt, calculos, mesclar, mesCorrente],
   );
 
   // Evolução da receita: cada mês cortado no mesmo dia e hora de agora.
@@ -143,11 +149,13 @@ function Contabil() {
     const mapa = new Map(doBiMesmoPeriodo.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return calculosComAnterior.map((c) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
+      // Meses anteriores: despesas proporcionais ao mesmo dia do mês.
+      const base = c.mes < mesCorrente ? proporcionalizarDespesas(c, fatorDiasDoMes(c.mes)) : c;
       return b
-        ? { ...c, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias, custoCombustivel: b.custoCombustivel, custoMercadoria: b.custoMercadoria }
-        : c;
+        ? { ...base, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias, custoCombustivel: b.custoCombustivel, custoMercadoria: b.custoMercadoria }
+        : base;
     });
-  }, [doBiMesmoPeriodo, calculosComAnterior]);
+  }, [doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);

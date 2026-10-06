@@ -61,6 +61,25 @@ export const linhasEbitdaLegadas = [
 ] as const;
 export type LinhaEbitdaLegadaChave = (typeof linhasEbitdaLegadas)[number];
 
+/** Multiplica os valores lançados manualmente (despesas) por um fator, ex.: dias decorridos / dias do mês. */
+export function proporcionalizarDespesas<T extends Record<string, unknown>>(c: T, fator: number): T {
+  if (fator === 1) return c;
+  const out: Record<string, unknown> = { ...c };
+  for (const chave of [...linhasDespesas.map((l) => l.chave), ...linhasEbitdaLegadas]) {
+    const v = out[chave];
+    if (typeof v === "number") out[chave] = v * fator;
+  }
+  return out as T;
+}
+
+/** Fator de proporção diária (horário de São Paulo): dia corrente / dias do mês. */
+export function fatorDiasDoMes(mes: string, hoje = new Date()): number {
+  const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(hoje);
+  const [ano, m] = mes.split("-").map(Number) as [number, number];
+  const dias = new Date(Date.UTC(ano, m, 0)).getUTCDate();
+  return Math.min(Number(d.slice(8, 10)), dias) / dias;
+}
+
 export type DadosBiDre = {
   vendaCombustivel: number;
   vendaMercadorias: number;
