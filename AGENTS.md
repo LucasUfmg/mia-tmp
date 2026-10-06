@@ -14,3 +14,4 @@
 - Keep all DRE line definitions and formulas centralized in `src/lib/ebitda.ts` so the editor, dashboard, and Mia never diverge.
 - Keep the store comparison demonstrative and deterministic; simulated values must never be persisted or mixed into accounting records.
 - Keep the public product surface limited to the dashboard, accounting, and manual routes; Mia remains a WhatsApp service rather than a public page.
+- Contábil busca Receita/CMV do BI com uma consulta curta por posto/mês (mesmo formato da Visão Geral), em fila limitada; agregações anuais únicas estouram o tempo limite.
