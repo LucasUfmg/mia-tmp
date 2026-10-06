@@ -216,9 +216,9 @@ function Contabil() {
       const base = c.mes < mesCorrente ? proporcionalizarDespesas(c, fatorDiasDoMes(c.mes)) : c;
       return b
         ? { ...base, receitaVendas: b.receita, custo: b.custo, vendaCombustivel: b.vendaCombustivel, vendaMercadorias: b.vendaMercadorias, custoCombustivel: b.custoCombustivel, custoMercadoria: b.custoMercadoria }
-        : base;
+        : { ...base, receitaVendas: 0, custo: 0, vendaCombustivel: 0, vendaMercadorias: 0, custoCombustivel: 0, custoMercadoria: 0 };
     });
-  }, [doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
+  }, [mesmoPeriodoPronto, doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
