@@ -1,7 +1,13 @@
 import type { ReceitaCusto } from "./redeflex.functions";
 
 /** Receita e custo do BI para um posto (ou rede) em um mês. */
-export async function receitaCustoDoBi(data: { mes: string; ibm?: string | undefined; fresh?: boolean }): Promise<ReceitaCusto> {
+export async function receitaCustoDoBi(data: {
+  mes: string;
+  ibm?: string | undefined;
+  fresh?: boolean;
+  /** Corta o mês no mesmo dia/hora (horário de São Paulo). */
+  corte?: { dia: number; minutos: number };
+}): Promise<ReceitaCusto> {
   const fresh = data.fresh ?? false;
     const hoje = new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Sao_Paulo",
@@ -14,7 +20,7 @@ export async function receitaCustoDoBi(data: { mes: string; ibm?: string | undef
     const ultimoDia = new Date(Date.UTC(ano, mesNum, 0)).getUTCDate();
     const fimDoMes = `${data.mes.slice(0, 7)}-${String(ultimoDia).padStart(2, "0")}`;
     const parcial = hoje >= data.mes && hoje <= fimDoMes;
-    const ate = parcial ? hoje : fimDoMes;
+    let ate = parcial ? hoje : fimDoMes;
 
     let cutoffMinutes: number | undefined;
     if (parcial) {
@@ -28,6 +34,11 @@ export async function receitaCustoDoBi(data: { mes: string; ibm?: string | undef
         .split(":")
         .map(Number);
       cutoffMinutes = (hora ?? 0) * 60 + (minuto ?? 0);
+    } else if (data.corte && hoje > fimDoMes) {
+      if (data.corte.dia <= ultimoDia) {
+        ate = `${data.mes.slice(0, 7)}-${String(data.corte.dia).padStart(2, "0")}`;
+        cutoffMinutes = data.corte.minutos;
+      }
     }
 
     const escopo = {

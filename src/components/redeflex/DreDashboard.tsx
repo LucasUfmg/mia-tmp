@@ -33,11 +33,22 @@ const cores = [
 
 type Props = {
   calculos: Ebitda[];
+  /** Mesmos registros, com receita do BI cortada no mesmo dia/hora de agora. */
+  calculosMesmoPeriodo?: Ebitda[];
   selecao: string[];
   meses: string[];
   mesAtual: string;
   lojas: { ibm: string; nome: string }[];
 };
+
+function rotuloCorte() {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  return `Acumulado até dia ${p["day"]}, ${p["hour"]}:${p["minute"]}, de cada mês`;
+}
 
 const despesas: { chave: LinhaEbitdaChave; label: string }[] = [
   { chave: "despesasPessoal", label: "Pessoal" },
