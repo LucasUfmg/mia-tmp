@@ -102,26 +102,9 @@ export async function lerContabil(opcoes: {
 }
 
 /** Coluna do banco para cada linha da DRE. */
-const COLUNAS_EBITDA: Record<LinhaEbitdaChave, string> = {
-  receitaVendas: "receita_vendas",
-  deducoes: "deducoes",
-  faltaSobra: "falta_sobra",
-  custo: "custo",
-  despesasPessoal: "despesas_pessoal",
-  administrativas: "administrativas",
-  despesasFinanceiras: "despesas_financeiras",
-  despesasNaoContabeis: "despesas_nao_contabeis",
-  despesasTributarias: "despesas_tributarias",
-  outrasOperacionais: "outras_operacionais",
-  outrasReceitasNaoOperacionais: "outras_receitas_nao_operacionais",
-  bonusPerformance: "bonus_performance",
-  rateios: "rateios",
-  bonusContrato: "bonus_contrato",
-  aluguel: "aluguel",
-  taxasCartao: "taxas_cartao",
-  frete: "frete",
-  irpjCsll: "irpj_csll",
-};
+const COLUNAS_EBITDA = Object.fromEntries(
+  linhasEbitda.map(({ chave }) => [chave, chave.replace(/[A-Z]/g, (letra) => `_${letra.toLowerCase()}`)]),
+) as Record<LinhaEbitdaChave, string>;
 
 /**
  * Detalhamento do cálculo de EBITDA (linhas da DRE preenchidas na calculadora),
@@ -149,9 +132,9 @@ export async function lerDetalheEbitda(opcoes: {
   const n = (v: unknown) => Number(v) || 0;
   const linhas = (data ?? []).map((l) => {
     const linha = l as unknown as Linha;
-    const valores = Object.fromEntries(
+     const valores = Object.fromEntries(
       linhasEbitda.map((c) => [c.chave, n(linha[COLUNAS_EBITDA[c.chave]])]),
-    ) as Record<LinhaEbitdaChave, number>;
+     ) as Record<LinhaEbitdaChave, number> & Partial<import("../ebitda").DadosBiDre>;
     return {
       ibm: String(linha["ibm"]),
       mes: String(linha["mes"]).slice(0, 10),
