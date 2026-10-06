@@ -142,10 +142,21 @@ function paraEbitda(linha: Record<string, unknown>): Ebitda {
   if (!valores.outrasReceitasNaoOperacionais) {
     valores.outrasReceitasNaoOperacionais = legado("ajusteTransporte") + legado("ajusteGestao") + legado("apropriacaoContratos");
   }
+  if (!valores.despesasGestao) valores.despesasGestao = legado("outrasOperacionais");
+  if (!valores.despesaDistribuidora) valores.despesaDistribuidora = legado("participacoesEmpregados");
   return {
     ibm: String(linha["ibm"]),
     mes: String(linha["mes"]).slice(0, 10),
     ...valores,
+    vendaCombustivel: 0,
+    vendaMercadorias: 0,
+    vendaServicos: 0,
+    custoCombustivel: 0,
+    custoMercadoria: 0,
+    litrosVendidos: 0,
+    abastecimentosRealizados: 0,
+    margemProduto: 0,
+    margemCombustivel: 0,
   };
 }
 

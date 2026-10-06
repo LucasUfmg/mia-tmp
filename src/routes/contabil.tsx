@@ -108,7 +108,20 @@ function Contabil() {
     const mapa = new Map(doBi.map((b) => [`${b.ibm}|${b.mes}`, b]));
     return (c: (typeof calculosBrutos)[number]) => {
       const b = mapa.get(`${c.ibm}|${c.mes}`);
-      return b ? { ...c, receitaVendas: b.receita, custo: b.custo } : c;
+       return b ? {
+         ...c,
+         receitaVendas: b.receita,
+         custo: b.custo,
+         vendaCombustivel: b.vendaCombustivel,
+         vendaMercadorias: b.vendaMercadorias,
+         vendaServicos: b.vendaServicos,
+         custoCombustivel: b.custoCombustivel,
+         custoMercadoria: b.custoMercadoria,
+         litrosVendidos: b.litrosVendidos,
+         abastecimentosRealizados: b.abastecimentosRealizados,
+         margemProduto: b.margemProduto,
+         margemCombustivel: b.margemCombustivel,
+       } : c;
     };
   }, [doBi]);
   const calculos = useMemo(() => calculosBrutos.map(mesclar), [calculosBrutos, mesclar]);

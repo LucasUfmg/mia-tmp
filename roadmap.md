@@ -1,6 +1,11 @@
 # Roadmap
 
 ## Dashboard DRE na aba Contábil
+- [x] Replicar todas as linhas e grupos da DRE do HTML
+- [x] Desmembrar vendas e custos de combustível e mercadorias vindos do BI
+- [x] Alinhar Lançar despesas às rubricas manuais da DRE
+- [x] Simular o comparativo para todos os postos sem persistir dados fictícios
+- [x] Validar a nova DRE e o comparativo em desktop/mobile
 - [x] Ampliar rubricas de despesas preservando os registros existentes
 - [x] Unificar linhas e fórmulas da DRE
 - [x] Criar Visão Geral, DRE Gerencial e Comparativo entre Postos

@@ -102,26 +102,9 @@ export async function lerContabil(opcoes: {
 }
 
 /** Coluna do banco para cada linha da DRE. */
-const COLUNAS_EBITDA: Record<LinhaEbitdaChave, string> = {
-  receitaVendas: "receita_vendas",
-  deducoes: "deducoes",
-  faltaSobra: "falta_sobra",
-  custo: "custo",
-  despesasPessoal: "despesas_pessoal",
-  administrativas: "administrativas",
-  despesasFinanceiras: "despesas_financeiras",
-  despesasNaoContabeis: "despesas_nao_contabeis",
-  despesasTributarias: "despesas_tributarias",
-  outrasOperacionais: "outras_operacionais",
-  outrasReceitasNaoOperacionais: "outras_receitas_nao_operacionais",
-  bonusPerformance: "bonus_performance",
-  rateios: "rateios",
-  bonusContrato: "bonus_contrato",
-  aluguel: "aluguel",
-  taxasCartao: "taxas_cartao",
-  frete: "frete",
-  irpjCsll: "irpj_csll",
-};
+const COLUNAS_EBITDA = Object.fromEntries(
+  linhasEbitda.map(({ chave }) => [chave, chave.replace(/[A-Z]/g, (letra) => `_${letra.toLowerCase()}`)]),
+) as Record<LinhaEbitdaChave, string>;
 
 /**
  * Detalhamento do cálculo de EBITDA (linhas da DRE preenchidas na calculadora),
@@ -149,9 +132,9 @@ export async function lerDetalheEbitda(opcoes: {
   const n = (v: unknown) => Number(v) || 0;
   const linhas = (data ?? []).map((l) => {
     const linha = l as unknown as Linha;
-    const valores = Object.fromEntries(
+     const valores = Object.fromEntries(
       linhasEbitda.map((c) => [c.chave, n(linha[COLUNAS_EBITDA[c.chave]])]),
-    ) as Record<LinhaEbitdaChave, number>;
+     ) as Record<LinhaEbitdaChave, number> & Partial<import("../ebitda").DadosBiDre>;
     return {
       ibm: String(linha["ibm"]),
       mes: String(linha["mes"]).slice(0, 10),
@@ -170,6 +153,17 @@ export async function lerDetalheEbitda(opcoes: {
           const b = await receitaCustoDoBi({ mes: l.mes, ...(l.ibm !== "REDE" ? { ibm: l.ibm } : {}) });
           l.valores.receitaVendas = b.receita;
           l.valores.custo = b.custo;
+           Object.assign(l.valores, {
+             vendaCombustivel: b.vendaCombustivel,
+             vendaMercadorias: b.vendaMercadorias,
+             vendaServicos: b.vendaServicos,
+             custoCombustivel: b.custoCombustivel,
+             custoMercadoria: b.custoMercadoria,
+             litrosVendidos: b.litrosVendidos,
+             abastecimentosRealizados: b.abastecimentosRealizados,
+             margemProduto: b.margemProduto,
+             margemCombustivel: b.margemCombustivel,
+           });
         } catch {
           /* mantém o valor salvo */
         }
@@ -189,7 +183,12 @@ export async function lerDetalheEbitda(opcoes: {
 
   const somas = Object.fromEntries(
     linhasEbitda.map((c) => [c.chave, escopo.reduce((s, l) => s + l.valores[c.chave], 0)]),
-  ) as Record<LinhaEbitdaChave, number>;
+  ) as Record<LinhaEbitdaChave, number> & import("../ebitda").DadosBiDre;
+  for (const chave of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) {
+    somas[chave] = escopo.reduce((total, linha) => total + Number(linha.valores[chave] ?? 0), 0);
+  }
+  somas.margemProduto = somas.vendaMercadorias ? ((somas.vendaMercadorias - somas.custoMercadoria) / somas.vendaMercadorias) * 100 : 0;
+  somas.margemCombustivel = somas.vendaCombustivel ? ((somas.vendaCombustivel - somas.custoCombustivel) / somas.vendaCombustivel) * 100 : 0;
 
   const totais = calcularEbitda(somas);
   const detalhamento = Object.fromEntries(
@@ -202,6 +201,15 @@ export async function lerDetalheEbitda(opcoes: {
     mesesCalculados: [...new Set(escopo.map((l) => l.mes))].sort().map(rotuloMes),
     postos: [...new Set(escopo.map((l) => l.ibm))],
     detalhamento,
+    vendaCombustivel: r0(somas.vendaCombustivel),
+    vendaMercadorias: r0(somas.vendaMercadorias),
+    vendaServicos: r0(somas.vendaServicos),
+    custoCombustivel: r0(somas.custoCombustivel),
+    custoMercadoria: r0(somas.custoMercadoria),
+    litrosVendidos: r0(somas.litrosVendidos),
+    abastecimentosRealizados: r0(somas.abastecimentosRealizados),
+    margemProdutoPercent: r2(somas.margemProduto),
+    margemCombustivelPercent: r2(somas.margemCombustivel),
     receitaOperacionalLiquida: r0(totais.receitaLiquida),
     resultadoOperacionalBruto: r0(totais.resultadoBruto),
     despesasTotais: r0(totais.despesasTotais),
