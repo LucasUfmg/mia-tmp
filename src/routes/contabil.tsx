@@ -179,7 +179,7 @@ function Contabil() {
   const periodoDados = useMemo(() => {
     const dados = tarefas.flatMap((p, i) => {
       const d = consultas[i]?.data;
-      return !p.mesmo && p.prioridade && d ? [d] : [];
+      return !p.mesmo && escolhido(p.mes) && d ? [d] : [];
     });
     if (dados.length === 0) return undefined;
     const inicios = dados.map((d) => d.inicioEm).sort();

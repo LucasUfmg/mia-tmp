@@ -237,7 +237,8 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
   const valor = (dados: DreConsolidada) => {
     if (linha.tipo === "manual") return comSinal(linha.chave, dados[linha.chave]);
     if (linha.tipo === "bi") return dados[linha.campo] * (linha.sinal ?? 1);
-    return dados[linha.campo] * (linha.sinal ?? 1);
+    if (linha.tipo === "grupo" || linha.tipo === "total") return dados[linha.campo] * (linha.sinal ?? 1);
+    return dados[linha.campo];
   };
   const exibir = (dados: DreConsolidada) => metrica && (linha.campo === "margemProduto" || linha.campo === "margemCombustivel") ? percentual(valor(dados)) : metrica ? numero.format(valor(dados)) : moeda(valor(dados));
   const rotulo = linha.tipo === "manual"
@@ -245,7 +246,7 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
     : linha.tipo === "bi"
       ? `(${linha.sinal === -1 ? "−" : "+"}) ${linha.label}`
       : linha.label;
-    const negativoDestacado = linha.sinal === -1 && (linha.label === "Custo" || linha.label === "Total Despesas");
+    const negativoDestacado = (linha.tipo === "grupo" || linha.tipo === "total") && linha.sinal === -1 && (linha.label === "Custo" || linha.label === "Total Despesas");
     return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? `bg-surface-muted font-bold ${negativoDestacado ? "text-destructive" : ""}` : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
 }
 
