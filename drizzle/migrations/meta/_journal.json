@@ -8,6 +8,13 @@
       "when": 1791307019775,
       "tag": "0000_expand_dre_manual_lines",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791307942616,
+      "tag": "0001_add_manual_service_sales",
+      "breakpoints": true
     }
   ]
 }

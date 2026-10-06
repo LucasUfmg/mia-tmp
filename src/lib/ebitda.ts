@@ -6,6 +6,7 @@
 export const linhasEbitda = [
   { chave: "receitaVendas", label: "Receita bruta", sinal: 1, origem: "bi" },
   { chave: "custo", label: "CMV", sinal: -1, origem: "bi" },
+  { chave: "vendaServicosManual", label: "Venda de Serviços", sinal: 1, origem: "manual" },
   { chave: "deducoes", label: "Descontos", sinal: -1, origem: "manual" },
   { chave: "acrescimos", label: "Acréscimos", sinal: 1, origem: "manual" },
   { chave: "impostosFaturamentoPostos", label: "Postos", sinal: -1, origem: "manual" },
@@ -88,12 +89,16 @@ export function comSinal(chave: LinhaEbitdaChave, valor: number): number {
   return sinais[chave] * Math.abs(valor || 0);
 }
 
+export function rotuloComSinal(chave: LinhaEbitdaChave, label: string): string {
+  return `(${sinais[chave] >= 0 ? "+" : "−"}) ${label}`;
+}
+
 const somaAbs = (v: Record<LinhaEbitdaChave, number>, chaves: LinhaEbitdaChave[]) =>
   chaves.reduce((total, chave) => total + Math.abs(v[chave] || 0), 0);
 
 export function calcularEbitda(v: Record<LinhaEbitdaChave, number> & Partial<DadosBiDre>): ResultadoEbitda {
   const s = (chave: LinhaEbitdaChave) => comSinal(chave, v[chave]);
-  const receitaBruta = (v.vendaCombustivel || 0) + (v.vendaMercadorias || 0) + (v.vendaServicos || 0) || s("receitaVendas");
+  const receitaBruta = (v.vendaCombustivel || 0) + (v.vendaMercadorias || 0) + s("vendaServicosManual") || s("receitaVendas");
   const totalReceita = receitaBruta + s("deducoes") + s("acrescimos");
   const impostos = ["impostosFaturamentoPostos", "impostosFaturamentoDistribuidora", "impostosFaturamentoSatelites", "impostosFaturamentoPatrimonial", "impostosFaturamentoLogistica"] as LinhaEbitdaChave[];
   const totalImpostos = somaAbs(v, impostos);
@@ -136,10 +141,14 @@ export type LinhaDre =
 
 /** Ordem visual idêntica ao modelo de DRE fornecido. */
 export const linhasDre: LinhaDre[] = [
+  { tipo: "metrica", label: "Litros Vendidos", campo: "litrosVendidos" },
+  { tipo: "metrica", label: "Abastecimentos Realizados", campo: "abastecimentosRealizados" },
+  { tipo: "metrica", label: "Margem Produto", campo: "margemProduto" },
+  { tipo: "metrica", label: "Margem Combustível", campo: "margemCombustivel" },
   { tipo: "grupo", label: "Total Receita", campo: "totalReceita" },
   { tipo: "bi", label: "Venda de Combustível", campo: "vendaCombustivel" },
   { tipo: "bi", label: "Venda de Mercadorias (Produtos)", campo: "vendaMercadorias" },
-  { tipo: "bi", label: "Venda de Serviços", campo: "vendaServicos" },
+  { tipo: "manual", label: "Venda de Serviços", chave: "vendaServicosManual" },
   { tipo: "manual", label: "Descontos", chave: "deducoes" },
   { tipo: "manual", label: "Acréscimos", chave: "acrescimos" },
   { tipo: "grupo", label: "Impostos sobre Faturamento", campo: "totalImpostos" },
@@ -165,10 +174,6 @@ export const linhasDre: LinhaDre[] = [
   { tipo: "grupo", label: "Sócios", campo: "resultadoFinal" },
   { tipo: "manual", label: "Retiradas / Pró-labore", chave: "socios" },
   { tipo: "total", label: "Resultado Empresa", campo: "resultadoFinal" },
-  { tipo: "metrica", label: "Litros Vendidos", campo: "litrosVendidos" },
-  { tipo: "metrica", label: "Abastecimentos Realizados", campo: "abastecimentosRealizados" },
-  { tipo: "metrica", label: "Margem Produto", campo: "margemProduto" },
-  { tipo: "metrica", label: "Margem Combustível", campo: "margemCombustivel" },
 ];
 
 export const totaisApos = {};

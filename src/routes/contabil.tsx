@@ -208,7 +208,7 @@ function Contabil() {
                 }}
               >
                 <Sigma className="mr-1.5 h-4 w-4 text-gold" />
-                Lançar despesas
+                Lançar valores da DRE
               </Button>
               <Button
                 onClick={() => {

@@ -31,7 +31,7 @@ import {
   paraNumero,
   rotuloMes,
 } from "@/lib/contabil";
-import { linhasDespesas, linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { linhasDespesas, linhasEbitda, rotuloComSinal, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
 
@@ -130,10 +130,9 @@ export function EbitdaDialog({
     <Dialog open={aberto} onOpenChange={onAberto}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Lançar despesas</DialogTitle>
+          <DialogTitle>Lançar valores da DRE</DialogTitle>
           <DialogDescription>
-            Preencha as despesas do posto e do mês. Os resultados aparecem no painel Contábil
-            depois de salvar.
+            Preencha as rubricas manuais do posto e do mês. Métricas do BI e totais permanecem automáticos.
           </DialogDescription>
         </DialogHeader>
 
@@ -182,7 +181,7 @@ export function EbitdaDialog({
                 className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3"
               >
                 <Label htmlFor={`ebitda-${l.chave}`} className="text-xs sm:text-sm">
-                  {l.label}
+                   {rotuloComSinal(l.chave, l.label)}
                 </Label>
                 <Input
                   id={`ebitda-${l.chave}`}
@@ -208,7 +207,7 @@ export function EbitdaDialog({
             disabled={!ibm || mutation.isPending}
             className="bg-gold text-gold-foreground hover:bg-gold/90"
           >
-            {mutation.isPending ? "Salvando…" : "Salvar despesas"}
+            {mutation.isPending ? "Salvando…" : "Salvar valores"}
           </Button>
         </DialogFooter>
       </DialogContent>

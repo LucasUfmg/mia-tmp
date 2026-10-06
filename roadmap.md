@@ -1,6 +1,10 @@
 # Roadmap
 
 ## Dashboard DRE na aba Contábil
+- [x] Mover litros, abastecimentos e margens para o topo da DRE
+- [x] Exibir sinais (+) e (−) nas linhas que compõem os cálculos
+- [x] Liberar todas as rubricas sem origem automática para lançamento manual
+- [x] Manter subtotais, EBITDA e resultado final calculados automaticamente
 - [x] Replicar todas as linhas e grupos da DRE do HTML
 - [x] Desmembrar vendas e custos de combustível e mercadorias vindos do BI
 - [x] Alinhar Lançar despesas às rubricas manuais da DRE
