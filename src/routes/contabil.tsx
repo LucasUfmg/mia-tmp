@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
@@ -24,6 +24,8 @@ import { receitaCustoMes } from "@/lib/redeflex.functions";
 const LIMITE_BI = 4;
 let biAtivas = 0;
 const filaBi: (() => void)[] = [];
+/** Ligado pelo botão "Atualizar dados": ignora o cache do servidor. */
+let forcarBi = false;
 async function limitarBi<T>(fn: () => Promise<T>): Promise<T> {
   if (biAtivas >= LIMITE_BI) await new Promise<void>((r) => filaBi.push(r));
   biAtivas++;
@@ -74,6 +76,19 @@ function Contabil() {
 
 
   const ano = anoDoMes(mes);
+  const queryClient = useQueryClient();
+  const [atualizando, setAtualizando] = useState(false);
+  const atualizarDados = async () => {
+    setAtualizando(true);
+    forcarBi = true;
+    try {
+      await queryClient.refetchQueries({ queryKey: ["contabil"], type: "active" });
+    } finally {
+      forcarBi = false;
+      setAtualizando(false);
+    }
+  };
+  const menosUmAno = (m: string) => `${Number(m.slice(0, 4)) - 1}${m.slice(4)}`;
 
   const { data: lojas = [] } = useQuery({
     queryKey: ["redeflex", "lojas"],
@@ -116,11 +131,15 @@ function Contabil() {
     const primeiro = escopo[0] ?? mes;
     const [a, m] = primeiro.split("-").map(Number) as [number, number];
     const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
-    return new Set([...escopo, anterior]);
+    // Acumulado do ano: compara com o mesmo período do ano anterior.
+    const anoAnt = visao === "ano" ? escopo.map(menosUmAno) : [];
+    return new Set([...escopo, anterior, ...anoAnt]);
   }, [visao, mes, ano]);
   const pares = useMemo(() => {
     const [a, m] = mes.split("-").map(Number) as [number, number];
-    const limiteInicio = new Date(Date.UTC(a, m - 13, 1)).toISOString().slice(0, 10);
+    const ultimos12 = new Date(Date.UTC(a, m - 13, 1)).toISOString().slice(0, 10);
+    const janAnoAnt = `${a - 1}-01-01`;
+    const limiteInicio = visao === "ano" && janAnoAnt < ultimos12 ? janAnoAnt : ultimos12;
     const vistos = new Set<string>();
     const lista = [...calculosAnt, ...calculosBrutos]
       .filter((c) => c.mes <= mesCorrente && c.mes >= limiteInicio)
@@ -133,21 +152,21 @@ function Contabil() {
       .map((c) => ({ ibm: c.ibm, mes: c.mes, prioridade: mesesPrioritarios.has(c.mes) }));
     // Prioritários primeiro (cards/DRE); o restante alimenta os gráficos.
     return lista.sort((x, y) => Number(y.prioridade) - Number(x.prioridade) || y.mes.localeCompare(x.mes));
-  }, [calculosAnt, calculosBrutos, mesCorrente, mes, mesesPrioritarios]);
+  }, [calculosAnt, calculosBrutos, mesCorrente, mes, mesesPrioritarios, visao]);
 
   // Ordem da fila: meses escolhidos (mês cheio e mesmo período) primeiro,
   // depois o restante dos gráficos. O mês corrente já é "mesmo período".
   const tarefas = useMemo(() => {
     const t = (lista: typeof pares, mesmo: boolean) =>
-      lista.filter((p) => !mesmo || p.mes !== mesCorrente).map((p) => ({ ...p, mesmo }));
+      lista.filter((p) => !mesmo || (p.mes !== mesCorrente && (p.mes >= `${ano}-01-01` || p.mes === menosUmAno(mesCorrente) || p.mes.slice(5) !== mesCorrente.slice(5) || true))).map((p) => ({ ...p, mesmo }));
     const prio = pares.filter((p) => p.prioridade);
     const resto = pares.filter((p) => !p.prioridade);
     return [...t(prio, false), ...t(prio, true), ...t(resto, false), ...t(resto, true)];
-  }, [pares, mesCorrente]);
+  }, [pares, mesCorrente, ano]);
   const consultas = useQueries({
     queries: tarefas.map((p) => ({
       queryKey: ["contabil", p.mesmo ? "bi-mes-mesmo-periodo" : "bi-mes", p.ibm, p.mes],
-      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, ...(p.mesmo ? { mesmoPeriodo: true } : {}) } })),
+      queryFn: () => limitarBi(() => receitaCustoMes({ data: { ibm: p.ibm, mes: p.mes, ...(p.mesmo ? { mesmoPeriodo: true } : {}), ...(forcarBi ? { fresh: true } : {}) } })),
       staleTime: p.mes < mesCorrente && !p.mesmo ? 12 * 60 * 60_000 : 5 * 60_000,
       retry: 1,
     })),
@@ -234,6 +253,20 @@ function Contabil() {
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
   const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
+
+  // Acumulado do ano: mesmo período do ano anterior. O mês equivalente ao
+  // corrente é cortado no mesmo dia/hora, com despesas proporcionais.
+  const comparacaoAnual = useMemo(() => {
+    if (visao !== "ano") return undefined;
+    const mesesAnt = mesesEscopo.map(menosUmAno);
+    const mesCorte = mesesEscopo.includes(mesCorrente) ? menosUmAno(mesCorrente) : null;
+    const cortados = new Map((calculosMesmoPeriodo ?? []).filter((c) => c.mes === mesCorte).map((c) => [`${c.ibm}|${c.mes}`, c]));
+    const calculosAno = calculosComAnterior
+      .filter((c) => mesesAnt.includes(c.mes))
+      .map((c) => (c.mes === mesCorte ? cortados.get(`${c.ibm}|${c.mes}`) ?? proporcionalizarDespesas({ ...c, receitaVendas: 0, custo: 0, vendaCombustivel: 0, vendaMercadorias: 0, custoCombustivel: 0, custoMercadoria: 0 }, fatorDiasDoMes(mesCorrente)) : c));
+    return { calculos: calculosAno, meses: mesesAnt };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visao, mesesEscopo.join(","), mesCorrente, calculosMesmoPeriodo, calculosComAnterior]);
 
   const nomePosto = (ibm: string) =>
     ibm === IBM_REDE ? "Rede (consolidado)" : (lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`);
@@ -375,6 +408,9 @@ function Contabil() {
           mesAtual={mes}
           lojas={lojas}
           {...(periodoDados ? { periodoDados } : {})}
+          {...(comparacaoAnual ? { comparacaoAnual } : {})}
+          onAtualizar={atualizarDados}
+          atualizando={atualizando}
         />
       </main>
 
