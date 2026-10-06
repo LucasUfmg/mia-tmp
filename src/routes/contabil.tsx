@@ -405,6 +405,7 @@ function Contabil() {
           {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
           biStatus={pares.length === 0 ? "ok" : carregandoBi ? "carregando" : erroBi ? "erro" : "ok"}
+          carregandoTudo={carregandoTudoBi}
           onRecarregarBi={recarregarBi}
           meses={mesesEscopo}
           mesAtual={mes}
