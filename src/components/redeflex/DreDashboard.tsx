@@ -180,6 +180,12 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
           </Button>
         )}
       </section>
+      {carregandoTudo && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-brand/40 bg-brand-soft px-4 py-4 sm:px-5" role="status" aria-live="polite">
+          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand" />
+          <p className="text-sm font-extrabold text-foreground sm:text-base">O volume de dados é grande! Gentileza aguarde</p>
+        </div>
+      )}
       <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         <TabsTrigger value="geral" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Visão Geral</TabsTrigger>
         <TabsTrigger value="dre" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">DRE Gerencial</TabsTrigger>
