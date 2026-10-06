@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CircleDollarSign, Gauge, Landmark, ReceiptText, RefreshCw, TrendingUp } from "lucide-react";
+import { CircleDollarSign, Gauge, Landmark, Loader2, ReceiptText, RefreshCw, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
