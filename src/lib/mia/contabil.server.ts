@@ -183,7 +183,12 @@ export async function lerDetalheEbitda(opcoes: {
 
   const somas = Object.fromEntries(
     linhasEbitda.map((c) => [c.chave, escopo.reduce((s, l) => s + l.valores[c.chave], 0)]),
-  ) as Record<LinhaEbitdaChave, number>;
+  ) as Record<LinhaEbitdaChave, number> & import("../ebitda").DadosBiDre;
+  for (const chave of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) {
+    somas[chave] = escopo.reduce((total, linha) => total + Number(linha.valores[chave] ?? 0), 0);
+  }
+  somas.margemProduto = somas.vendaMercadorias ? ((somas.vendaMercadorias - somas.custoMercadoria) / somas.vendaMercadorias) * 100 : 0;
+  somas.margemCombustivel = somas.vendaCombustivel ? ((somas.vendaCombustivel - somas.custoCombustivel) / somas.vendaCombustivel) * 100 : 0;
 
   const totais = calcularEbitda(somas);
   const detalhamento = Object.fromEntries(
@@ -196,6 +201,15 @@ export async function lerDetalheEbitda(opcoes: {
     mesesCalculados: [...new Set(escopo.map((l) => l.mes))].sort().map(rotuloMes),
     postos: [...new Set(escopo.map((l) => l.ibm))],
     detalhamento,
+    vendaCombustivel: r0(somas.vendaCombustivel),
+    vendaMercadorias: r0(somas.vendaMercadorias),
+    vendaServicos: r0(somas.vendaServicos),
+    custoCombustivel: r0(somas.custoCombustivel),
+    custoMercadoria: r0(somas.custoMercadoria),
+    litrosVendidos: r0(somas.litrosVendidos),
+    abastecimentosRealizados: r0(somas.abastecimentosRealizados),
+    margemProdutoPercent: r2(somas.margemProduto),
+    margemCombustivelPercent: r2(somas.margemCombustivel),
     receitaOperacionalLiquida: r0(totais.receitaLiquida),
     resultadoOperacionalBruto: r0(totais.resultadoBruto),
     despesasTotais: r0(totais.despesasTotais),
