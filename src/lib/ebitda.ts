@@ -44,6 +44,16 @@ export const linhasEbitda = [
 export type LinhaEbitdaChave = (typeof linhasEbitda)[number]["chave"];
 export const linhasDespesas = linhasEbitda.filter((linha) => linha.origem === "manual");
 
+export const gruposLancamentoDre = [
+  { titulo: "Receitas e ajustes", chaves: ["vendaServicosManual", "deducoes", "acrescimos"] },
+  { titulo: "Impostos sobre Faturamento", chaves: ["impostosFaturamentoPostos", "impostosFaturamentoDistribuidora", "impostosFaturamentoSatelites", "impostosFaturamentoPatrimonial", "impostosFaturamentoLogistica"] },
+  { titulo: "Complementos de Custo", chaves: ["receitaLiquidaDistribuidora", "bonusPerformance", "frete"] },
+  { titulo: "Total Despesas", chaves: ["despesasPessoal", "administrativas", "taxasCartao", "rateios", "despesasTributarias", "aluguel", "despesasGestao", "despesaDistribuidora", "overAluguel"] },
+  { titulo: "Receitas e Despesas Não Operacionais", chaves: ["receitasFinanceiras", "receitasDiversas", "receitaFinanceiraDistribuidora", "despesasFinanceiras", "despesasNaoContabeis", "despesaFinanceiraDistribuidora", "bonusContrato"] },
+  { titulo: "IRPJ e CSLL", chaves: ["irpjCsll", "irpjCsllDistribuidora", "irpjCsllGestao", "irpjCsllPatrimonial", "irpjCsllLogistica"] },
+  { titulo: "Sócios", chaves: ["socios"] },
+] as const satisfies readonly { titulo: string; chaves: readonly LinhaEbitdaChave[] }[];
+
 export const linhasEbitdaLegadas = [
   "faltaSobra", "outrasOperacionais", "outrasReceitasNaoOperacionais",
   "ajusteEnergy", "ajusteTransporte", "ajusteGestao", "furtosRoubos",
