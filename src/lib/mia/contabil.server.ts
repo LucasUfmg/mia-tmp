@@ -170,6 +170,17 @@ export async function lerDetalheEbitda(opcoes: {
           const b = await receitaCustoDoBi({ mes: l.mes, ...(l.ibm !== "REDE" ? { ibm: l.ibm } : {}) });
           l.valores.receitaVendas = b.receita;
           l.valores.custo = b.custo;
+           Object.assign(l.valores, {
+             vendaCombustivel: b.vendaCombustivel,
+             vendaMercadorias: b.vendaMercadorias,
+             vendaServicos: b.vendaServicos,
+             custoCombustivel: b.custoCombustivel,
+             custoMercadoria: b.custoMercadoria,
+             litrosVendidos: b.litrosVendidos,
+             abastecimentosRealizados: b.abastecimentosRealizados,
+             margemProduto: b.margemProduto,
+             margemCombustivel: b.margemCombustivel,
+           });
         } catch {
           /* mantém o valor salvo */
         }

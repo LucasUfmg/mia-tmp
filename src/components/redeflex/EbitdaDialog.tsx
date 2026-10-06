@@ -31,13 +31,9 @@ import {
   paraNumero,
   rotuloMes,
 } from "@/lib/contabil";
-import { linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { linhasDespesas, linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 
 import type { Loja } from "@/lib/redeflex-dashboard";
-
-/** Receita e custo vêm do BI: gravados em segundo plano, nunca exibidos aqui. */
-const travadas: LinhaEbitdaChave[] = ["receitaVendas", "custo"];
-
 
 type Props = {
   aberto: boolean;
@@ -180,9 +176,7 @@ export function EbitdaDialog({
           <div
             className="grid gap-3"
           >
-          {linhasEbitda
-            .filter((l) => !travadas.includes(l.chave))
-            .map((l) => (
+           {linhasDespesas.map((l) => (
               <div
                 key={l.chave}
                 className="grid gap-1.5 sm:grid-cols-[1fr_180px] sm:items-center sm:gap-3"
