@@ -80,10 +80,14 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
-  const mensais = useMemo(
-    () => meses.map((mes) => ({ mes, ...consolidarEbitda(calculos, selecao, [mes]) })),
-    [calculos, selecao, meses],
-  );
+  // Evolução: todos os meses até o selecionado que tenham dados (últimos 12).
+  const mensais = useMemo(() => {
+    const todos = [...new Set(calculos.map((c) => c.mes))].filter((m) => m <= mesAtual).sort();
+    return todos
+      .map((mes) => ({ mes, ...consolidarEbitda(calculos, selecao, [mes]) }))
+      .filter((d) => d.receitaBruta || d.resultadoFinal)
+      .slice(-12);
+  }, [calculos, selecao, mesAtual]);
   const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
   const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
   const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
