@@ -194,6 +194,8 @@ function Contabil() {
   const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
   // Comparação "mesmo período" só aparece quando os meses prioritários chegaram.
   const mesmoPeriodoPronto = tarefas.every((p, i) => !p.prioridade || !p.mesmo || !consultas[i]?.isPending);
+  // Loading geral: enquanto qualquer mês do BI (cards ou gráficos) não chegar.
+  const carregandoTudoBi = atualizando || consultas.some((q) => q.isPending);
   const recarregarBi = () => consultas.forEach((q) => q.isError && void q.refetch());
   const periodoDados = useMemo(() => {
     const dados = tarefas.flatMap((p, i) => {
@@ -403,6 +405,7 @@ function Contabil() {
           {...(calculosMesmoPeriodo ? { calculosMesmoPeriodo } : {})}
           selecao={selecao}
           biStatus={pares.length === 0 ? "ok" : carregandoBi ? "carregando" : erroBi ? "erro" : "ok"}
+          carregandoTudo={carregandoTudoBi}
           onRecarregarBi={recarregarBi}
           meses={mesesEscopo}
           mesAtual={mes}

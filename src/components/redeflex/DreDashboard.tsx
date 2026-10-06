@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CircleDollarSign, Gauge, Landmark, ReceiptText, RefreshCw, TrendingUp } from "lucide-react";
+import { CircleDollarSign, Gauge, Landmark, Loader2, ReceiptText, RefreshCw, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -37,6 +37,8 @@ type Props = {
   calculosMesmoPeriodo?: Ebitda[];
   biStatus?: "ok" | "carregando" | "erro";
   onRecarregarBi?: () => void;
+  /** Verdadeiro enquanto qualquer mês do BI ainda não carregou. */
+  carregandoTudo?: boolean;
   selecao: string[];
   meses: string[];
   mesAtual: string;
@@ -96,7 +98,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparaca
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
-export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas, periodoDados, comparacaoAnual, onAtualizar, atualizando = false }: Props) {
+export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, carregandoTudo = false, selecao, meses, mesAtual, lojas, periodoDados, comparacaoAnual, onAtualizar, atualizando = false }: Props) {
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
@@ -178,6 +180,12 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
           </Button>
         )}
       </section>
+      {carregandoTudo && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl border border-brand/40 bg-brand-soft px-4 py-4 sm:px-5" role="status" aria-live="polite">
+          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand" />
+          <p className="text-sm font-extrabold text-foreground sm:text-base">O volume de dados é grande! Gentileza aguarde</p>
+        </div>
+      )}
       <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         <TabsTrigger value="geral" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Visão Geral</TabsTrigger>
         <TabsTrigger value="dre" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">DRE Gerencial</TabsTrigger>
