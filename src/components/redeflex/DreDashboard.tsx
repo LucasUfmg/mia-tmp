@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { CircleDollarSign, Gauge, Landmark, ReceiptText, TrendingUp } from "lucide-react";
+import { CircleDollarSign, Gauge, Landmark, ReceiptText, RefreshCw, TrendingUp } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -42,6 +42,10 @@ type Props = {
   mesAtual: string;
   lojas: { ibm: string; nome: string }[];
   periodoDados?: { inicioEm: string; fimEm: string };
+  /** Acumulado do ano: mesmo período do ano anterior. */
+  comparacaoAnual?: { calculos: Ebitda[]; meses: string[] };
+  onAtualizar?: () => void;
+  atualizando?: boolean;
 };
 
 function rotuloCorte() {
@@ -92,7 +96,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparaca
 
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
-export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas, periodoDados }: Props) {
+export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, selecao, meses, mesAtual, lojas, periodoDados, comparacaoAnual, onAtualizar, atualizando = false }: Props) {
   const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
@@ -119,11 +123,14 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
   const mesCorrenteSp = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
   const usaCorte = !!calculosMesmoPeriodo && meses.length === 1 && meses[0] === mesCorrenteSp;
   const anterior = useMemo(
-    () => consolidarEbitda(usaCorte ? calculosMesmoPeriodo! : calculos, selecao, mesesAnt),
-    [usaCorte, calculosMesmoPeriodo, calculos, selecao, mesesAnt],
+    () => comparacaoAnual
+      ? consolidarEbitda(comparacaoAnual.calculos, selecao, comparacaoAnual.meses)
+      : consolidarEbitda(usaCorte ? calculosMesmoPeriodo! : calculos, selecao, mesesAnt),
+    [comparacaoAnual, usaCorte, calculosMesmoPeriodo, calculos, selecao, mesesAnt],
   );
-  const rotuloComparacao = usaCorte ? "vs mesmo período do mês anterior" : "vs mês anterior";
-  const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
+  const rotuloComparacao = comparacaoAnual ? "vs mesmo período do ano anterior" : usaCorte ? "vs mesmo período do mês anterior" : "vs mês anterior";
+  // Sem ano anterior: variação zerada.
+  const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : comparacaoAnual ? 0 : null);
   const composicao = despesas.map((item) => ({ name: item.label, value: Math.abs(consolidado[item.chave]) }));
   const maiores = [...composicao].sort((a, b) => b.value - a.value);
   const cards = [
@@ -157,11 +164,19 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
 
   return (
     <Tabs defaultValue="geral" className="mt-6">
-      <section className="mb-5 border-y border-info/30 bg-info-soft px-4 py-4 sm:px-5">
+      <section className="mb-5 flex flex-wrap items-center justify-between gap-3 border-y border-info/30 bg-info-soft px-4 py-4 sm:px-5">
+        <div>
         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-info-foreground">Período dos dados apresentados</p>
         <p className="mt-1 text-lg font-extrabold tabular-nums text-foreground sm:text-2xl">
           {biStatus === "carregando" ? "Carregando período…" : biStatus === "erro" || !periodoDados ? "Período indisponível" : `${formatarInstante(periodoDados.inicioEm)} → ${formatarInstante(periodoDados.fimEm)}`}
         </p>
+        </div>
+        {onAtualizar && (
+          <Button variant="outline" onClick={onAtualizar} disabled={atualizando || biStatus === "carregando"}>
+            <RefreshCw className={`mr-1.5 h-4 w-4 ${atualizando ? "animate-spin" : ""}`} />
+            {atualizando ? "Atualizando…" : "Atualizar dados"}
+          </Button>
+        )}
       </section>
       <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         <TabsTrigger value="geral" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Visão Geral</TabsTrigger>
@@ -195,7 +210,8 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
 
       <TabsContent value="dre" className="mt-5 space-y-4">
         <div className="flex flex-wrap gap-2">{meses.map((mes) => <Button key={mes} size="sm" variant={mesesDre.includes(mes) ? "default" : "outline"} onClick={() => alternarMes(mes)}>{rotuloMes(mes)}</Button>)}</div>
-         <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
+         <p className="flex items-center gap-2 text-xs text-muted-foreground"><span className="inline-block h-3 w-3 rounded-sm border border-border bg-bi-soft" />Verde = dados do BI</p>
+        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">
@@ -247,7 +263,8 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
       ? `(${linha.sinal === -1 ? "−" : "+"}) ${linha.label}`
       : linha.label;
     const negativoDestacado = (linha.tipo === "grupo" || linha.tipo === "total") && linha.sinal === -1 && (linha.label === "Custo" || linha.label === "Total Despesas");
-    return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? `bg-surface-muted font-bold ${negativoDestacado ? "text-destructive" : ""}` : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
+    const doBi = linha.tipo === "bi" || metrica;
+    return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? `bg-surface-muted font-bold ${negativoDestacado ? "text-destructive" : ""}` : doBi ? `border-b border-border/70 bg-bi-soft ${metrica ? "font-semibold" : ""}` : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{rotulo}{linha.tipo === "metrica" && linha.formula && <span className="block text-[10px] font-normal not-italic text-muted-foreground">{linha.formula}</span>}</td>{colunas.map(({ mes, dados }) => <ValuePair key={mes} mes={mes} dados={dados} metrica={metrica} valor={valor(dados)} exibir={exibir(dados)} />)}</tr>;
 }
 
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
