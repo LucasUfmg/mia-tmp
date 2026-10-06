@@ -315,6 +315,15 @@ const receitaCustoSchema = z.object({
 export type ReceitaCusto = {
   receita: number;
   custo: number;
+  vendaCombustivel: number;
+  vendaMercadorias: number;
+  vendaServicos: number;
+  custoCombustivel: number;
+  custoMercadoria: number;
+  litrosVendidos: number;
+  abastecimentosRealizados: number;
+  margemProduto: number;
+  margemCombustivel: number;
   /** true = mês corrente (acumulado até agora). */
   parcial: boolean;
   /** Último dia considerado ("YYYY-MM-DD"). */
@@ -339,14 +348,14 @@ export const listarReceitaCusto = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { receitaCustoDoBi } = await import("./receita-custo.server");
-    const saida: { ibm: string; mes: string; receita: number; custo: number }[] = [];
+    const saida: ({ ibm: string; mes: string } & ReceitaCusto)[] = [];
     for (let i = 0; i < data.pares.length; i += 6) {
       const lote = data.pares.slice(i, i + 6);
       const r = await Promise.all(
         lote.map(async (p) => {
           try {
             const v = await receitaCustoDoBi({ mes: p.mes, ...(p.ibm !== "REDE" ? { ibm: p.ibm } : {}) });
-            return { ...p, receita: v.receita, custo: v.custo };
+            return { ...p, ...v };
           } catch {
             return null;
           }

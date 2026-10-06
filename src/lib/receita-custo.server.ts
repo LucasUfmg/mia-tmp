@@ -52,9 +52,27 @@ export async function receitaCustoDoBi(data: { mes: string; ibm?: string | undef
         },
       );
 
-      const receita = indicadores.combustivel.receita + indicadores.produto.receita;
-      const lucroBruto = indicadores.combustivel.lucroBruto + indicadores.produto.lucroBruto;
-      return { receita, custo: receita - lucroBruto, parcial, ate };
+       const vendaCombustivel = indicadores.combustivel.receita;
+       const vendaMercadorias = indicadores.produto.receita;
+       const custoCombustivel = vendaCombustivel - indicadores.combustivel.lucroBruto;
+       const custoMercadoria = vendaMercadorias - indicadores.produto.lucroBruto;
+       const receita = vendaCombustivel + vendaMercadorias;
+       const custo = custoCombustivel + custoMercadoria;
+       return {
+         receita,
+         custo,
+         vendaCombustivel,
+         vendaMercadorias,
+         vendaServicos: 0,
+         custoCombustivel,
+         custoMercadoria,
+         litrosVendidos: indicadores.combustivel.litros,
+         abastecimentosRealizados: indicadores.combustivel.atendimentos,
+         margemProduto: vendaMercadorias ? ((vendaMercadorias - custoMercadoria) / vendaMercadorias) * 100 : 0,
+         margemCombustivel: vendaCombustivel ? ((vendaCombustivel - custoCombustivel) / vendaCombustivel) * 100 : 0,
+         parcial,
+         ate,
+       };
     } catch (error) {
       console.error("[RedeFlex:getReceitaCusto]", error);
       throw error;
