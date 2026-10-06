@@ -61,6 +61,8 @@ export async function receitaCustoDoBi(data: {
               await getIndicadores(escopo.dates, escopo.ibm, escopo.cutoffMinutes, escopo.desde),
           );
         },
+        // Mês fechado não muda: guarda por 12 h. Mês corrente: 5 min.
+        parcial ? 5 * 60_000 : 12 * 60 * 60_000,
       );
 
        const vendaCombustivel = indicadores.combustivel.receita;

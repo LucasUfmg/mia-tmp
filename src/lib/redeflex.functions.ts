@@ -341,6 +341,45 @@ export const getReceitaCusto = createServerFn({ method: "POST" })
     return await receitaCustoDoBi(data);
   });
 
+/**
+ * Receita e custo do BI de UM posto (ou "REDE") em UM mês — mesma consulta da
+ * Visão Geral (intervalo contínuo do dia 1 até o corte). `mesmoPeriodo` corta
+ * o mês no mesmo dia e hora de agora (São Paulo).
+ */
+export const receitaCustoMes = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        ibm: z.string().min(1),
+        mes: z.string().regex(/^\d{4}-\d{2}-01$/),
+        mesmoPeriodo: z.boolean().optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<ReceitaCusto> => {
+    const { receitaCustoDoBi } = await import("./receita-custo.server");
+    let corte: { dia: number; minutos: number } | undefined;
+    if (data.mesmoPeriodo) {
+      const partes = Object.fromEntries(
+        new Intl.DateTimeFormat("en-GB", {
+          timeZone: "America/Sao_Paulo",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+          .formatToParts(new Date())
+          .map((p) => [p.type, p.value]),
+      );
+      corte = { dia: Number(partes["day"]), minutos: (Number(partes["hour"]) % 24) * 60 + Number(partes["minute"]) };
+    }
+    return await receitaCustoDoBi({
+      mes: data.mes,
+      ...(data.ibm !== "REDE" ? { ibm: data.ibm } : {}),
+      ...(corte ? { corte } : {}),
+    });
+  });
+
 /** Receita e custo do BI para vários pares posto/mês (painel Contábil). */
 export const listarReceitaCusto = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) =>
