@@ -9,12 +9,13 @@
 A tabela seguirá a estrutura do modelo:
 
 1. **Total Receita**
-   - Receita bruta do BI, preservando-a como informação automática e não editável.
+   - Venda de Combustível, Venda de Mercadorias e Venda de Serviços como linhas separadas.
+   - Venda de Combustível e Venda de Mercadorias virão desmembradas do BI; Venda de Serviços será mantida como linha mapeada e usará a fonte disponível no banco, ou zero quando não houver origem identificável.
    - Descontos e Acréscimos como linhas separadas.
 2. **Impostos sobre Faturamento**
 3. **Custo**
-   - CMV do BI, automático e não editável.
-   - Bônus de Performance e Frete.
+   - Custo Combustível e Custo Mercadoria virão desmembrados do BI, automáticos e não editáveis.
+   - Receita Líquida Distribuidora, Bônus de Performance e Frete permanecem como linhas distintas do HTML.
 4. **Resultado Operacional Bruto**
 5. **Total Despesas**
    - Pessoal
@@ -30,15 +31,19 @@ A tabela seguirá a estrutura do modelo:
 7. **Receitas e Despesas Não Operacionais**
    - Receitas Financeiras
    - Receitas Diversas
+   - Receita Financeira Distribuidora
    - Despesas Financeiras
    - Despesas Não Operacionais
+   - Despesa Financeira Distribuidora
    - Bônus de Contrato
 8. **IRPJ e CSLL**
-   - IRPJ e CSLL
+   - Provisões de IRPJ e CSLL para Postos, Distribuidora, Gestão, Patrimonial e Logística como linhas separadas
    - Sócios (Retiradas/Pró-labore)
    - Distribuição de Lucros
    - Investimentos
 9. **Resultado Empresa**
+
+Também serão preservadas as linhas operacionais do HTML **Litros Vendidos**, **Abastecimentos Realizados**, **Margem Produto** e **Margem Combustível**, alimentadas pelo BI e exibidas como métricas, não como despesas editáveis.
 
 A tabela terá:
 - grupos e subtotais com o mesmo destaque do HTML;
@@ -50,7 +55,7 @@ A tabela terá:
 - rolagem horizontal no celular, sem cortar números.
 
 ## Lançar despesas
-- Exibir somente as rubricas manuais da DRE acima.
+- Exibir somente todas as rubricas manuais mapeadas no HTML; linhas automáticas do BI e checkpoints não entram no formulário.
 - Separar os campos nos mesmos grupos da DRE para facilitar o preenchimento.
 - Manter troca rápida entre posto e mês.
 - Não buscar nem mostrar Receita ou CMV.
@@ -67,9 +72,9 @@ A tabela terá:
 - Não salvar a simulação no banco e não misturá-la com os números reais da Visão Geral ou da DRE Gerencial.
 
 ## Dados e fórmulas
-- Acrescentar ao banco somente as rubricas ainda ausentes, por migração aditiva, com permissões equivalentes às atuais e sem apagar dados.
+- Acrescentar ao banco somente as rubricas manuais ainda ausentes, por migração aditiva, com permissões equivalentes às atuais e sem apagar dados. As linhas automáticas do BI não serão persistidas na tabela de despesas.
 - Manter todas as definições de linhas, grupos, sinais, subtotais e fórmulas centralizadas no módulo contábil compartilhado, para painel, formulário e Mia não divergirem.
-- Receita e CMV continuam vindo exclusivamente do BI; despesas continuam vindo dos lançamentos do usuário.
+- Vendas e custos de combustível e mercadorias continuam vindo exclusivamente do BI, agora desmembrados; despesas e demais rubricas manuais continuam vindo dos lançamentos do usuário.
 - Ajustar a Mia para compreender os novos nomes e agrupamentos sem alterar sua personalidade, memória ou canal do WhatsApp.
 
 ## Validação
@@ -80,7 +85,8 @@ A tabela terá:
 - Validar DRE, formulário e comparativo em computador e celular, além de concluir sem erros de execução.
 
 ## Detalhes técnicos
-- Evoluir `contabil_ebitda` com colunas para as rubricas novas e atualizar validação, leitura e gravação.
+- Evoluir `contabil_ebitda` com colunas para todas as rubricas manuais novas e atualizar validação, leitura e gravação.
+- Ampliar a consulta existente do BI, que hoje já calcula combustível e produtos separadamente, para retornar: venda de combustível, custo de combustível, venda de mercadorias, custo de mercadorias, litros e abastecimentos por posto/mês.
 - Refatorar a definição da DRE em `src/lib/ebitda.ts` para representar grupos, linhas de detalhe e checkpoints do HTML.
 - Adaptar `DreDashboard` e `EbitdaDialog` para consumir a mesma definição central.
 - Gerar os valores simulados no frontend a partir de uma semente estável por posto e mês, sem persistência.
