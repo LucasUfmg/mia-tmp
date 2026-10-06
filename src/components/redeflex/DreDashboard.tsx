@@ -70,7 +70,7 @@ const mesAnterior = (m: string) => {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 };
 
-function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon: typeof TrendingUp; label: string; valor: string; detalhe: string; variacao?: number | null; inverter?: boolean }) {
+function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparacao = "vs mês anterior" }: { icon: typeof TrendingUp; label: string; valor: string; detalhe: string; variacao?: number | null; inverter?: boolean; comparacao?: string }) {
   const bom = variacao != null && (inverter ? variacao <= 0 : variacao >= 0);
   return (
     <article className="card-elevated min-w-0 p-4">
@@ -81,7 +81,7 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter }: { icon:
       <p className="mt-3 whitespace-nowrap text-xl font-extrabold tabular-nums 2xl:text-2xl">{valor}</p>
       <p className="mt-1 text-[11px] text-muted-foreground">{detalhe}</p>
       <p className={`mt-1 text-[11px] font-bold ${variacao == null ? "text-muted-foreground" : bom ? "text-wa" : "text-destructive"}`}>
-        {variacao == null ? "— vs mês anterior" : `${variacao >= 0 ? "▲" : "▼"} ${numero.format(Math.abs(variacao))}% vs mês anterior`}
+        {variacao == null ? `— ${comparacao}` : `${variacao >= 0 ? "▲" : "▼"} ${numero.format(Math.abs(variacao))}% ${comparacao}`}
       </p>
     </article>
   );
@@ -111,7 +111,15 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, selecao, meses, m
     });
   }, [mensais, calculosMesmoPeriodo, selecao]);
   const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
-  const anterior = useMemo(() => consolidarEbitda(calculos, selecao, mesesAnt), [calculos, selecao, mesesAnt]);
+  // Mês corrente (parcial): compara com o mês anterior cortado no mesmo dia/hora.
+  // Despesas seguem do mês inteiro (são fixas).
+  const mesCorrenteSp = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
+  const usaCorte = !!calculosMesmoPeriodo && meses.length === 1 && meses[0] === mesCorrenteSp;
+  const anterior = useMemo(
+    () => consolidarEbitda(usaCorte ? calculosMesmoPeriodo! : calculos, selecao, mesesAnt),
+    [usaCorte, calculosMesmoPeriodo, calculos, selecao, mesesAnt],
+  );
+  const rotuloComparacao = usaCorte ? "vs mesmo período do mês anterior" : "vs mês anterior";
   const varia = (a: number, b: number) => (b ? ((a - b) / Math.abs(b)) * 100 : null);
   const composicao = despesas.map((item) => ({ name: item.label, value: Math.abs(consolidado[item.chave]) }));
   const maiores = [...composicao].sort((a, b) => b.value - a.value);
