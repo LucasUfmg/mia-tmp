@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calcularEbitda, consolidarEbitda, linhasEbitda, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, linhasDre, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -48,7 +48,9 @@ const despesas: { chave: LinhaEbitdaChave; label: string }[] = [
   { chave: "despesasTributarias", label: "Tributárias" },
   { chave: "despesasFinanceiras", label: "Financeiras" },
   { chave: "despesasNaoContabeis", label: "Não operacionais" },
-  { chave: "outrasOperacionais", label: "Outras operacionais" },
+  { chave: "despesasGestao", label: "Gestão" },
+  { chave: "despesaDistribuidora", label: "Distribuidora" },
+  { chave: "overAluguel", label: "Over aluguel" },
 ];
 
 const mesAnterior = (m: string) => {
@@ -106,12 +108,19 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
   const colunasDre = mesesDre.map((mes) => ({ mes, dados: consolidarEbitda(calculos, selecao, [mes]) }));
   const nomePosto = (ibm: string) => lojas.find((loja) => loja.ibm === ibm)?.nome ?? ibm;
   const porPosto = useMemo(() => {
-    const ibms = selecao.length ? selecao : [...new Set(calculos.filter((c) => c.ibm !== "REDE").map((c) => c.ibm))];
-    return ibms.map((ibm) => {
-      const d = consolidarEbitda(calculos, [ibm], meses);
-      return { ibm, nome: nomePosto(ibm), ...d, margem: razao(d.resultadoFinal, d.receitaBruta) ?? 0 };
-    }).filter((item) => item.receitaBruta || item.despesasTotais);
-  }, [calculos, selecao, meses, lojas]);
+    const baseReceita = consolidado.receitaBruta > 0 ? consolidado.receitaBruta / Math.max(lojas.length, 1) : 1_250_000;
+    const hash = (texto: string) => [...texto].reduce((n, letra) => (n * 31 + letra.charCodeAt(0)) >>> 0, 2166136261);
+    return lojas.map((loja) => {
+      const semente = hash(`${loja.ibm}|${mesAtual}`);
+      const fator = 0.72 + (semente % 57) / 100;
+      const receitaBruta = baseReceita * fator;
+      const custo = receitaBruta * (0.76 + ((semente >> 4) % 11) / 100);
+      const despesasTotais = receitaBruta * (0.08 + ((semente >> 8) % 8) / 100);
+      const ebitda = receitaBruta - custo - despesasTotais;
+      const resultadoFinal = ebitda - receitaBruta * (((semente >> 12) % 4) / 100);
+      return { ibm: loja.ibm, nome: loja.nome, receitaBruta, custo, despesasTotais, ebitda, resultadoFinal, margem: razao(resultadoFinal, receitaBruta) ?? 0 };
+    });
+  }, [consolidado.receitaBruta, lojas, mesAtual]);
   const valorMetrica = (item: (typeof porPosto)[number]) => ({ resultado: item.resultadoFinal, ebitda: item.ebitda, receita: item.receitaBruta, despesas: item.despesasTotais, margem: item.margem })[metrica];
   const ranking = [...porPosto].sort((a, b) => valorMetrica(b) - valorMetrica(a));
 
@@ -143,17 +152,18 @@ export function DreDashboard({ calculos, selecao, meses, mesAtual, lojas }: Prop
 
       <TabsContent value="dre" className="mt-5 space-y-4">
         <div className="flex flex-wrap gap-2">{meses.map((mes) => <Button key={mes} size="sm" variant={mesesDre.includes(mes) ? "default" : "outline"} onClick={() => alternarMes(mes)}>{rotuloMes(mes)}</Button>)}</div>
-        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasEbitda.map((linha) => <tr key={linha.chave} className="border-b border-border/70"><td className="sticky left-0 bg-card px-5 py-2.5 font-medium">{linha.label}</td>{colunasDre.map(({ mes, dados }) => <ValueCells key={mes} valor={linha.sinal * Math.abs(dados[linha.chave])} receita={dados.receitaBruta} />)}</tr>)}<TotalRow label="Result. Operacional Bruto" colunas={colunasDre} campo="resultadoBruto" /><TotalRow label="Despesas totais" colunas={colunasDre} campo="despesasTotais" /><TotalRow label="EBITDA" colunas={colunasDre} campo="ebitda" destaque /><TotalRow label="Resultado final" colunas={colunasDre} campo="resultadoFinal" destaque /></tbody></table></section>
+         <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">
+        <div className="rounded-md border border-gold bg-gold-soft px-4 py-3 text-xs font-semibold text-gold-foreground">Dados simulados para demonstração. Nenhum valor desta área é salvo.</div>
         <section className="grid gap-5 xl:grid-cols-[1fr_1.2fr]">
           <section className="card-elevated p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h3 className="text-sm font-bold">Ranking de postos</h3><p className="text-xs text-muted-foreground">Desempenho no período selecionado</p></div><Select value={metrica} onValueChange={(valor) => setMetrica(valor as typeof metrica)}><SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="resultado">Resultado final</SelectItem><SelectItem value="ebitda">EBITDA</SelectItem><SelectItem value="receita">Receita bruta</SelectItem><SelectItem value="despesas">Despesas totais</SelectItem><SelectItem value="margem">Margem líquida</SelectItem></SelectContent></Select></div><div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto">{ranking.map((item, i) => <div key={item.ibm} className="flex items-center gap-3 rounded-md bg-surface-muted px-3 py-2"><span className="text-xs font-bold text-muted-foreground">{i + 1}</span><span className="min-w-0 flex-1 truncate text-sm font-semibold">{item.nome}</span><span className="font-mono text-xs">{metrica === "margem" ? percentual(item.margem) : moeda(valorMetrica(item))}</span></div>)}</div></section>
           <ChartCard titulo="Margem líquida por posto" subtitulo="Resultado final sobre a receita bruta">
             <ResponsiveContainer width="100%" height="100%"><BarChart data={ranking.slice(0, 12)} layout="vertical" margin={{ left: 8 }}><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" tickFormatter={(v) => `${numero.format(v)}%`} fontSize={11} /><YAxis dataKey="nome" type="category" width={110} fontSize={10} tick={{ width: 105 }} /><Tooltip formatter={(v: number) => percentual(v)} contentStyle={tooltipStyle} /><Bar dataKey="margem" name="Margem" radius={[0, 4, 4, 0]}>{ranking.slice(0, 12).map((item) => <Cell key={item.ibm} fill={item.margem >= 0 ? "var(--color-chart-3)" : "var(--color-destructive)"} />)}</Bar></BarChart></ResponsiveContainer>
           </ChartCard>
         </section>
-        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="px-5 py-3 text-left">Posto</th><th className="px-3 py-3 text-right">Receita bruta</th><th className="px-3 py-3 text-right">CMV %</th><th className="px-3 py-3 text-right">Despesas %</th><th className="px-3 py-3 text-right">Resultado final</th><th className="px-5 py-3 text-right">Margem %</th></tr></thead><tbody>{ranking.map((item) => <tr key={item.ibm} className="border-b border-border/70"><td className="px-5 py-3 font-semibold">{item.nome}</td><td className="px-3 py-3 text-right">{moeda(item.receitaBruta)}</td><td className="px-3 py-3 text-right">{percentual(razao(item.custo, item.receitaBruta))}</td><td className="px-3 py-3 text-right">{percentual(razao(item.despesasTotais, item.receitaBruta))}</td><td className={`px-3 py-3 text-right font-semibold ${item.resultadoFinal < 0 ? "text-destructive" : ""}`}>{moeda(item.resultadoFinal)}</td><td className="px-5 py-3 text-right font-semibold">{percentual(item.margem)}</td></tr>)}</tbody></table></section>
+        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[900px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="px-5 py-3 text-left">Posto</th><th className="px-3 py-3 text-right">Receita bruta</th><th className="px-3 py-3 text-right">CMV %</th><th className="px-3 py-3 text-right">Despesas %</th><th className="px-3 py-3 text-right">Resultado final</th><th className="px-3 py-3 text-right">Margem %</th><th className="px-5 py-3 text-right">Tendência</th></tr></thead><tbody>{ranking.map((item, indice) => <tr key={item.ibm} className="border-b border-border/70"><td className="px-5 py-3 font-semibold">{item.nome}</td><td className="px-3 py-3 text-right">{moeda(item.receitaBruta)}</td><td className="px-3 py-3 text-right">{percentual(razao(item.custo, item.receitaBruta))}</td><td className="px-3 py-3 text-right">{percentual(razao(item.despesasTotais, item.receitaBruta))}</td><td className={`px-3 py-3 text-right font-semibold ${item.resultadoFinal < 0 ? "text-destructive" : "text-wa"}`}>{moeda(item.resultadoFinal)}</td><td className="px-3 py-3 text-right font-semibold">{percentual(item.margem)}</td><td className={`px-5 py-3 text-right font-bold ${indice % 4 === 0 ? "text-destructive" : "text-wa"}`}>{indice % 4 === 0 ? "▼" : "▲"} {numero.format(1.5 + (indice % 7) * 0.7)}%</td></tr>)}</tbody></table></section>
       </TabsContent>
     </Tabs>
   );
@@ -165,6 +175,15 @@ function ChartCard({ titulo, subtitulo, children }: { titulo: string; subtitulo:
 
 function MemoCells() { return <><th className="px-3 py-2 text-right">Valor</th><th className="px-3 py-2 text-right">AV</th></>; }
 function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 ? "text-wa" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(valor, receita))}</td></>; }
-function TotalRow({ label, colunas, campo, destaque = false }: { label: string; colunas: { mes: string; dados: ReturnType<typeof calcularEbitda> & Record<LinhaEbitdaChave, number> }[]; campo: "resultadoBruto" | "despesasTotais" | "ebitda" | "resultadoFinal"; destaque?: boolean }) {
-  return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : "bg-surface-muted font-bold"}><td className="sticky left-0 bg-inherit px-5 py-3">{label}</td>{colunas.map(({ mes, dados }) => <ValueCells key={mes} valor={dados[campo]} receita={dados.receitaBruta} />)}</tr>;
+function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas: { mes: string; dados: DreConsolidada }[] }) {
+  const destaque = linha.tipo === "total";
+  const grupo = linha.tipo === "grupo";
+  const metrica = linha.tipo === "metrica";
+  const valor = (dados: DreConsolidada) => {
+    if (linha.tipo === "manual") return comSinal(linha.chave, dados[linha.chave]);
+    if (linha.tipo === "bi") return dados[linha.campo] * (linha.sinal ?? 1);
+    return dados[linha.campo];
+  };
+  const exibir = (dados: DreConsolidada) => metrica && (linha.campo === "margemProduto" || linha.campo === "margemCombustivel") ? percentual(valor(dados)) : metrica ? numero.format(valor(dados)) : moeda(valor(dados));
+  return <tr className={destaque ? "border-t-2 border-foreground bg-brand-soft font-bold" : grupo ? "bg-surface-muted font-bold" : metrica ? "bg-surface-muted/70 font-semibold italic" : "border-b border-border/70"}><td className={`sticky left-0 bg-inherit px-5 py-2.5 ${!grupo && !destaque && !metrica ? "pl-8 text-muted-foreground" : ""}`}>{linha.label}</td>{colunas.map(({ mes, dados }) => <><td key={`${mes}-v`} className={`px-3 py-2.5 text-right font-mono text-xs ${valor(dados) < 0 ? "text-destructive" : valor(dados) > 0 && !metrica ? "text-wa" : ""}`}>{exibir(dados)}</td><td key={`${mes}-p`} className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor(dados), dados.receitaBruta))}</td></>)}</tr>;
 }
