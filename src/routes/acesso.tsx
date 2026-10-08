@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle2, Database, Sparkles } from "lucide-react";
-import logoRedeFlex from "@/assets/redeflex-logo.jpg";
+import postoAcesso from "@/assets/posto-acesso.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,124 +93,143 @@ function Acesso() {
   const primeiroNome = nome.trim().split(" ")[0];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-sidebar px-4 py-10 text-sidebar-foreground">
-      <div className="w-full max-w-md">
-        <div className="mb-6 flex flex-col items-center gap-2 text-center">
-          <img src={logoRedeFlex} alt="RedeFlex" className="h-14 w-auto rounded-lg" />
-          <span className="text-[10px] uppercase tracking-[0.2em] text-sidebar-foreground/60">
+    <div className="grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-2">
+      {/* Foto — metade esquerda no desktop, faixa no topo no celular */}
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:h-auto">
+        <img
+          src={postoAcesso}
+          alt="Posto de combustível moderno"
+          width={1080}
+          height={1920}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-verde/80 via-verde/25 to-transparent lg:bg-gradient-to-r lg:from-verde/30 lg:via-verde/10 lg:to-verde/40" />
+        <div className="absolute bottom-5 left-5 right-5 text-white lg:bottom-12 lg:left-12">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-soft">
+            RedeFlex
+          </p>
+          <h2 className="mt-1 text-2xl font-bold drop-shadow-sm lg:text-4xl">
             Portal da Mia
-          </span>
+          </h2>
+          <p className="mt-1 max-w-sm text-sm text-white/85 lg:text-base">
+            Sua agente contábil e financeira, em tempo real.
+          </p>
         </div>
+      </div>
 
-        <div className="rounded-2xl bg-card p-6 text-card-foreground shadow-xl sm:p-8">
-          {etapa === "entrar" && (
-            <form onSubmit={entrar} className="space-y-4">
-              <h1 className="text-2xl font-bold">Entrar</h1>
-              <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
-              <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
-              <Erro msg={erro} />
-              <Button type="submit" className="w-full bg-gold text-gold-foreground hover:bg-gold/90">
-                Entrar
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Não tem conta?{" "}
-                <button type="button" onClick={() => ir("cadastro")} className="font-semibold text-gold hover:underline">
-                  Criar conta
-                </button>
-              </p>
-            </form>
-          )}
-
-          {etapa === "cadastro" && (
-            <form onSubmit={cadastrar} className="space-y-4">
-              <h1 className="text-2xl font-bold">Criar conta</h1>
-              <Campo id="nome" label="Nome" value={nome} onChange={setNome} />
-              <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
-              <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
-              <Campo id="confirma" label="Confirmar senha" type="password" value={confirma} onChange={setConfirma} />
-              <Erro msg={erro} />
-              <Button type="submit" className="w-full bg-gold text-gold-foreground hover:bg-gold/90">
-                Cadastrar
-              </Button>
-              <p className="text-center text-sm text-muted-foreground">
-                Já tem conta?{" "}
-                <button type="button" onClick={() => ir("entrar")} className="font-semibold text-gold hover:underline">
+      {/* Portal de acesso — metade direita, fundo claro */}
+      <div className="flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
+          <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl sm:p-8">
+            {etapa === "entrar" && (
+              <form onSubmit={entrar} className="space-y-4">
+                <h1 className="text-2xl font-bold">Entrar</h1>
+                <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
+                <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
                   Entrar
-                </button>
-              </p>
-            </form>
-          )}
-
-          {etapa === "boas-vindas" && (
-            <div className="space-y-5 text-center">
-              <Sparkles className="mx-auto h-10 w-10 text-gold" />
-              <h1 className="text-2xl font-bold">Olá, {primeiroNome}!</h1>
-              <p className="text-muted-foreground">
-                Eu sou a <strong className="text-foreground">Mia</strong>, sua agente contábil e financeira.
-                Acompanho em tempo real os dados da operação do seu posto.
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Vamos fazer uma configuração rápida: preciso do acesso ao seu ERP.
-              </p>
-              <Button onClick={() => ir("erp")} className="w-full bg-gold text-gold-foreground hover:bg-gold/90">
-                Começar configuração
-              </Button>
-            </div>
-          )}
-
-          {etapa === "erp" && (
-            <div className="space-y-4">
-              <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 1 de 2</p>
-              <h1 className="text-xl font-bold">Qual ERP seu posto usa?</h1>
-              <div className="grid gap-3">
-                {ERPS.map((e) => (
-                  <button
-                    key={e.id}
-                    onClick={() => {
-                      setErp(e.nome);
-                      ir("credenciais");
-                    }}
-                    className="flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:border-gold hover:bg-gold/10"
-                  >
-                    <Database className="h-6 w-6 text-gold" />
-                    <span>
-                      <span className="block font-semibold">{e.nome}</span>
-                      <span className="text-xs text-muted-foreground">{e.desc}</span>
-                    </span>
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Não tem conta?{" "}
+                  <button type="button" onClick={() => ir("cadastro")} className="font-semibold text-gold hover:underline">
+                    Criar conta
                   </button>
-                ))}
+                </p>
+              </form>
+            )}
+
+            {etapa === "cadastro" && (
+              <form onSubmit={cadastrar} className="space-y-4">
+                <h1 className="text-2xl font-bold">Criar conta</h1>
+                <Campo id="nome" label="Nome" value={nome} onChange={setNome} />
+                <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
+                <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
+                <Campo id="confirma" label="Confirmar senha" type="password" value={confirma} onChange={setConfirma} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Cadastrar
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Já tem conta?{" "}
+                  <button type="button" onClick={() => ir("entrar")} className="font-semibold text-gold hover:underline">
+                    Entrar
+                  </button>
+                </p>
+              </form>
+            )}
+
+            {etapa === "boas-vindas" && (
+              <div className="space-y-5 text-center">
+                <Sparkles className="mx-auto h-10 w-10 text-verde" />
+                <h1 className="text-2xl font-bold">Olá, {primeiroNome}!</h1>
+                <p className="text-muted-foreground">
+                  Eu sou a <strong className="text-foreground">Mia</strong>, sua agente contábil e financeira.
+                  Acompanho em tempo real os dados da operação do seu posto.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Vamos fazer uma configuração rápida: preciso do acesso ao seu ERP.
+                </p>
+                <Button onClick={() => ir("erp")} className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Começar configuração
+                </Button>
               </div>
-            </div>
-          )}
+            )}
 
-          {etapa === "credenciais" && (
-            <form onSubmit={conectar} className="space-y-4">
-              <button type="button" onClick={() => ir("erp")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4" /> Trocar ERP
-              </button>
-              <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 2 de 2</p>
-              <h1 className="text-xl font-bold">Acesso ao {erp}</h1>
-              <Campo id="erp-login" label={`Login do ${erp}`} value={erpLogin} onChange={setErpLogin} />
-              <Campo id="erp-senha" label={`Senha do ${erp}`} type="password" value={erpSenha} onChange={setErpSenha} />
-              <Erro msg={erro} />
-              <Button type="submit" className="w-full bg-gold text-gold-foreground hover:bg-gold/90">
-                Conectar
-              </Button>
-            </form>
-          )}
+            {etapa === "erp" && (
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 1 de 2</p>
+                <h1 className="text-xl font-bold">Qual ERP seu posto usa?</h1>
+                <div className="grid gap-3">
+                  {ERPS.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => {
+                        setErp(e.nome);
+                        ir("credenciais");
+                      }}
+                      className="flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:border-verde hover:bg-verde-soft/50"
+                    >
+                      <Database className="h-6 w-6 text-verde" />
+                      <span>
+                        <span className="block font-semibold">{e.nome}</span>
+                        <span className="text-xs text-muted-foreground">{e.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          {etapa === "pronto" && (
-            <div className="space-y-3 py-4 text-center">
-              <CheckCircle2 className="mx-auto h-12 w-12 text-gold" />
-              <h1 className="text-2xl font-bold">Tudo pronto!</h1>
-              <p className="text-muted-foreground">Abrindo seu painel…</p>
-            </div>
-          )}
+            {etapa === "credenciais" && (
+              <form onSubmit={conectar} className="space-y-4">
+                <button type="button" onClick={() => ir("erp")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="h-4 w-4" /> Trocar ERP
+                </button>
+                <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 2 de 2</p>
+                <h1 className="text-xl font-bold">Acesso ao {erp}</h1>
+                <Campo id="erp-login" label={`Login do ${erp}`} value={erpLogin} onChange={setErpLogin} />
+                <Campo id="erp-senha" label={`Senha do ${erp}`} type="password" value={erpSenha} onChange={setErpSenha} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Conectar
+                </Button>
+              </form>
+            )}
+
+            {etapa === "pronto" && (
+              <div className="space-y-3 py-4 text-center">
+                <CheckCircle2 className="mx-auto h-12 w-12 text-verde" />
+                <h1 className="text-2xl font-bold">Tudo pronto!</h1>
+                <p className="text-muted-foreground">Abrindo seu painel…</p>
+              </div>
+            )}
+          </div>
+
+          <p className="mt-4 text-center text-[11px] text-muted-foreground/70">
+            Modo de demonstração: nenhum dado de acesso é enviado ou guardado.
+          </p>
         </div>
-
-        <p className="mt-4 text-center text-[11px] text-sidebar-foreground/50">
-          Modo de demonstração: nenhum dado de acesso é enviado ou guardado.
-        </p>
       </div>
     </div>
   );
