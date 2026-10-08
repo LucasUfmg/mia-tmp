@@ -94,6 +94,10 @@
   --gold: oklch(0.8 0.16 82);
   --gold-foreground: oklch(0.26 0.06 258);
   --gold-soft: oklch(0.95 0.06 88);
+  /* Verde da marca — cor primária do portal de acesso. */
+  --verde: oklch(0.52 0.14 150);
+  --verde-foreground: oklch(0.99 0.005 150);
+  --verde-soft: oklch(0.94 0.05 150);
   /* Azul claro — campos preenchidos automaticamente (painel/cálculo). */
   --info: oklch(0.62 0.11 245);
   --info-foreground: oklch(0.28 0.07 250);
