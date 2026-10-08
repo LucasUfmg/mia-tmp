@@ -209,21 +209,25 @@ export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: numbe
 }
 
 /**
- * Meta: projeção pela média diária de toda a série histórica (meses fechados).
- * Soma rubricas (BI + lançamentos, inclusive Venda de Serviços) ÷ total de dias dos meses,
- * escala ao horizonte e recalcula os totais pela fórmula da DRE.
+ * Meta por histórico recente (meses fechados com BI, ordenados do mais antigo ao mais novo).
+ * 1 mês: valor do mês imediatamente anterior ao corrente (se existir); senão média dos disponíveis.
+ * N meses: média mensal dos últimos N meses disponíveis × N. Inclui Venda de Serviços lançada.
+ * Totais recalculados pela fórmula da DRE.
  */
-export function metaHistorica(historico: { mes: string; dados: DreConsolidada }[], horizonteDias: number): (ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number }) | null {
+export function metaPorMeses(historico: { mes: string; dados: DreConsolidada }[], meses: number, mesCorrente: string): (ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number; usados: string[] }) | null {
   if (historico.length === 0) return null;
-  const dias = historico.reduce((t, h) => { const [a, m] = h.mes.split("-").map(Number) as [number, number]; return t + new Date(Date.UTC(a, m, 0)).getUTCDate(); }, 0);
-  const f = horizonteDias / dias;
-  const soma = (chave: string) => historico.reduce((t, h) => t + ((h.dados as unknown as Record<string, number>)[chave] || 0), 0) * f;
+  const [a, m] = mesCorrente.split("-").map(Number) as [number, number];
+  const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+  const ultimo = historico[historico.length - 1]!;
+  const usadosH = meses === 1 && ultimo.mes === anterior ? [ultimo] : historico.slice(-Math.max(meses, 1));
+  const f = meses / usadosH.length;
+  const soma = (chave: string) => usadosH.reduce((t, h) => t + ((h.dados as unknown as Record<string, number>)[chave] || 0), 0) * f;
   const v: Record<string, number> = {};
   for (const l of linhasEbitda) v[l.chave] = soma(l.chave);
   for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = soma(k);
   const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
   const litros = v["litrosVendidos"] || 0;
-  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0 };
+  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0, usados: usadosH.map((h) => h.mes) };
 }
 
 export type LinhaDre =

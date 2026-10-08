@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, metaHistorica, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, metaPorMeses, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -294,8 +294,14 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
       .filter((h) => h.dados.vendaCombustivel + h.dados.vendaMercadorias > 0),
     [calculos, selecao, mes],
   );
-  const metas = colunas.map((c) => metaHistorica(historico, diasDosMeses(mes, c.meses)));
-  const periodoMeta = historico.length ? `${rotuloMes(historico[0]!.mes)} a ${rotuloMes(historico[historico.length - 1]!.mes)}` : "";
+  const metas = colunas.map((c) => metaPorMeses(historico, c.meses, mes));
+  const intervalo = (u: string[]) => (u.length > 1 ? `${rotuloMes(u[0]!)} a ${rotuloMes(u[u.length - 1]!)}` : rotuloMes(u[0]!));
+  const notasMeta = colunas.map((c, i) => {
+    const m = metas[i];
+    if (!m) return null;
+    const regra = c.meses === 1 ? (m.usados.length === 1 ? `valor atingido em ${intervalo(m.usados)}` : `média mensal de ${intervalo(m.usados)} (mês anterior sem dados do BI)`) : `média mensal de ${intervalo(m.usados)} × ${c.meses}${m.usados.length < c.meses ? ` (só ${m.usados.length} ${m.usados.length === 1 ? "mês fechado disponível" : "meses fechados disponíveis"})` : ""}`;
+    return `${c.label}: ${regra}`;
+  }).filter(Boolean);
   type R = (typeof colunas)[number]["r"];
   const linhas: { label: string; real: number; proj: (r: R) => number; neg?: boolean }[] = [
     { label: "Receita bruta", real: base.receitaBruta, proj: (r) => r.receitaBruta },
@@ -324,7 +330,7 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
   return (
     <>
       <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita bruta inclui a venda de serviços lançada. Receita e CMV do BI até agora; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
-      <p className="text-xs text-muted-foreground">{historico.length ? `Meta = média diária de ${historico.length} ${historico.length === 1 ? "mês fechado" : "meses fechados"} com dados do BI (${periodoMeta}), projetada para o mesmo horizonte.` : "Meta indisponível: não há meses fechados com dados do BI."}</p>
+      <p className="text-xs text-muted-foreground">{notasMeta.length ? <>Meta (mês fechado, receita do BI + venda de serviços lançada) — {notasMeta.join(" · ")}.</> : "Meta indisponível: não há meses fechados com dados do BI."}</p>
       <p className="flex flex-wrap items-center gap-4 text-xs"><span className="font-semibold text-wa">Verde = melhor que a meta</span><span className="font-semibold text-destructive">Vermelho = pior que a meta</span><span className="text-muted-foreground">(CMV e Despesas: abaixo da meta é melhor)</span></p>
       <section className="card-elevated overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
