@@ -31,3 +31,4 @@
 - [x] Remover as páginas públicas Agente e Integração FZAP
 - [x] Trocar o fundo do mapa por uma fonte pública sem chave
 - [x] Validar manual, mapa e rotas removidas em desktop/mobile
+- [x] Projeções: projeção vs meta (média histórica, receita bruta com Venda de Serviços), verde/vermelho (custos invertidos)
