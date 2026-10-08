@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, metaPorMeses, diasDosMeses, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, metaPorMeses, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -264,8 +264,6 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
     }));
     for (const x of lote) if (x) historico.push(x);
   }
-  const meta1 = metaPorMeses(historico, 1, mes);
-  const referencia = meta1 ? historico.find((h) => h.mes === meta1.usados[meta1.usados.length - 1])?.dados ?? null : null;
   const fmt = (r: ReturnType<typeof projetarDre>) => ({
     receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
     despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),

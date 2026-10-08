@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, metaPorMeses, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, diasDecorridos, horizontesProjecao, linhasDre, metaPorMeses, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
