@@ -21,7 +21,7 @@ export function Sidebar() {
 
       <nav className="mt-8 flex flex-1 flex-col gap-1">
         <Link
-          to="/"
+          to="/bi"
           className={itemBase}
           activeOptions={{ exact: true }}
           activeProps={{ className: `${itemBase} bg-gold/15 text-gold brand-rail` }}

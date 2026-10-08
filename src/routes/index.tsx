@@ -1,6 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeft, CheckCircle2, Database, Sparkles } from "lucide-react";
+import { ArrowLeft, Database, Sparkles } from "lucide-react";
 import postoAcesso from "@/assets/posto-acesso.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
   component: Acesso,
 });
 
-type Etapa = "entrar" | "cadastro" | "boas-vindas" | "erp" | "credenciais" | "pronto";
+type Etapa = "entrar" | "cadastro" | "boas-vindas" | "erp" | "credenciais";
 const ERPS = [
   { id: "LBC", nome: "LBC", desc: "Gestão para postos LBC" },
   { id: "Linx", nome: "Linx (Totvs)", desc: "Linx Postos / Totvs" },
@@ -33,6 +33,7 @@ const ERPS = [
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 function Acesso() {
+  const navigate = useNavigate();
   const [etapa, setEtapa] = useState<Etapa>("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -85,7 +86,7 @@ function Acesso() {
     localStorage.setItem("mia_portal_erp", erp);
     setErpLogin("");
     setErpSenha("");
-    ir("pronto");
+    navigate({ to: "/bi" });
   };
 
   const primeiroNome = nome.trim().split(" ")[0];
@@ -210,27 +211,6 @@ function Acesso() {
                   Conectar
                 </Button>
               </form>
-            )}
-
-            {etapa === "pronto" && (
-              <div className="space-y-4 py-2 text-center">
-                <CheckCircle2 className="mx-auto h-12 w-12 text-verde" />
-                <h1 className="text-2xl font-bold">
-                  Parabéns{primeiroNome ? `, ${primeiroNome}` : ""}!
-                </h1>
-                <p className="text-muted-foreground">
-                  Vamos configurar seus dados para que você possa desfrutar da Mia. Essa ação
-                  leva algumas horas.
-                </p>
-                <p className="text-muted-foreground">
-                  Pode fechar a tela: enviaremos um e-mail quando seu acesso estiver concluído.
-                </p>
-                {email && (
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gold">
-                    Aviso para {email}
-                  </p>
-                )}
-              </div>
             )}
           </div>
 
