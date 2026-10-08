@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, metaHistorica, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -287,7 +287,17 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
   const base = useMemo(() => consolidarEbitda(calculos, selecao, [mes]), [calculos, selecao, mes]);
   const { dia, diasMes } = diasDecorridos(mes);
   const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, diasDosMeses(mes, h.meses)) }));
-  const linhas: { label: string; real: number; proj: (r: (typeof colunas)[number]["r"]) => number; neg?: boolean }[] = [
+  // Série histórica: meses fechados com receita do BI (combustível + mercadorias).
+  const historico = useMemo(
+    () => [...new Set(calculos.map((c) => c.mes))].filter((m) => m < mes).sort()
+      .map((m) => ({ mes: m, dados: consolidarEbitda(calculos, selecao, [m]) }))
+      .filter((h) => h.dados.vendaCombustivel + h.dados.vendaMercadorias > 0),
+    [calculos, selecao, mes],
+  );
+  const metas = colunas.map((c) => metaHistorica(historico, diasDosMeses(mes, c.meses)));
+  const periodoMeta = historico.length ? `${rotuloMes(historico[0]!.mes)} a ${rotuloMes(historico[historico.length - 1]!.mes)}` : "";
+  type R = (typeof colunas)[number]["r"];
+  const linhas: { label: string; real: number; proj: (r: R) => number; neg?: boolean }[] = [
     { label: "Receita bruta", real: base.receitaBruta, proj: (r) => r.receitaBruta },
     { label: "CMV", real: (base.custoCombustivel + base.custoMercadoria) || Math.abs(base.custo), proj: (r) => r.custoBi, neg: true },
     { label: "Result. Operacional Bruto", real: base.resultadoBruto, proj: (r) => r.resultadoBruto },
@@ -298,10 +308,24 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
   const litrosReal = base.litrosVendidos || 0;
   const porLitro = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
   const cor = (v: number, neg?: boolean) => (neg ? "text-destructive" : v < 0 ? "text-destructive" : "text-wa");
+  // Verde = melhor que a meta; vermelho = pior (custos invertidos); neutro se igual/sem meta.
+  const vsMeta = (v: number, meta: number | undefined, neg?: boolean) => {
+    if (meta === undefined || Math.abs(v - meta) < 0.005) return { classe: "", texto: meta === undefined ? "Meta indisponível" : `Meta: ${moeda(meta)}` };
+    const acima = v > meta;
+    const bom = neg ? !acima : acima;
+    const pct = meta !== 0 ? ((v - meta) / Math.abs(meta)) * 100 : 0;
+    return { classe: bom ? "text-wa" : "text-destructive", texto: `Meta: ${moeda(meta)} (${pct >= 0 ? "+" : "−"}${numero.format(Math.abs(pct))}%)` };
+  };
+  const celula = (key: string, v: number, meta: number | undefined, neg: boolean | undefined, exibir: string) => {
+    const c = vsMeta(v, meta, neg);
+    return <td key={key} className={`px-3 py-3 text-right tabular-nums ${c.classe}`}><div className="font-semibold">{exibir}</div><div className="text-[10px] font-normal text-muted-foreground">{c.texto}</div></td>;
+  };
   if (biStatus !== "ok") return <p className="text-sm text-muted-foreground">{biStatus === "carregando" ? "Carregando dados do mês…" : "Não foi possível carregar os dados do BI."}</p>;
   return (
     <>
-      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita e CMV do BI até agora; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
+      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita bruta inclui a venda de serviços lançada. Receita e CMV do BI até agora; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
+      <p className="text-xs text-muted-foreground">{historico.length ? `Meta = média diária de ${historico.length} ${historico.length === 1 ? "mês fechado" : "meses fechados"} com dados do BI (${periodoMeta}), projetada para o mesmo horizonte.` : "Meta indisponível: não há meses fechados com dados do BI."}</p>
+      <p className="flex flex-wrap items-center gap-4 text-xs"><span className="font-semibold text-wa">Verde = melhor que a meta</span><span className="font-semibold text-destructive">Vermelho = pior que a meta</span><span className="text-muted-foreground">(CMV e Despesas: abaixo da meta é melhor)</span></p>
       <section className="card-elevated overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
           <thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="px-5 py-3 text-left">Indicador</th><th className="px-3 py-3 text-right">Realizado até hoje</th>{colunas.map((c) => <th key={c.chave} className="px-3 py-3 text-right">{c.label}</th>)}</tr></thead>
@@ -309,13 +333,19 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
             <tr key={l.label} className="border-b border-border/70">
               <td className="px-5 py-3 font-semibold">{l.label}</td>
               <td className={`px-3 py-3 text-right tabular-nums ${cor(l.real, l.neg)}`}>{moeda(l.real)}</td>
-              {colunas.map((c) => { const v = l.proj(c.r); return <td key={c.chave} className={`px-3 py-3 text-right font-semibold tabular-nums ${cor(v, l.neg)}`}>{moeda(v)}</td>; })}
+              {colunas.map((c, i) => { const m = metas[i]; return celula(c.chave, l.proj(c.r), m ? l.proj(m) : undefined, l.neg, moeda(l.proj(c.r))); })}
             </tr>
           ))}
             <tr className="border-b border-border/70 bg-surface-muted">
               <td className="px-5 py-3 font-semibold">EBITDA por litro</td>
               <td className={`px-3 py-3 text-right tabular-nums ${base.ebitda < 0 ? "text-destructive" : "text-wa"}`}>{litrosReal ? `${porLitro(base.ebitda / litrosReal)}/L` : "—"}</td>
-              {colunas.map((c) => <td key={c.chave} className={`px-3 py-3 text-right font-semibold tabular-nums ${c.r.ebitda < 0 ? "text-destructive" : "text-wa"}`}>{c.r.litros ? `${porLitro(c.r.ebitdaPorLitro)}/L` : "—"}</td>)}
+              {colunas.map((c, i) => {
+                const m = metas[i];
+                const v = c.r.litros ? c.r.ebitdaPorLitro : undefined;
+                if (v === undefined) return <td key={c.chave} className="px-3 py-3 text-right tabular-nums">—</td>;
+                const cmp = vsMeta(v, m && m.litros ? m.ebitdaPorLitro : undefined);
+                return <td key={c.chave} className={`px-3 py-3 text-right tabular-nums ${cmp.classe}`}><div className="font-semibold">{porLitro(v)}/L</div><div className="text-[10px] font-normal text-muted-foreground">{m && m.litros ? `Meta: ${porLitro(m.ebitdaPorLitro)}/L` : "Meta indisponível"}</div></td>;
+              })}
             </tr>
           </tbody>
         </table>
