@@ -283,3 +283,35 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
   return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor, dados.receitaBruta))}</td></>;
 }
+function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro" }) {
+  const base = useMemo(() => consolidarEbitda(calculos, selecao, [mes]), [calculos, selecao, mes]);
+  const { dia, diasMes } = diasDecorridos(mes);
+  const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, diasDosMeses(mes, h.meses)) }));
+  const linhas: { label: string; real: number; proj: (r: (typeof colunas)[number]["r"]) => number; neg?: boolean }[] = [
+    { label: "Receita bruta", real: base.receitaBruta, proj: (r) => r.receitaBruta },
+    { label: "CMV", real: (base.custoCombustivel + base.custoMercadoria) || Math.abs(base.custo), proj: (r) => r.custoBi, neg: true },
+    { label: "Result. Operacional Bruto", real: base.resultadoBruto, proj: (r) => r.resultadoBruto },
+    { label: "Despesas totais", real: base.despesasTotais, proj: (r) => r.despesasTotais, neg: true },
+    { label: "EBITDA", real: base.ebitda, proj: (r) => r.ebitda },
+    { label: "Resultado final", real: base.resultadoFinal, proj: (r) => r.resultadoFinal },
+  ];
+  const cor = (v: number, neg?: boolean) => (neg ? "text-destructive" : v < 0 ? "text-destructive" : "text-wa");
+  if (biStatus !== "ok") return <p className="text-sm text-muted-foreground">{biStatus === "carregando" ? "Carregando dados do mês…" : "Não foi possível carregar os dados do BI."}</p>;
+  return (
+    <>
+      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita e CMV do BI até agora; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
+      <section className="card-elevated overflow-x-auto">
+        <table className="w-full min-w-[720px] text-sm">
+          <thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="px-5 py-3 text-left">Indicador</th><th className="px-3 py-3 text-right">Realizado até hoje</th>{colunas.map((c) => <th key={c.chave} className="px-3 py-3 text-right">{c.label}</th>)}</tr></thead>
+          <tbody>{linhas.map((l) => (
+            <tr key={l.label} className="border-b border-border/70">
+              <td className="px-5 py-3 font-semibold">{l.label}</td>
+              <td className={`px-3 py-3 text-right tabular-nums ${cor(l.real, l.neg)}`}>{moeda(l.real)}</td>
+              {colunas.map((c) => { const v = l.proj(c.r); return <td key={c.chave} className={`px-3 py-3 text-right font-semibold tabular-nums ${cor(v, l.neg)}`}>{moeda(v)}</td>; })}
+            </tr>
+          ))}</tbody>
+        </table>
+      </section>
+    </>
+  );
+}
