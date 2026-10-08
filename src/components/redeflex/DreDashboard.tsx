@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, metaPorMeses, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, diasDecorridos, horizontesProjecao, linhasDre, metaPorMeses, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -224,7 +224,7 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
       </TabsContent>
 
       <TabsContent value="projecoes" className="mt-5 space-y-4">
-        <Projecoes calculos={calculos} selecao={selecao} mes={mesCorrenteSp} biStatus={biStatus} fimBi={periodoDados?.fimEm ?? null} />
+        <Projecoes calculos={calculos} selecao={selecao} mes={mesCorrenteSp} biStatus={biStatus} />
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">
@@ -283,7 +283,7 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
   return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor, dados.receitaBruta))}</td></>;
 }
-function Projecoes({ calculos, selecao, mes, biStatus, fimBi }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro"; fimBi: string | null }) {
+function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro" }) {
   const base = useMemo(() => consolidarEbitda(calculos, selecao, [mes]), [calculos, selecao, mes]);
   const { dia, diasMes } = diasDecorridos(mes);
   // Série histórica: meses fechados com receita do BI (combustível + mercadorias).
@@ -293,17 +293,10 @@ function Projecoes({ calculos, selecao, mes, biStatus, fimBi }: { calculos: Ebit
       .filter((h) => h.dados.vendaCombustivel + h.dados.vendaMercadorias > 0),
     [calculos, selecao, mes],
   );
-  const usadosRef = metaPorMeses(historico, 1, mes)?.usados ?? [];
-  const referencia = useMemo(() => (usadosRef.length ? consolidarEbitda(calculos, selecao, usadosRef) : null), [calculos, selecao, usadosRef.join()]);
-  const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, diasDosMeses(mes, h.meses), new Date(), { referencia, fimBi }) }));
+  const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, h.meses) }));
   const metas = colunas.map((c) => metaPorMeses(historico, c.meses, mes));
   const intervalo = (u: string[]) => (u.length > 1 ? `${rotuloMes(u[0]!)} a ${rotuloMes(u[u.length - 1]!)}` : rotuloMes(u[0]!));
-  const notasMeta = colunas.map((c, i) => {
-    const m = metas[i];
-    if (!m) return null;
-    const regra = c.meses === 1 ? (m.usados.length === 1 ? `valor atingido em ${intervalo(m.usados)}` : `média mensal de ${intervalo(m.usados)} (mês anterior sem dados do BI)`) : `média mensal de ${intervalo(m.usados)} × ${c.meses}${m.usados.length < c.meses ? ` (só ${m.usados.length} ${m.usados.length === 1 ? "mês fechado disponível" : "meses fechados disponíveis"})` : ""}`;
-    return `${c.label}: ${regra}`;
-  }).filter(Boolean);
+  const notasMeta = metas[0] ? [`fim do mês = ${rotuloMes(metas[0].usados[0]!)}; 3 meses = ${rotuloMes(metas[0].usados[0]!)} × 3; 6 meses = ${rotuloMes(metas[0].usados[0]!)} × 6`] : [];
   type R = (typeof colunas)[number]["r"];
   const linhas: { label: string; real: number; proj: (r: R) => number; neg?: boolean }[] = [
     { label: "Receita bruta", real: base.receitaBruta, proj: (r) => r.receitaBruta },
@@ -331,8 +324,8 @@ function Projecoes({ calculos, selecao, mes, biStatus, fimBi }: { calculos: Ebit
   if (biStatus !== "ok") return <p className="text-sm text-muted-foreground">{biStatus === "carregando" ? "Carregando dados do mês…" : "Não foi possível carregar os dados do BI."}</p>;
   return (
     <>
-      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita bruta inclui a venda de serviços lançada. Receita do BI até o último dado recebido; CMV projetado pela margem (% de custo) da meta de fim do mês, por combustível e mercadorias; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
-      <p className="text-xs text-muted-foreground">{notasMeta.length ? <>Meta (mês fechado, receita do BI + venda de serviços lançada) — {notasMeta.join(" · ")}.</> : "Meta indisponível: não há meses fechados com dados do BI."}</p>
+      <p className="text-xs text-muted-foreground">Projeção fim do mês = realizado até hoje + (realizado ÷ dias decorridos, dia {dia} de {diasMes}) × dias restantes. Próximos 3 meses = fim do mês × 3; próximos 6 meses = fim do mês × 6.</p>
+      <p className="text-xs text-muted-foreground">{notasMeta.length ? <>Meta (mês anterior) — {notasMeta.join(" · ")}.</> : "Meta indisponível: o mês anterior não tem dados do BI."}</p>
       <p className="flex flex-wrap items-center gap-4 text-xs"><span className="font-semibold text-wa">Verde = melhor que a meta</span><span className="font-semibold text-destructive">Vermelho = pior que a meta</span><span className="text-muted-foreground">(CMV e Despesas: abaixo da meta é melhor)</span></p>
       <section className="card-elevated overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">

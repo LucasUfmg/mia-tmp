@@ -191,61 +191,33 @@ export const horizontesProjecao = [
   { chave: "sem", label: "Próximos 6 meses", meses: 6 },
 ] as const;
 
-/**
- * Projeta a DRE do mês corrente (já com despesas proporcionais aos dias) para `horizonte` dias,
- * pela média diária do mês: valores do BI ÷ dias fracionados; lançamentos ÷ dias inteiros.
- * Os totais são recalculados pela fórmula da DRE.
- */
-export function projetarDre(
-  c: DreConsolidada,
-  mes: string,
-  horizonteDias: number,
-  agora = new Date(),
-  opcoes: { referencia?: Partial<DadosBiDre> | null; fimBi?: string | null } = {},
-): ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number } {
-  const { dia } = diasDecorridos(mes, agora);
-  // Média diária do BI pelo último instante com dados (não pelo relógio), quando informado.
-  const instanteBi = opcoes.fimBi ? new Date(opcoes.fimBi) : agora;
-  const { fracionado } = diasDecorridos(mes, Number.isNaN(instanteBi.getTime()) ? agora : instanteBi);
-  const fBi = horizonteDias / fracionado;
-  const fManual = horizonteDias / dia;
-  const v = { ...c } as Record<string, number>;
-  for (const l of linhasEbitda) v[l.chave] = (c[l.chave] || 0) * (l.origem === "manual" ? fManual : fBi);
-  for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = (c[k] || 0) * fBi;
-  // Custo projetado pela margem histórica (meta), evitando a margem distorcida do início do mês.
-  const ref = opcoes.referencia;
-  if (ref) {
-    const pct = (custo?: number, venda?: number) => (venda && custo ? custo / venda : null);
-    const pComb = pct(ref.custoCombustivel, ref.vendaCombustivel);
-    const pMerc = pct(ref.custoMercadoria, ref.vendaMercadorias);
-    if (pComb !== null) v["custoCombustivel"] = (v["vendaCombustivel"] || 0) * pComb;
-    if (pMerc !== null) v["custoMercadoria"] = (v["vendaMercadorias"] || 0) * pMerc;
-  }
-  const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
-  const litros = v["litrosVendidos"] || 0;
-  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0 };
+type Indicadores = ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number };
+
+/** Indicadores de uma DRE consolidada multiplicados por `fator` (cada indicador escalado direto). */
+function escalar(c: DreConsolidada, fator: number): Indicadores {
+  const r = calcularEbitda(c as unknown as Record<LinhaEbitdaChave, number> & DadosBiDre);
+  const out = Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === "number" ? v * fator : v])) as unknown as ResultadoEbitda;
+  const custo = ((c.custoCombustivel || 0) + (c.custoMercadoria || 0) || Math.abs(c.custo || 0)) * fator;
+  const litros = (c.litrosVendidos || 0) * fator;
+  return { ...out, custoBi: custo, litros, ebitdaPorLitro: litros ? out.ebitda / litros : 0 };
 }
 
 /**
- * Meta por histórico recente (meses fechados com BI, ordenados do mais antigo ao mais novo).
- * 1 mês: valor do mês imediatamente anterior ao corrente (se existir); senão média dos disponíveis.
- * N meses: média mensal dos últimos N meses disponíveis × N. Inclui Venda de Serviços lançada.
- * Totais recalculados pela fórmula da DRE.
+ * Projeção linear: fim do mês = realizado + (realizado ÷ dias decorridos) × dias restantes
+ * (= realizado × dias do mês ÷ dias decorridos); horizontes de N meses = fim do mês × N.
  */
-export function metaPorMeses(historico: { mes: string; dados: DreConsolidada }[], meses: number, mesCorrente: string): (ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number; usados: string[] }) | null {
-  if (historico.length === 0) return null;
+export function projetarDre(c: DreConsolidada, mes: string, multiplicador: number, agora = new Date()): Indicadores {
+  const { fracionado, diasMes } = diasDecorridos(mes, agora);
+  return escalar(c, (diasMes / fracionado) * multiplicador);
+}
+
+/** Meta: mês imediatamente anterior ao corrente × N. Sem dados desse mês → null. */
+export function metaPorMeses(historico: { mes: string; dados: DreConsolidada }[], meses: number, mesCorrente: string): (Indicadores & { usados: string[] }) | null {
   const [a, m] = mesCorrente.split("-").map(Number) as [number, number];
   const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
-  const ultimo = historico[historico.length - 1]!;
-  const usadosH = meses === 1 && ultimo.mes === anterior ? [ultimo] : historico.slice(-Math.max(meses, 1));
-  const f = meses / usadosH.length;
-  const soma = (chave: string) => usadosH.reduce((t, h) => t + ((h.dados as unknown as Record<string, number>)[chave] || 0), 0) * f;
-  const v: Record<string, number> = {};
-  for (const l of linhasEbitda) v[l.chave] = soma(l.chave);
-  for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = soma(k);
-  const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
-  const litros = v["litrosVendidos"] || 0;
-  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0, usados: usadosH.map((h) => h.mes) };
+  const h = historico.find((x) => x.mes.slice(0, 7) === anterior.slice(0, 7));
+  if (!h) return null;
+  return { ...escalar(h.dados, meses), usados: [h.mes] };
 }
 
 export type LinhaDre =
