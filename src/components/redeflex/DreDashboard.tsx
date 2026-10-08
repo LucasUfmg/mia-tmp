@@ -295,6 +295,8 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
     { label: "EBITDA", real: base.ebitda, proj: (r) => r.ebitda },
     { label: "Resultado final", real: base.resultadoFinal, proj: (r) => r.resultadoFinal },
   ];
+  const litrosReal = base.litrosVendidos || 0;
+  const porLitro = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
   const cor = (v: number, neg?: boolean) => (neg ? "text-destructive" : v < 0 ? "text-destructive" : "text-wa");
   if (biStatus !== "ok") return <p className="text-sm text-muted-foreground">{biStatus === "carregando" ? "Carregando dados do mês…" : "Não foi possível carregar os dados do BI."}</p>;
   return (
@@ -309,7 +311,13 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
               <td className={`px-3 py-3 text-right tabular-nums ${cor(l.real, l.neg)}`}>{moeda(l.real)}</td>
               {colunas.map((c) => { const v = l.proj(c.r); return <td key={c.chave} className={`px-3 py-3 text-right font-semibold tabular-nums ${cor(v, l.neg)}`}>{moeda(v)}</td>; })}
             </tr>
-          ))}</tbody>
+          ))}
+            <tr className="border-b border-border/70 bg-surface-muted">
+              <td className="px-5 py-3 font-semibold">EBITDA por litro</td>
+              <td className={`px-3 py-3 text-right tabular-nums ${base.ebitda < 0 ? "text-destructive" : "text-wa"}`}>{litrosReal ? `${porLitro(base.ebitda / litrosReal)}/L` : "—"}</td>
+              {colunas.map((c) => <td key={c.chave} className={`px-3 py-3 text-right font-semibold tabular-nums ${c.r.ebitda < 0 ? "text-destructive" : "text-wa"}`}>{c.r.litros ? `${porLitro(c.r.ebitdaPorLitro)}/L` : "—"}</td>)}
+            </tr>
+          </tbody>
         </table>
       </section>
     </>

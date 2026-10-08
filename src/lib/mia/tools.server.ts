@@ -350,7 +350,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções (aba Projeções do painel) de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA e resultado final: fim do mês, próximos 3 meses e próximos 6 meses, pela média diária do mês corrente.",
+        "Projeções (aba Projeções do painel) de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final: fim do mês, próximos 3 meses e próximos 6 meses, pela média diária do mês corrente.",
       inputSchema: z.object({ postos: z.array(z.string()).optional() }),
       execute: async ({ postos }) => {
         const { lerProjecoes } = await import("./contabil.server");
