@@ -153,7 +153,7 @@ export function WeeklyOverview({
                   i.variacaoPct === null
                     ? "text-muted-foreground"
                     : i.variacaoPct >= 0
-                      ? "text-success"
+                      ? "text-brand"
                       : "text-destructive";
                 return (
                   <tr key={i.chave} className="border-t border-border">

@@ -15,7 +15,7 @@ import {
   getVolumePorPosto,
   listarLojas,
 } from "../redeflex-mongo.server";
-import { corteAgora, diaDoMes, diasNoMes, formatCorte, hojeSaoPaulo, primeiroDiaDoMes } from "./datas";
+import { corteAgora, formatCorte, hojeSaoPaulo, primeiroDiaDoMes } from "./datas";
 
 /** Escopo de dados do contato: IBMs autorizados (vazio = rede inteira). */
 export type Escopo = { ibms: string[] };
