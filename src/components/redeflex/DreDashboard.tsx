@@ -18,7 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { comSinal, consolidarEbitda, linhasDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
+import { comSinal, consolidarEbitda, diasDecorridos, diasDosMeses, horizontesProjecao, linhasDre, projetarDre, rotuloComSinal, type DreConsolidada, type Ebitda, type LinhaEbitdaChave } from "@/lib/ebitda";
 import { rotuloMes } from "@/lib/contabil";
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -189,6 +189,7 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
       <TabsList className="h-auto w-full justify-start overflow-x-auto rounded-none border-b border-border bg-transparent p-0">
         <TabsTrigger value="geral" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Visão Geral</TabsTrigger>
         <TabsTrigger value="dre" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">DRE Gerencial</TabsTrigger>
+        <TabsTrigger value="projecoes" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Projeções</TabsTrigger>
         <TabsTrigger value="comparativo" className="rounded-none border-b-2 border-transparent px-4 py-3 shadow-none data-[state=active]:border-brand data-[state=active]:bg-transparent data-[state=active]:shadow-none">Comparativo entre Postos</TabsTrigger>
       </TabsList>
 
@@ -220,6 +221,10 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
         <div className="flex flex-wrap gap-2">{meses.map((mes) => <Button key={mes} size="sm" variant={mesesDre.includes(mes) ? "default" : "outline"} onClick={() => alternarMes(mes)}>{rotuloMes(mes)}</Button>)}</div>
          <p className="flex items-center gap-2 text-xs text-muted-foreground"><span className="inline-block h-3 w-3 rounded-sm border border-border bg-bi-soft" />Verde = dados do BI</p>
         <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
+      </TabsContent>
+
+      <TabsContent value="projecoes" className="mt-5 space-y-4">
+        <Projecoes calculos={calculos} selecao={selecao} mes={mesCorrenteSp} biStatus={biStatus} />
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">
