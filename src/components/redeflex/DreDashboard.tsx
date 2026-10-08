@@ -224,7 +224,7 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
       </TabsContent>
 
       <TabsContent value="projecoes" className="mt-5 space-y-4">
-        <Projecoes calculos={calculos} selecao={selecao} mes={mesCorrenteSp} biStatus={biStatus} />
+        <Projecoes calculos={calculos} selecao={selecao} mes={mesCorrenteSp} biStatus={biStatus} fimBi={periodoDados?.fimEm ?? null} />
       </TabsContent>
 
       <TabsContent value="comparativo" className="mt-5 space-y-5">
@@ -283,10 +283,9 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
   return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor, dados.receitaBruta))}</td></>;
 }
-function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro" }) {
+function Projecoes({ calculos, selecao, mes, biStatus, fimBi }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro"; fimBi: string | null }) {
   const base = useMemo(() => consolidarEbitda(calculos, selecao, [mes]), [calculos, selecao, mes]);
   const { dia, diasMes } = diasDecorridos(mes);
-  const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, diasDosMeses(mes, h.meses)) }));
   // Série histórica: meses fechados com receita do BI (combustível + mercadorias).
   const historico = useMemo(
     () => [...new Set(calculos.map((c) => c.mes))].filter((m) => m < mes).sort()
@@ -294,6 +293,9 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
       .filter((h) => h.dados.vendaCombustivel + h.dados.vendaMercadorias > 0),
     [calculos, selecao, mes],
   );
+  const usadosRef = metaPorMeses(historico, 1, mes)?.usados ?? [];
+  const referencia = useMemo(() => (usadosRef.length ? consolidarEbitda(calculos, selecao, usadosRef) : null), [calculos, selecao, usadosRef.join()]);
+  const colunas = horizontesProjecao.map((h) => ({ ...h, r: projetarDre(base, mes, diasDosMeses(mes, h.meses), new Date(), { referencia, fimBi }) }));
   const metas = colunas.map((c) => metaPorMeses(historico, c.meses, mes));
   const intervalo = (u: string[]) => (u.length > 1 ? `${rotuloMes(u[0]!)} a ${rotuloMes(u[u.length - 1]!)}` : rotuloMes(u[0]!));
   const notasMeta = colunas.map((c, i) => {
@@ -329,7 +331,7 @@ function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; s
   if (biStatus !== "ok") return <p className="text-sm text-muted-foreground">{biStatus === "carregando" ? "Carregando dados do mês…" : "Não foi possível carregar os dados do BI."}</p>;
   return (
     <>
-      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita bruta inclui a venda de serviços lançada. Receita e CMV do BI até agora; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
+      <p className="text-xs text-muted-foreground">Base: média diária de {rotuloMes(mes)} (dia {dia} de {diasMes}). Receita bruta inclui a venda de serviços lançada. Receita do BI até o último dado recebido; CMV projetado pela margem (% de custo) da meta de fim do mês, por combustível e mercadorias; despesas lançadas proporcionais aos dias. EBITDA e resultado são recalculados pela fórmula da DRE.</p>
       <p className="text-xs text-muted-foreground">{notasMeta.length ? <>Meta (mês fechado, receita do BI + venda de serviços lançada) — {notasMeta.join(" · ")}.</> : "Meta indisponível: não há meses fechados com dados do BI."}</p>
       <p className="flex flex-wrap items-center gap-4 text-xs"><span className="font-semibold text-wa">Verde = melhor que a meta</span><span className="font-semibold text-destructive">Vermelho = pior que a meta</span><span className="text-muted-foreground">(CMV e Despesas: abaixo da meta é melhor)</span></p>
       <section className="card-elevated overflow-x-auto">
