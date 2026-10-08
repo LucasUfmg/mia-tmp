@@ -27,6 +27,9 @@
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
   --color-gold-soft: var(--gold-soft);
+  --color-verde: var(--verde);
+  --color-verde-foreground: var(--verde-foreground);
+  --color-verde-soft: var(--verde-soft);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
   --color-info-soft: var(--info-soft);
