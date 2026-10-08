@@ -251,7 +251,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
   const base = { ...d._somas, ...calcularEbitda(d._somas) } as DreConsolidada;
   // Histórico: até 6 meses fechados anteriores com BI (mesma regra de meta da tela), 2 consultas por vez.
   const [ano, m] = mes.split("-").map(Number) as [number, number];
-  const anteriores = Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(ano, m - 2 - i, 1)).toISOString().slice(0, 7)).reverse();
+  const anteriores = Array.from({ length: 1 }, (_, i) => new Date(Date.UTC(ano, m - 2 - i, 1)).toISOString().slice(0, 7)).reverse();
   const historico: { mes: string; dados: DreConsolidada }[] = [];
   for (let i = 0; i < anteriores.length; i += 2) {
     const lote = await Promise.all(anteriores.slice(i, i + 2).map(async (mm) => {
@@ -273,7 +273,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
   });
   const projecoes = Object.fromEntries(
     horizontesProjecao.map((h) => {
-      const p = fmt(projetarDre(base, mes, diasDosMeses(mes, h.meses), new Date(), { referencia }));
+      const p = fmt(projetarDre(base, mes, h.meses));
       const mt = metaPorMeses(historico, h.meses, mes);
       if (!mt) return [h.label, { projecao: p, meta: null }];
       const meta = fmt(mt);
@@ -286,7 +286,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
   );
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora; CMV projetado pela margem do mês da meta. Meta: fim do mês = mês anterior; 3/6 meses = média dos últimos 3/6 meses fechados × 3/6. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora; projeção fim do mês = realizado + média diária × dias restantes; 3/6 meses = fim do mês × 3/6. Meta = mês anterior (×1, ×3, ×6). CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
