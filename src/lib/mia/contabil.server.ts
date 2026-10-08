@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, diasDosMeses, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, metaPorMeses, diasDosMeses, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -249,19 +249,44 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
   const d = await lerDetalheEbitda({ periodo: "mes", mes: mes.slice(0, 7), ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
   if (d.semCalculo) return { semCalculo: true as const, periodo: d.periodo };
   const base = { ...d._somas, ...calcularEbitda(d._somas) } as DreConsolidada;
+  // Histórico: até 6 meses fechados anteriores com BI (mesma regra de meta da tela), 2 consultas por vez.
+  const [ano, m] = mes.split("-").map(Number) as [number, number];
+  const anteriores = Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(ano, m - 2 - i, 1)).toISOString().slice(0, 7)).reverse();
+  const historico: { mes: string; dados: DreConsolidada }[] = [];
+  for (let i = 0; i < anteriores.length; i += 2) {
+    const lote = await Promise.all(anteriores.slice(i, i + 2).map(async (mm) => {
+      try {
+        const h = await lerDetalheEbitda({ periodo: "mes", mes: mm, ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
+        if (h.semCalculo || h.avisoBiIndisponivel) return null;
+        const dados = { ...h._somas, ...calcularEbitda(h._somas) } as DreConsolidada;
+        return dados.vendaCombustivel + dados.vendaMercadorias > 0 ? { mes: `${mm}-01`, dados } : null;
+      } catch { return null; }
+    }));
+    for (const x of lote) if (x) historico.push(x);
+  }
+  const meta1 = metaPorMeses(historico, 1, mes);
+  const referencia = meta1 ? historico.find((h) => h.mes === meta1.usados[meta1.usados.length - 1])?.dados ?? null : null;
+  const fmt = (r: ReturnType<typeof projetarDre>) => ({
+    receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
+    despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),
+    litrosVendidos: r0(r.litros), ebitdaPorLitro: Math.round(r.ebitdaPorLitro * 100) / 100,
+  });
   const projecoes = Object.fromEntries(
     horizontesProjecao.map((h) => {
-      const r = projetarDre(base, mes, diasDosMeses(mes, h.meses));
-      return [h.label, {
-        receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
-        despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),
-        litrosVendidos: r0(r.litros), ebitdaPorLitro: Math.round(r.ebitdaPorLitro * 100) / 100,
-      }];
+      const p = fmt(projetarDre(base, mes, diasDosMeses(mes, h.meses), new Date(), { referencia }));
+      const mt = metaPorMeses(historico, h.meses, mes);
+      if (!mt) return [h.label, { projecao: p, meta: null }];
+      const meta = fmt(mt);
+      const variacaoPct = Object.fromEntries(Object.entries(p).map(([k, v]) => {
+        const alvo = (meta as Record<string, number>)[k] ?? 0;
+        return [k, alvo ? Math.round(((v - alvo) / Math.abs(alvo)) * 1000) / 10 : null];
+      }));
+      return [h.label, { projecao: p, meta, variacaoPct, mesesDaMeta: mt.usados.map((x) => x.slice(0, 7)) }];
     }),
   );
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora`,
+    base: `média diária de ${d.periodo} até agora; CMV projetado pela margem do mês da meta. Meta: fim do mês = mês anterior; 3/6 meses = média dos últimos 3/6 meses fechados × 3/6. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
