@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, linhasEbitda, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, diasDosMeses, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -77,6 +77,17 @@ export async function lerContabil(opcoes: {
   }
 
   const c = consolidar(linhas);
+  try {
+    const d = await lerDetalheEbitda({ periodo: opcoes.periodo, ...(opcoes.mes ? { mes: opcoes.mes } : {}), ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
+    if (!d.semCalculo) {
+      c.receitaLiquida = d.receitaOperacionalLiquida;
+      c.ebitda = d.ebitda;
+      c.ebit = d.ebit;
+      c.lucroLiquido = d.resultadoLiquido;
+      c.margemEbitda = c.receitaLiquida ? (c.ebitda / c.receitaLiquida) * 100 : null;
+      c.margemLiquida = c.receitaLiquida ? (c.lucroLiquido / c.receitaLiquida) * 100 : null;
+    }
+  } catch { /* mantém lançamentos */ }
   const mesesComDado = [...new Set(linhas.map((l) => l.mes))].sort().map(rotuloMes);
 
   return {
@@ -145,6 +156,8 @@ export async function lerDetalheEbitda(opcoes: {
   });
 
   const { receitaCustoDoBi } = await import("../receita-custo.server");
+  const mesCorrente = mesReferencia();
+  let falhaBi = false;
   await Promise.all(
     linhas
       .filter((l) => meses.includes(l.mes))
@@ -165,8 +178,13 @@ export async function lerDetalheEbitda(opcoes: {
              margemCombustivel: b.margemCombustivel,
            });
         } catch {
-          /* mantém o valor salvo */
+          // Nunca usa valores antigos salvos: sinaliza falha do BI.
+          l.valores.receitaVendas = 0;
+          l.valores.custo = 0;
+          falhaBi = true;
         }
+        // Mês corrente: despesas proporcionais aos dias (mesma regra do painel).
+        if (l.mes === mesCorrente) l.valores = proporcionalizarDespesas(l.valores, fatorDiasDoMes(l.mes));
       }),
   );
 
@@ -198,6 +216,8 @@ export async function lerDetalheEbitda(opcoes: {
   return {
     semCalculo: false as const,
     periodo: periodoLabel,
+    ...(falhaBi ? { avisoBiIndisponivel: "Não foi possível buscar receita/CMV no BI; números incompletos." } : {}),
+    ...(meses.includes(mesCorrente) ? { observacao: "Mês corrente: receita/CMV até agora e despesas proporcionais aos dias decorridos, igual ao painel." } : {}),
     mesesCalculados: [...new Set(escopo.map((l) => l.mes))].sort().map(rotuloMes),
     postos: [...new Set(escopo.map((l) => l.ibm))],
     detalhamento,
@@ -219,5 +239,30 @@ export async function lerDetalheEbitda(opcoes: {
     resultadoLiquido: r0(totais.resultadoLiquido),
     resultadoFinal: r0(totais.resultadoFinal),
     lucroLiquido: r0(totais.lucroLiquido),
+    _somas: somas,
+  };
+}
+
+/** Projeções do mês corrente (fim do mês, próximos 3 e 6 meses), iguais à aba Projeções. */
+export async function lerProjecoes(opcoes: { ibms?: string[] }) {
+  const mes = mesReferencia();
+  const d = await lerDetalheEbitda({ periodo: "mes", mes: mes.slice(0, 7), ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
+  if (d.semCalculo) return { semCalculo: true as const, periodo: d.periodo };
+  const base = { ...d._somas, ...calcularEbitda(d._somas) } as DreConsolidada;
+  const projecoes = Object.fromEntries(
+    horizontesProjecao.map((h) => {
+      const r = projetarDre(base, mes, diasDosMeses(mes, h.meses));
+      return [h.label, {
+        receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
+        despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),
+      }];
+    }),
+  );
+  return {
+    semCalculo: false as const,
+    base: `média diária de ${d.periodo} até agora`,
+    realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal },
+    projecoes,
+    ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
   };
 }
