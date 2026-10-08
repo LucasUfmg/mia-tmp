@@ -347,16 +347,19 @@ function Contabil() {
                 <Sigma className="mr-1.5 h-4 w-4 text-gold" />
                 Lançar valores da DRE
               </Button>
-              <Button
-                onClick={() => {
-                  setEdicao(null);
-                  setDialogo(true);
-                }}
-                className="bg-gold text-gold-foreground hover:bg-gold/90"
-              >
-                <Plus className="mr-1.5 h-4 w-4" />
-                Lançar dados contábeis
-              </Button>
+              {/* Oculto por enquanto: "Lançar dados contábeis". */}
+              {false && (
+                <Button
+                  onClick={() => {
+                    setEdicao(null);
+                    setDialogo(true);
+                  }}
+                  className="bg-gold text-gold-foreground hover:bg-gold/90"
+                >
+                  <Plus className="mr-1.5 h-4 w-4" />
+                  Lançar dados contábeis
+                </Button>
+              )}
             </div>
 
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
