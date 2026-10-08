@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcessoRouteImport } from './routes/acesso'
 import { Route as ContabilRouteImport } from './routes/contabil'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as ApiPublicFzapRouteImport } from './routes/api/public/fzap'
@@ -18,6 +19,11 @@ import { Route as ApiPublicWhatsappRouteImport } from './routes/api/public/whats
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AcessoRoute = AcessoRouteImport.update({
+  id: '/acesso',
+  path: '/acesso',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContabilRoute = ContabilRouteImport.update({
@@ -43,6 +49,7 @@ const ApiPublicWhatsappRoute = ApiPublicWhatsappRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acesso': typeof AcessoRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -66,13 +75,24 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/contabil' | '/manual' | '/api/public/fzap' | '/api/public/whatsapp'
+    | '/'
+    | '/acesso'
+    | '/contabil'
+    | '/manual'
+    | '/api/public/fzap'
+    | '/api/public/whatsapp'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/contabil' | '/manual' | '/api/public/fzap' | '/api/public/whatsapp'
+    | '/'
+    | '/acesso'
+    | '/contabil'
+    | '/manual'
+    | '/api/public/fzap'
+    | '/api/public/whatsapp'
   id:
     | '__root__'
     | '/'
+    | '/acesso'
     | '/contabil'
     | '/manual'
     | '/api/public/fzap'
@@ -81,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcessoRoute: typeof AcessoRoute
   ContabilRoute: typeof ContabilRoute
   ManualRoute: typeof ManualRoute
   ApiPublicFzapRoute: typeof ApiPublicFzapRoute
@@ -94,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acesso': {
+      id: '/acesso'
+      path: '/acesso'
+      fullPath: '/acesso'
+      preLoaderRoute: typeof AcessoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contabil': {
@@ -129,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcessoRoute: AcessoRoute,
   ContabilRoute: ContabilRoute,
   ManualRoute: ManualRoute,
   ApiPublicFzapRoute: ApiPublicFzapRoute,
