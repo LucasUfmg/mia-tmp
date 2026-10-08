@@ -143,7 +143,7 @@ function ManualPage() {
 
       <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8 print:px-0 print:py-0">
         <Link
-          to="/"
+          to="/bi"
           className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline lg:hidden print:hidden"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -406,7 +406,7 @@ function ManualPage() {
 
         <div className="mt-10 print:hidden">
           <Link
-            to="/"
+            to="/bi"
             className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3 text-sm font-bold text-brand-foreground transition hover:brightness-105"
           >
             <ArrowLeft className="h-4 w-4" />

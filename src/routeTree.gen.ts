@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcessoRouteImport } from './routes/acesso'
+import { Route as BiRouteImport } from './routes/bi'
 import { Route as ContabilRouteImport } from './routes/contabil'
 import { Route as ManualRouteImport } from './routes/manual'
 import { Route as ApiPublicFzapRouteImport } from './routes/api/public/fzap'
@@ -24,6 +25,11 @@ const IndexRoute = IndexRouteImport.update({
 const AcessoRoute = AcessoRouteImport.update({
   id: '/acesso',
   path: '/acesso',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BiRoute = BiRouteImport.update({
+  id: '/bi',
+  path: '/bi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContabilRoute = ContabilRouteImport.update({
@@ -50,6 +56,7 @@ const ApiPublicWhatsappRoute = ApiPublicWhatsappRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
+  '/bi': typeof BiRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
+  '/bi': typeof BiRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/acesso': typeof AcessoRoute
+  '/bi': typeof BiRoute
   '/contabil': typeof ContabilRoute
   '/manual': typeof ManualRoute
   '/api/public/fzap': typeof ApiPublicFzapRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/acesso'
+    | '/bi'
     | '/contabil'
     | '/manual'
     | '/api/public/fzap'
@@ -85,6 +95,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/acesso'
+    | '/bi'
     | '/contabil'
     | '/manual'
     | '/api/public/fzap'
@@ -93,6 +104,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/acesso'
+    | '/bi'
     | '/contabil'
     | '/manual'
     | '/api/public/fzap'
@@ -102,6 +114,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcessoRoute: typeof AcessoRoute
+  BiRoute: typeof BiRoute
   ContabilRoute: typeof ContabilRoute
   ManualRoute: typeof ManualRoute
   ApiPublicFzapRoute: typeof ApiPublicFzapRoute
@@ -122,6 +135,13 @@ declare module '@tanstack/react-router' {
       path: '/acesso'
       fullPath: '/acesso'
       preLoaderRoute: typeof AcessoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bi': {
+      id: '/bi'
+      path: '/bi'
+      fullPath: '/bi'
+      preLoaderRoute: typeof BiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contabil': {
@@ -158,6 +178,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcessoRoute: AcessoRoute,
+  BiRoute: BiRoute,
   ContabilRoute: ContabilRoute,
   ManualRoute: ManualRoute,
   ApiPublicFzapRoute: ApiPublicFzapRoute,

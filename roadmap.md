@@ -33,7 +33,8 @@
 - [x] Validar manual, mapa e rotas removidas em desktop/mobile
 - [x] Projeções: projeção vs meta (média histórica, receita bruta com Venda de Serviços), verde/vermelho (custos invertidos)
 
-## Portal de acesso da Mia (/acesso)
+## Portal de acesso da Mia (/)
+- [x] Portal na rota inicial `/`, BI migrado para `/bi`, conclusão do portal redireciona para `/bi`, `/acesso` redireciona para `/`
 - [x] Entrar ou criar conta, boas-vindas pelo nome, escolha de ERP (LBC, Linx, WebPosto) e credenciais — sem backend
 - [x] Remover o logo da Flex e a marca RedeFlex do portal; título "Portal da Mia"
 - [x] Layout dividido: foto do posto de um lado, portal de acesso do outro, tons verdes e dourados

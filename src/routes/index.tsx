@@ -1,38 +1,14 @@
-import { createFileRoute, ClientOnly, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useRef, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import {
-  Fuel,
-  ShoppingBag,
-  DollarSign,
-  TrendingUp,
-  ShoppingCart,
-  BookOpen,
-} from "lucide-react";
-import logoRedeFlex from "@/assets/redeflex-logo.jpg";
-import { Sidebar } from "@/components/redeflex/Sidebar";
-import { NetworkCard } from "@/components/redeflex/NetworkCard";
-import { DistributionCard } from "@/components/redeflex/DistributionCard";
-import { WeeklyOverview } from "@/components/redeflex/WeeklyOverview";
-import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
-import { LiveStatus } from "@/components/redeflex/LiveStatus";
-import { PeriodTabs } from "@/components/redeflex/PeriodTabs";
-import { SellerRanking } from "@/components/redeflex/SellerRanking";
-import { loadDashboardData, loadLojas, loadRankingVendedores } from "@/lib/redeflex-dashboard";
-import { loadMapa } from "@/lib/redeflex-mapa";
-import { usePersistedQueryCache } from "@/lib/query-persist";
-import type { Categoria, Periodo } from "@/lib/redeflex-dashboard";
-import type { Slice } from "@/data/redeflex";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState, type FormEvent } from "react";
+import { ArrowLeft, Database, Sparkles } from "lucide-react";
+import postoAcesso from "@/assets/posto-acesso.jpg";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const NetworkMap = lazy(() => import("@/components/redeflex/NetworkMap"));
-
-const MapaSkeleton = () => (
-  <div className="card-elevated h-[420px] animate-pulse bg-surface-muted" aria-hidden />
-);
-
-const title = "RedeFlex — Visão Geral da Rede de Postos";
+const title = "Portal da Mia";
 const description =
-  "Painel executivo RedeFlex: rentabilidade, margem por litro, ticket médio e distribuição de combustíveis e produtos em toda a rede de postos.";
+  "Entre ou crie sua conta para falar com a Mia, agente contábil e financeira que acompanha em tempo real a operação do seu posto.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,279 +21,217 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Index,
+  component: Acesso,
 });
 
-const litros0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
-const litros2 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-const brl0 = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  maximumFractionDigits: 0,
-});
-const pct = (v: number) => `${litros2.format(v)}%`;
+type Etapa = "entrar" | "cadastro" | "boas-vindas" | "erp" | "credenciais";
+const ERPS = [
+  { id: "LBC", nome: "LBC", desc: "Gestão para postos LBC" },
+  { id: "Linx", nome: "Linx (Totvs)", desc: "Linx Postos / Totvs" },
+  { id: "WebPosto", nome: "WebPosto", desc: "Sistema WebPosto" },
+];
+const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
-function toSlices(
-  categorias: Categoria[] | undefined,
-  indiceLabel: string,
-  formatIndice: (v: number) => string,
-  mostrarLucro: boolean,
-): Slice[] {
-  return (categorias ?? []).map((c) => ({
-    name: c.nome,
-    value: Math.max(c.receita, 0),
-    primaryLabel: indiceLabel,
-    primaryValue: formatIndice(c.indice),
-    lb: mostrarLucro ? pct(c.lb) : null,
-    rb: mostrarLucro ? brl0.format(c.lucroBruto) : null,
-  }));
-}
+function Acesso() {
+  const navigate = useNavigate();
+  const [etapa, setEtapa] = useState<Etapa>("entrar");
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [confirma, setConfirma] = useState("");
+  const [erro, setErro] = useState("");
+  const [erp, setErp] = useState("");
+  const [erpLogin, setErpLogin] = useState("");
+  const [erpSenha, setErpSenha] = useState("");
 
-function Index() {
-  const [selecao, setSelecao] = useState<string[]>([]);
-  const [periodo, setPeriodo] = useState<Periodo>("diario");
-  const [ordemVendedores, setOrdemVendedores] = useState<"maiores" | "menores">("maiores");
-  const forcar = useRef(false);
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("mia_portal_usuario") ?? "null");
+      if (u?.email) setEmail(u.email);
+    } catch {}
+  }, []);
 
-  usePersistedQueryCache();
+  const ir = (e: Etapa) => {
+    setErro("");
+    setEtapa(e);
+  };
 
-  const { data: lojas = [] } = useQuery({
-    queryKey: ["redeflex", "lojas"],
-    queryFn: () => loadLojas(),
-    staleTime: 30 * 60_000,
-    placeholderData: keepPreviousData,
-  });
+  const entrar = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!emailOk(email) || !senha) return setErro("Informe e-mail e senha válidos.");
+    let n = email.split("@")[0] ?? "";
+    try {
+      const u = JSON.parse(localStorage.getItem("mia_portal_usuario") ?? "null");
+      if (u?.email === email && u.nome) n = u.nome;
+    } catch {}
+    setNome(n);
+    localStorage.setItem("mia_portal_usuario", JSON.stringify({ nome: n, email }));
+    ir("boas-vindas");
+  };
 
-  const {
-    data: postosMapa = [],
-    isPending: mapaCarregando,
-    error: mapaErro,
-  } = useQuery({
-    queryKey: ["redeflex", "mapa", periodo],
-    queryFn: () => loadMapa(periodo),
-    staleTime: 5 * 60_000,
-    gcTime: 30 * 60_000,
-    refetchInterval: 5 * 60_000,
-    placeholderData: keepPreviousData,
-  });
+  const cadastrar = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!nome.trim()) return setErro("Informe seu nome.");
+    if (!emailOk(email)) return setErro("Informe um e-mail válido.");
+    if (senha.length < 6) return setErro("A senha precisa ter ao menos 6 caracteres.");
+    if (senha !== confirma) return setErro("As senhas não conferem.");
+    localStorage.setItem("mia_portal_usuario", JSON.stringify({ nome: nome.trim(), email }));
+    ir("boas-vindas");
+  };
 
-  const { data, isPending, isFetching, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ["redeflex", "dashboard", [...selecao].sort().join(","), periodo],
-    queryFn: () => {
-      const fresh = forcar.current;
-      forcar.current = false;
-      return loadDashboardData(selecao, periodo, undefined, fresh);
-    },
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    refetchIntervalInBackground: false,
-    staleTime: 5 * 60_000,
-    gcTime: 30 * 60_000,
-    placeholderData: keepPreviousData,
-  });
+  const conectar = (ev: FormEvent) => {
+    ev.preventDefault();
+    if (!erpLogin || !erpSenha) return setErro("Informe login e senha do ERP.");
+    // Credenciais do ERP não são guardadas (sem servidor nesta etapa).
+    localStorage.setItem("mia_portal_erp", erp);
+    setErpLogin("");
+    setErpSenha("");
+    navigate({ to: "/bi" });
+  };
 
-  const { data: vendedores = [], isPending: vendedoresCarregando } = useQuery({
-    queryKey: [
-      "redeflex",
-      "vendedores",
-      [...selecao].sort().join(","),
-      periodo,
-      ordemVendedores,
-    ],
-    queryFn: () => loadRankingVendedores(selecao, periodo, ordemVendedores, 10),
-    refetchInterval: 60_000,
-    staleTime: 5 * 60_000,
-    gcTime: 30 * 60_000,
-    placeholderData: keepPreviousData,
-  });
-
-  const nomePosto = (ibm: string) => lojas.find((l) => l.ibm === ibm)?.nome ?? `Posto ${ibm}`;
-  const escopo =
-    selecao.length === 0
-      ? "Rede"
-      : selecao.length <= 2
-        ? selecao.map(nomePosto).join(" + ")
-        : `${selecao.length} postos`;
-
-  /** Clique em "Ver no painel" no mapa: soma o posto à seleção atual. */
-  const selecionarDoMapa = (ibm: string) =>
-    setSelecao((atual) => (atual.includes(ibm) ? atual : [...atual, ibm]));
-
-  const ind = data?.indicadores;
-  const diario = periodo === "diario";
-  const sufixo = diario ? "hoje" : "no mês até hoje";
-  const kpis = [
-    {
-      icon: Fuel,
-      label: "Volume vendido",
-      value: ind ? `${litros0.format(ind.combustivel.litros)} L` : "—",
-      hint: `litros ${sufixo}`,
-    },
-    {
-      icon: TrendingUp,
-      label: "Resultado Bruto",
-      value: ind ? brl0.format(ind.combustivel.lucroBruto) : "—",
-      hint: ind ? `LB ${pct(ind.combustivel.lb)}` : "—",
-    },
-    {
-      icon: DollarSign,
-      label: "Margem média (M/LT)",
-      value: ind ? brl.format(ind.combustivel.mlt) : "—",
-      hint: "por litro vendido",
-    },
-    {
-      icon: ShoppingCart,
-      label: "Ticket médio (TMC)",
-      value: ind ? brl.format(ind.combustivel.tmc) : "—",
-      hint: ind ? `${litros2.format(ind.combustivel.tmv)} L por atendimento (TMV)` : "—",
-    },
-  ];
+  const primeiroNome = nome.trim().split(" ")[0];
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
-
-      <main className="min-w-0 flex-1 px-4 py-5 sm:px-5 sm:py-6 md:px-8 md:py-8">
-        <div className="mb-5 flex items-center gap-3 lg:hidden">
-          <img
-            src={logoRedeFlex}
-            alt="RedeFlex — rede de postos"
-            className="h-9 w-auto shrink-0 rounded-md"
-          />
-          <span className="min-w-0 flex-1 truncate text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-            Inteligência em postos de combustíveis
-          </span>
-          <Link
-            to="/manual"
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1.5 text-xs font-bold text-brand"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Manual
-          </Link>
+    <div className="grid min-h-screen grid-cols-1 bg-background text-foreground lg:grid-cols-2">
+      {/* Foto — metade esquerda no desktop, faixa no topo no celular */}
+      <div className="relative h-56 overflow-hidden sm:h-72 lg:h-auto">
+        <img
+          src={postoAcesso}
+          alt="Posto de combustível moderno"
+          width={1080}
+          height={1920}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-verde/80 via-verde/25 to-transparent lg:bg-gradient-to-r lg:from-verde/30 lg:via-verde/10 lg:to-verde/40" />
+        <div className="absolute bottom-5 left-5 right-5 text-white lg:bottom-12 lg:left-12">
+          <h2 className="text-2xl font-bold drop-shadow-sm lg:text-4xl">
+            Portal da Mia
+          </h2>
+          <p className="mt-1 max-w-sm text-sm text-white/85 lg:text-base">
+            Sua agente contábil e financeira, em tempo real.
+          </p>
         </div>
+      </div>
 
-        <header className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl md:text-3xl">
-              {diario ? "Painel de Dados Diário" : "Painel de Dados Mensal"}
-            </h1>
-            <PeriodTabs value={periodo} onChange={setPeriodo} />
-          </div>
-          <div className="flex min-w-0 flex-col gap-3 text-sm text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:gap-5">
-            <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
-            <span className="hidden h-5 w-px bg-border sm:block" />
-            <LiveStatus
-              atualizadoEm={dataUpdatedAt}
-              atualizando={isFetching}
-              erro={error}
-              onRefresh={() => {
-                forcar.current = true;
-                void refetch();
-              }}
-            />
-          </div>
-        </header>
-
-        <div className="mt-6">
-          <ClientOnly fallback={<MapaSkeleton />}>
-            <Suspense fallback={<MapaSkeleton />}>
-              <NetworkMap
-                postos={postosMapa}
-                carregando={mapaCarregando}
-                erro={mapaErro}
-                periodoLabel={diario ? `Hoje até ${data?.corte ?? "--:--"}` : "Mês até hoje"}
-                onSelecionar={selecionarDoMapa}
-              />
-            </Suspense>
-          </ClientOnly>
-        </div>
-
-        <div className="mt-6">
-          <WeeklyOverview
-            comparativo={data?.comparativo ?? []}
-            projecao={data?.projecao ?? { combustivel: 0, produto: 0, referencia: "—" }}
-            escopo={escopo}
-            carregando={isPending}
-            corte={data?.corte ?? "--:--"}
-            periodo={periodo}
-          />
-        </div>
-
-        <section className="card-elevated mt-6 grid grid-cols-1 divide-y divide-border sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x">
-          {kpis.map(({ icon: Icon, label, value, hint }) => (
-            <div key={label} className="flex items-center gap-4 px-4 py-4 sm:px-6 sm:py-5">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gold-soft text-gold-foreground sm:h-12 sm:w-12">
-                <Icon className="h-5 w-5" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                  {label}
+      {/* Portal de acesso — metade direita, fundo claro */}
+      <div className="flex items-center justify-center px-4 py-10 sm:px-8">
+        <div className="w-full max-w-md">
+          <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-xl sm:p-8">
+            {etapa === "entrar" && (
+              <form onSubmit={entrar} className="space-y-4">
+                <h1 className="text-2xl font-bold">Entrar</h1>
+                <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
+                <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Entrar
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Não tem conta?{" "}
+                  <button type="button" onClick={() => ir("cadastro")} className="font-semibold text-gold hover:underline">
+                    Criar conta
+                  </button>
                 </p>
-                <p className="mt-0.5 break-words text-xl font-extrabold tracking-tight sm:text-2xl">
-                  {value}
+              </form>
+            )}
+
+            {etapa === "cadastro" && (
+              <form onSubmit={cadastrar} className="space-y-4">
+                <h1 className="text-2xl font-bold">Criar conta</h1>
+                <Campo id="nome" label="Nome" value={nome} onChange={setNome} />
+                <Campo id="email" label="E-mail" type="email" value={email} onChange={setEmail} />
+                <Campo id="senha" label="Senha" type="password" value={senha} onChange={setSenha} />
+                <Campo id="confirma" label="Confirmar senha" type="password" value={confirma} onChange={setConfirma} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Cadastrar
+                </Button>
+                <p className="text-center text-sm text-muted-foreground">
+                  Já tem conta?{" "}
+                  <button type="button" onClick={() => ir("entrar")} className="font-semibold text-gold hover:underline">
+                    Entrar
+                  </button>
                 </p>
-                <p className="text-xs text-muted-foreground">{hint}</p>
+              </form>
+            )}
+
+            {etapa === "boas-vindas" && (
+              <div className="space-y-5 text-center">
+                <Sparkles className="mx-auto h-10 w-10 text-verde" />
+                <h1 className="text-2xl font-bold">Olá, {primeiroNome}!</h1>
+                <p className="text-muted-foreground">
+                  Eu sou a <strong className="text-foreground">Mia</strong>, sua agente contábil e financeira.
+                  Acompanho em tempo real os dados da operação do seu posto.
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Vamos fazer uma configuração rápida: preciso do acesso ao seu ERP.
+                </p>
+                <Button onClick={() => ir("erp")} className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Começar configuração
+                </Button>
               </div>
-            </div>
-          ))}
-        </section>
+            )}
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-2">
-          <NetworkCard
-            title="Rede Combustíveis"
-            icon={<Fuel className="h-7 w-7" />}
-            rb={ind ? brl0.format(ind.combustivel.receita) : "—"}
-            rbLabel="Faturamento combustíveis"
-            metrics={[
-              { label: "M/LT", value: ind ? brl.format(ind.combustivel.mlt) : "—" },
-              { label: "LB", value: ind ? pct(ind.combustivel.lb) : "—" },
-              { label: "TMV", value: ind ? `${litros2.format(ind.combustivel.tmv)} L` : "—" },
-              { label: "TMC", value: ind ? brl.format(ind.combustivel.tmc) : "—" },
-            ]}
-            note={`${escopo} · abastecimentos ${diario ? `de hoje até ${data?.corte ?? "--:--"}` : "do mês"}${
-              ind ? ` · ${litros0.format(ind.combustivel.atendimentos)} atendimentos` : ""
-            }`}
-          />
-          <NetworkCard
-            title="Rede Produtos"
-            icon={<ShoppingBag className="h-7 w-7" />}
-            rb={ind ? brl0.format(ind.produto.receita) : "—"}
-            rbLabel="Faturamento produtos"
-            metrics={[
-              { label: "TMP", value: ind ? brl.format(ind.produto.tmp) : "—" },
-              { label: "Cupons", value: ind ? litros0.format(ind.produto.cupons) : "—" },
-            ]}
-            note={`${escopo} · vendas de produto ${diario ? `de hoje até ${data?.corte ?? "--:--"}` : "do mês"}`}
-          />
-        </div>
+            {etapa === "erp" && (
+              <div className="space-y-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 1 de 2</p>
+                <h1 className="text-xl font-bold">Qual ERP seu posto usa?</h1>
+                <div className="grid gap-3">
+                  {ERPS.map((e) => (
+                    <button
+                      key={e.id}
+                      onClick={() => {
+                        setErp(e.nome);
+                        ir("credenciais");
+                      }}
+                      className="flex items-center gap-3 rounded-xl border border-border p-4 text-left transition-colors hover:border-verde hover:bg-verde-soft/50"
+                    >
+                      <Database className="h-6 w-6 text-verde" />
+                      <span>
+                        <span className="block font-semibold">{e.nome}</span>
+                        <span className="text-xs text-muted-foreground">{e.desc}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-2">
-          <DistributionCard
-            title="Distribuição dos Combustíveis"
-            data={toSlices(data?.categorias?.combustiveis, "M/LT", (v) => brl.format(v), true)}
-            note="Participação por faturamento — passe o mouse para ver M/LT, LB e RB"
-          />
-          <DistributionCard
-            title="Distribuição dos Produtos"
-            data={toSlices(data?.categorias?.produtos, "TMP", (v) => brl.format(v), false)}
-            note="Participação por faturamento — passe o mouse para ver TMP"
-          />
+            {etapa === "credenciais" && (
+              <form onSubmit={conectar} className="space-y-4">
+                <button type="button" onClick={() => ir("erp")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+                  <ArrowLeft className="h-4 w-4" /> Trocar ERP
+                </button>
+                <p className="text-xs font-bold uppercase tracking-wider text-gold">Passo 2 de 2</p>
+                <h1 className="text-xl font-bold">Acesso ao {erp}</h1>
+                <Campo id="erp-login" label={`Login do ${erp}`} value={erpLogin} onChange={setErpLogin} />
+                <Campo id="erp-senha" label={`Senha do ${erp}`} type="password" value={erpSenha} onChange={setErpSenha} />
+                <Erro msg={erro} />
+                <Button type="submit" className="w-full bg-verde text-verde-foreground hover:bg-verde/90">
+                  Conectar
+                </Button>
+              </form>
+            )}
+          </div>
+
+          <p className="mt-4 text-center text-[11px] text-muted-foreground/70">
+            Modo de demonstração: nenhum dado de acesso é enviado ou guardado.
+          </p>
         </div>
-        <div className="mt-6">
-          <SellerRanking
-            vendedores={vendedores}
-            ordem={ordemVendedores}
-            onOrdemChange={setOrdemVendedores}
-            nomePosto={nomePosto}
-            mostrarPosto={selecao.length !== 1}
-            carregando={vendedoresCarregando}
-            nota={`${escopo} · venda de combustível por funcionário ${
-              diario ? `hoje até ${data?.corte ?? "--:--"}` : "no mês até hoje"
-            }`}
-          />
-        </div>
-      </main>
+      </div>
     </div>
   );
+}
+
+function Campo(p: { id: string; label: string; value: string; onChange: (v: string) => void; type?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={p.id}>{p.label}</Label>
+      <Input id={p.id} type={p.type ?? "text"} value={p.value} onChange={(e) => p.onChange(e.target.value)} />
+    </div>
+  );
+}
+
+function Erro({ msg }: { msg: string }) {
+  return msg ? <p className="text-sm text-destructive">{msg}</p> : null;
 }
