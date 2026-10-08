@@ -189,6 +189,9 @@
   --info-foreground: oklch(0.95 0.02 245);
   --info-soft: oklch(0.3 0.06 250);
   --bi-soft: oklch(0.3 0.06 150);
+  --verde: oklch(0.68 0.13 150);
+  --verde-foreground: oklch(0.16 0.04 150);
+  --verde-soft: oklch(0.3 0.06 150);
 }
 
 @layer base {
