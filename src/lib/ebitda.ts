@@ -164,6 +164,49 @@ export function consolidarEbitda(linhas: Ebitda[], selecao: string[], meses: str
   return { ...somas, ...dadosBi, ...calcularEbitda({ ...somas, ...dadosBi }) };
 }
 
+/** Dias decorridos no mês corrente (São Paulo): inteiro (despesas) e fracionado pela hora (BI). */
+export function diasDecorridos(mes: string, agora = new Date()) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+      .formatToParts(agora).map((x) => [x.type, x.value]),
+  );
+  const [ano, m] = mes.split("-").map(Number) as [number, number];
+  const diasMes = new Date(Date.UTC(ano, m, 0)).getUTCDate();
+  const dia = Math.min(Number(p["day"]), diasMes);
+  const hora = (Number(p["hour"]) % 24) * 60 + Number(p["minute"]);
+  return { dia, fracionado: Math.max(dia - 1 + hora / 1440, 0.01), diasMes };
+}
+
+/** Soma de dias dos `n` meses a partir de `mes` (inclusive). */
+export function diasDosMeses(mes: string, n: number) {
+  const [ano, m] = mes.split("-").map(Number) as [number, number];
+  let total = 0;
+  for (let i = 0; i < n; i++) total += new Date(Date.UTC(ano, m - 1 + i + 1, 0)).getUTCDate();
+  return total;
+}
+
+export const horizontesProjecao = [
+  { chave: "fimMes", label: "Projeção fim do mês", meses: 1 },
+  { chave: "tri", label: "Próximos 3 meses", meses: 3 },
+  { chave: "sem", label: "Próximos 6 meses", meses: 6 },
+] as const;
+
+/**
+ * Projeta a DRE do mês corrente (já com despesas proporcionais aos dias) para `horizonte` dias,
+ * pela média diária do mês: valores do BI ÷ dias fracionados; lançamentos ÷ dias inteiros.
+ * Os totais são recalculados pela fórmula da DRE.
+ */
+export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: number, agora = new Date()): ResultadoEbitda & { custoBi: number } {
+  const { dia, fracionado } = diasDecorridos(mes, agora);
+  const fBi = horizonteDias / fracionado;
+  const fManual = horizonteDias / dia;
+  const v = { ...c } as Record<string, number>;
+  for (const l of linhasEbitda) v[l.chave] = (c[l.chave] || 0) * (l.origem === "manual" ? fManual : fBi);
+  for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = (c[k] || 0) * fBi;
+  const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
+  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0) };
+}
+
 export type LinhaDre =
   | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda; sinal?: -1 }
   | { tipo: "bi"; label: string; campo: keyof DadosBiDre; sinal?: -1 }
