@@ -17,6 +17,14 @@ import {
   sameWeekdayDates,
   variacao,
 } from "./redeflex-transform";
+import {
+  MINUTOS_DIA_FECHADO,
+  escopoMeta,
+  fatorDia as fatorDiaProj,
+  fatorMes,
+  montarProjecao,
+  type ItemProjecao,
+} from "./projecao-visao";
 
 /** Lista de IBMs selecionados; vazia (ou com `REDE_ID`) = rede inteira. */
 export type Selecao = string[];
@@ -57,7 +65,13 @@ export type Categoria = {
 
 export type DashboardData = {
   comparativo: LinhaComparativo[];
-  projecao: { combustivel: number; produto: number; referencia: string };
+  projecao: {
+    combustivel: number;
+    produto: number;
+    referencia: string;
+    itens?: ItemProjecao[];
+    metaLabel?: string;
+  };
   periodo: Periodo;
   postos: string[];
   indicadores: Indicadores;
@@ -137,6 +151,17 @@ export async function loadDashboardData(
     ...(porPosto ? { ibm: ibms } : {}),
   };
 
+  const em = escopoMeta(referencia, mensal);
+  const metaPromise = getIndicators({
+    data: {
+      dates: [em.data],
+      cutoffMinutes: MINUTOS_DIA_FECHADO,
+      ...(em.desde ? { desde: em.desde } : {}),
+      ...(porPosto ? { ibm: ibms } : {}),
+      fresh,
+    },
+  }).catch(() => null);
+
   if (mensal) {
     const [combustivelMeses, produtoMeses, indicadores, categorias] = await Promise.all([
       getFuelMonths({ data: { referencia, count: 4, cutoffMinutes: corte, porPosto, fresh } }),
@@ -166,12 +191,15 @@ export async function loadDashboardData(
       };
     });
 
+    const metaMes = await metaPromise;
     return {
       comparativo,
       projecao: {
         combustivel: Math.round(projectMonth(indicadores.combustivel.litros, referencia)),
         produto: Math.round(projectMonth(indicadores.produto.receita, referencia)),
         referencia: formatReferencia(referencia),
+        itens: montarProjecao(indicadores, fatorMes(referencia, corte), metaMes),
+        metaLabel: em.label,
       },
       periodo: "mensal",
       postos: extractPostoIds(pontosCombustivelMes),
@@ -217,6 +245,8 @@ export async function loadDashboardData(
     combustivel: Math.round((combustivelPorData[referencia] ?? 0) * fatorDia),
     produto: Math.round((produtoPorData[referencia] ?? 0) * fatorDia),
     referencia: `${formatReferencia(referencia)} ${formatCorte(corte)}`,
+    itens: montarProjecao(indicadores, fatorDiaProj(corte), await metaPromise),
+    metaLabel: em.label,
   };
 
   return {

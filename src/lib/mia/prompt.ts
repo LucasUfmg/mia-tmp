@@ -25,6 +25,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "ROIC = NOPAT / capital investido médio, NOPAT = EBIT × (1 - alíquota efetiva).",
     "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
     "Na DRE: IRPJ e CSLL = 34% do saldo positivo de EBITDA + resultado não operacional; Resultado líquido vem antes de pró-labore e distribuição de lucros.",
+    "Para projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) use projecao_mes: periodo 'dia' (fim do dia; meta = mesmo dia da semana anterior fechado) ou 'mes' (fim do mês; meta = mês anterior fechado). Informe projeção, meta e diferença %.",
 
 
   ]
