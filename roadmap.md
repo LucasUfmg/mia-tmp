@@ -32,3 +32,10 @@
 - [x] Trocar o fundo do mapa por uma fonte pública sem chave
 - [x] Validar manual, mapa e rotas removidas em desktop/mobile
 - [x] Projeções: projeção vs meta (média histórica, receita bruta com Venda de Serviços), verde/vermelho (custos invertidos)
+
+## Portal de acesso da Mia (/acesso)
+- [x] Entrar ou criar conta, boas-vindas pelo nome, escolha de ERP (LBC, Linx, WebPosto) e credenciais — sem backend
+- [x] Remover o logo da Flex e a marca RedeFlex do portal; título "Portal da Mia"
+- [x] Layout dividido: foto do posto de um lado, portal de acesso do outro, tons verdes e dourados
+- [x] Após conectar o ERP, exibir "Parabéns!" com aviso de configuração em andamento e retorno por e-mail
+- [x] Validar o fluxo completo em desktop (sem redirecionar para o painel)
