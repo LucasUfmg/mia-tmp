@@ -255,13 +255,14 @@ export async function lerProjecoes(opcoes: { ibms?: string[] }) {
       return [h.label, {
         receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
         despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),
+        litrosVendidos: r0(r.litros), ebitdaPorLitro: Math.round(r.ebitdaPorLitro * 100) / 100,
       }];
     }),
   );
   return {
     semCalculo: false as const,
     base: `média diária de ${d.periodo} até agora`,
-    realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal },
+    realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
   };

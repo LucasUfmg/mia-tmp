@@ -196,7 +196,7 @@ export const horizontesProjecao = [
  * pela média diária do mês: valores do BI ÷ dias fracionados; lançamentos ÷ dias inteiros.
  * Os totais são recalculados pela fórmula da DRE.
  */
-export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: number, agora = new Date()): ResultadoEbitda & { custoBi: number } {
+export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: number, agora = new Date()): ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number } {
   const { dia, fracionado } = diasDecorridos(mes, agora);
   const fBi = horizonteDias / fracionado;
   const fManual = horizonteDias / dia;
@@ -204,7 +204,8 @@ export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: numbe
   for (const l of linhasEbitda) v[l.chave] = (c[l.chave] || 0) * (l.origem === "manual" ? fManual : fBi);
   for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = (c[k] || 0) * fBi;
   const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
-  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0) };
+  const litros = v["litrosVendidos"] || 0;
+  return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0 };
 }
 
 export type LinhaDre =
