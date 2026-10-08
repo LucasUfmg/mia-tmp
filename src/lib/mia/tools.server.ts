@@ -277,30 +277,40 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção de fechamento do mês (litros de combustível e receita de produtos) com base no acumulado até agora.",
-      inputSchema: z.object({ postos: z.array(z.string()).optional() }),
-      execute: async ({ postos }) => {
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia (meta = mesmo dia da semana anterior fechado); 'mes' = fim do mês (meta = mês anterior fechado).",
+      inputSchema: z.object({
+        periodo: z.enum(["dia", "mes"]).default("mes"),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ periodo, postos }) => {
+        const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
+          "../projecao-visao"
+        );
         const referencia = hojeSaoPaulo();
         const corte = corteAgora();
-        const desde = primeiroDiaDoMes(referencia);
+        const mensal = periodo === "mes";
+        const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
         const ibms = await resolverIbms(escopo, postos);
-        const dados = await comCache(
-          chaveDeCache("mia:ind", { referencia, corte, desde, ibms }),
-          false,
-          () => getIndicadores([referencia], ibms, corte, desde),
-        );
-        const decorridos = diaDoMes(referencia) - 1 + corte / 1440;
-        const fator = decorridos > 0 ? diasNoMes(referencia) / decorridos : 0;
+        const em = escopoMeta(referencia, mensal);
+        const [dados, meta] = await Promise.all([
+          comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
+            getIndicadores([referencia], ibms, corte, desde),
+          ),
+          comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
+            getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
+          ).catch(() => null),
+        ]);
+        const fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
         return {
-          acumulado: {
-            litros: r0(dados.combustivel.litros),
-            produtos: r0(dados.produto.receita),
-          },
-          projecao: {
-            litros: r0(dados.combustivel.litros * fator),
-            produtos: r0(dados.produto.receita * fator),
-          },
           corte: formatCorte(corte),
+          meta: em.label,
+          indicadores: montarProjecao(dados, fator, meta).map((i) => ({
+            indicador: i.label,
+            realizado: r2(i.realizado),
+            projecao: r2(i.projecao),
+            meta: i.meta === null ? null : r2(i.meta),
+            variacaoPct: i.variacaoPct === null ? null : r2(i.variacaoPct),
+          })),
         };
       },
     }),

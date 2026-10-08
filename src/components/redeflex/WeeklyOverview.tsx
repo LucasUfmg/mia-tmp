@@ -3,6 +3,15 @@ import type { DashboardData } from "@/lib/redeflex-dashboard";
 
 const litros = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
 const reais = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const reais2 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const num2 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
+function fmt(v: number, f: string): string {
+  if (f === "reais") return reais.format(v);
+  if (f === "reais2") return reais2.format(v);
+  if (f === "pct") return `${num2.format(v)}%`;
+  if (f === "num2") return num2.format(v);
+  return litros.format(v);
+}
 
 function Variation({ value }: { value: number | null }) {
   if (value === null) {
@@ -128,39 +137,56 @@ export function WeeklyOverview({
           </h2>
         </header>
 
-        <div className="grid grid-cols-1 divide-y divide-border">
-          <div className="flex items-center gap-4 px-4 py-5 sm:px-6 sm:py-6">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
-              <Fuel className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Combustível
-              </p>
-              <p className="mt-0.5 break-words text-2xl font-extrabold tracking-tight tabular-nums sm:text-3xl">
-                {litros.format(projecaoMensal.combustivel)}
-              </p>
-              <p className="text-xs text-muted-foreground">{notaCombustivel}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 px-4 py-5 sm:px-6 sm:py-6">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand sm:h-12 sm:w-12">
-              <ShoppingBag className="h-5 w-5" />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                Produto
-              </p>
-              <p className="mt-0.5 break-words text-2xl font-extrabold tracking-tight tabular-nums sm:text-3xl">
-                {reais.format(projecaoMensal.produto)}
-              </p>
-              <p className="text-xs text-muted-foreground">{notaProduto}</p>
-            </div>
-          </div>
+        <div className="w-full overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <thead>
+              <tr className="bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                <th className="px-3 py-2.5">Indicador</th>
+                <th className="px-3 py-2.5">Até agora</th>
+                <th className="px-3 py-2.5">Projeção</th>
+                <th className="px-3 py-2.5">Meta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(projecaoMensal.itens ?? []).map((i) => {
+                const tom =
+                  i.variacaoPct === null
+                    ? "text-muted-foreground"
+                    : i.variacaoPct >= 0
+                      ? "text-success"
+                      : "text-destructive";
+                return (
+                  <tr key={i.chave} className="border-t border-border">
+                    <td className="whitespace-nowrap px-3 py-2 font-semibold">{i.label}</td>
+                    <td className="whitespace-nowrap px-3 py-2 tabular-nums">{fmt(i.realizado, i.formato)}</td>
+                    <td className={`whitespace-nowrap px-3 py-2 font-bold tabular-nums ${tom}`}>
+                      {fmt(i.projecao, i.formato)}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 tabular-nums">
+                      {i.meta === null ? "—" : fmt(i.meta, i.formato)}
+                      {i.variacaoPct !== null ? (
+                        <span className={`ml-1 text-xs font-bold ${tom}`}>
+                          ({i.variacaoPct >= 0 ? "+" : ""}
+                          {i.variacaoPct.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%)
+                        </span>
+                      ) : null}
+                    </td>
+                  </tr>
+                );
+              })}
+              {(projecaoMensal.itens ?? []).length === 0 ? (
+                <tr className="border-t border-border">
+                  <td colSpan={4} className="px-3 py-4 text-muted-foreground">Carregando…</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
 
         <p className="border-t border-border bg-surface-muted px-4 py-3 text-xs text-muted-foreground sm:px-6">
-          Base: acumulado até {projecaoMensal.referencia}
+          Projeção = realizado + (realizado ÷ {diario ? "horas decorridas" : "dias decorridos"}) ×{" "}
+          {diario ? "horas restantes do dia" : "dias restantes do mês"}. Base: até {projecaoMensal.referencia}.
+          Meta: {projecaoMensal.metaLabel ?? "—"}.
         </p>
       </section>
     </div>
