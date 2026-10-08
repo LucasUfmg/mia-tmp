@@ -196,13 +196,31 @@ export const horizontesProjecao = [
  * pela média diária do mês: valores do BI ÷ dias fracionados; lançamentos ÷ dias inteiros.
  * Os totais são recalculados pela fórmula da DRE.
  */
-export function projetarDre(c: DreConsolidada, mes: string, horizonteDias: number, agora = new Date()): ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number } {
-  const { dia, fracionado } = diasDecorridos(mes, agora);
+export function projetarDre(
+  c: DreConsolidada,
+  mes: string,
+  horizonteDias: number,
+  agora = new Date(),
+  opcoes: { referencia?: Partial<DadosBiDre> | null; fimBi?: string | null } = {},
+): ResultadoEbitda & { custoBi: number; litros: number; ebitdaPorLitro: number } {
+  const { dia } = diasDecorridos(mes, agora);
+  // Média diária do BI pelo último instante com dados (não pelo relógio), quando informado.
+  const instanteBi = opcoes.fimBi ? new Date(opcoes.fimBi) : agora;
+  const { fracionado } = diasDecorridos(mes, Number.isNaN(instanteBi.getTime()) ? agora : instanteBi);
   const fBi = horizonteDias / fracionado;
   const fManual = horizonteDias / dia;
   const v = { ...c } as Record<string, number>;
   for (const l of linhasEbitda) v[l.chave] = (c[l.chave] || 0) * (l.origem === "manual" ? fManual : fBi);
   for (const k of ["vendaCombustivel", "vendaMercadorias", "vendaServicos", "custoCombustivel", "custoMercadoria", "litrosVendidos", "abastecimentosRealizados"] as const) v[k] = (c[k] || 0) * fBi;
+  // Custo projetado pela margem histórica (meta), evitando a margem distorcida do início do mês.
+  const ref = opcoes.referencia;
+  if (ref) {
+    const pct = (custo?: number, venda?: number) => (venda && custo ? custo / venda : null);
+    const pComb = pct(ref.custoCombustivel, ref.vendaCombustivel);
+    const pMerc = pct(ref.custoMercadoria, ref.vendaMercadorias);
+    if (pComb !== null) v["custoCombustivel"] = (v["vendaCombustivel"] || 0) * pComb;
+    if (pMerc !== null) v["custoMercadoria"] = (v["vendaMercadorias"] || 0) * pMerc;
+  }
   const r = calcularEbitda(v as Record<LinhaEbitdaChave, number> & DadosBiDre);
   const litros = v["litrosVendidos"] || 0;
   return { ...r, custoBi: (v["custoCombustivel"] || 0) + (v["custoMercadoria"] || 0) || Math.abs(v["custo"] || 0), litros, ebitdaPorLitro: litros ? r.ebitda / litros : 0 };
