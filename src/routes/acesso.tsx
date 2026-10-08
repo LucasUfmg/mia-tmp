@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { ArrowLeft, CheckCircle2, Database, Sparkles } from "lucide-react";
 import postoAcesso from "@/assets/posto-acesso.jpg";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-const title = "Acesso à Mia — RedeFlex";
+const title = "Portal da Mia";
 const description =
   "Entre ou crie sua conta para falar com a Mia, agente contábil e financeira que acompanha em tempo real a operação do seu posto.";
 
@@ -33,7 +33,6 @@ const ERPS = [
 const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
 function Acesso() {
-  const navigate = useNavigate();
   const [etapa, setEtapa] = useState<Etapa>("entrar");
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -87,7 +86,6 @@ function Acesso() {
     setErpLogin("");
     setErpSenha("");
     ir("pronto");
-    setTimeout(() => navigate({ to: "/" }), 1800);
   };
 
   const primeiroNome = nome.trim().split(" ")[0];
@@ -105,10 +103,7 @@ function Acesso() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-verde/80 via-verde/25 to-transparent lg:bg-gradient-to-r lg:from-verde/30 lg:via-verde/10 lg:to-verde/40" />
         <div className="absolute bottom-5 left-5 right-5 text-white lg:bottom-12 lg:left-12">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-soft">
-            RedeFlex
-          </p>
-          <h2 className="mt-1 text-2xl font-bold drop-shadow-sm lg:text-4xl">
+          <h2 className="text-2xl font-bold drop-shadow-sm lg:text-4xl">
             Portal da Mia
           </h2>
           <p className="mt-1 max-w-sm text-sm text-white/85 lg:text-base">
@@ -218,10 +213,23 @@ function Acesso() {
             )}
 
             {etapa === "pronto" && (
-              <div className="space-y-3 py-4 text-center">
+              <div className="space-y-4 py-2 text-center">
                 <CheckCircle2 className="mx-auto h-12 w-12 text-verde" />
-                <h1 className="text-2xl font-bold">Tudo pronto!</h1>
-                <p className="text-muted-foreground">Abrindo seu painel…</p>
+                <h1 className="text-2xl font-bold">
+                  Parabéns{primeiroNome ? `, ${primeiroNome}` : ""}!
+                </h1>
+                <p className="text-muted-foreground">
+                  Vamos configurar seus dados para que você possa desfrutar da Mia. Essa ação
+                  leva algumas horas.
+                </p>
+                <p className="text-muted-foreground">
+                  Pode fechar a tela: enviaremos um e-mail quando seu acesso estiver concluído.
+                </p>
+                {email && (
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gold">
+                    Aviso para {email}
+                  </p>
+                )}
               </div>
             )}
           </div>
