@@ -72,12 +72,15 @@ export function montarProjecao(
   atual: Indicadores,
   fator: number,
   meta: Indicadores | null,
+  fatorMeta = 1,
 ): ItemProjecao[] {
   const v = volumesDe(atual);
   const proj = Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x * fator])) as Volumes;
   const r = itensDe(v);
   const p = itensDe(proj);
-  const m = meta ? itensDe(volumesDe(meta)) : null;
+  const m = meta
+    ? itensDe(Object.fromEntries(Object.entries(volumesDe(meta)).map(([k, x]) => [k, x * fatorMeta])) as Volumes)
+    : null;
   return rotulos.map(({ chave, label, formato }) => {
     const mv = m ? m[chave] : null;
     return {
