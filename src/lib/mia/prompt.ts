@@ -26,6 +26,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
     "Na DRE: IRPJ e CSLL = 34% do saldo positivo de EBITDA + resultado não operacional; Resultado líquido vem antes de pró-labore e distribuição de lucros.",
     "Para projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) use projecao_mes: periodo 'dia' (fim do dia; meta = mesmo dia da semana anterior fechado) ou 'mes' (fim do mês; meta = mês anterior fechado). Informe projeção, meta e diferença %.",
+    "Projeções para QUALQUER período futuro (ex.: próximas 2 horas, até sexta, próximos 10 dias, 2 meses, até dezembro): converta para horas, dias ou ate (YYYY-MM-DD) a partir de agora e passe em projecao_mes ou projecoes_contabeis. Cite o período projetado, a meta proporcional e a variação %.",
 
 
   ]

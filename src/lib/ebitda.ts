@@ -220,6 +220,22 @@ export function metaPorMeses(historico: { mes: string; dados: DreConsolidada }[]
   return { ...escalar(h.dados, meses), usados: [h.mes] };
 }
 
+/** Projeção de um período futuro de `dias` (fracionáveis): média diária do mês corrente × dias. */
+export function projetarDreDias(c: DreConsolidada, mes: string, dias: number, agora = new Date()): Indicadores {
+  const { fracionado } = diasDecorridos(mes, agora);
+  return escalar(c, dias / fracionado);
+}
+
+/** Meta de `dias`: mês anterior fechado ÷ dias desse mês × dias. */
+export function metaPorDias(historico: { mes: string; dados: DreConsolidada }[], dias: number, mesCorrente: string): (Indicadores & { usados: string[] }) | null {
+  const [a, m] = mesCorrente.split("-").map(Number) as [number, number];
+  const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 7);
+  const h = historico.find((x) => x.mes.slice(0, 7) === anterior);
+  if (!h) return null;
+  const diasAnt = new Date(Date.UTC(a, m - 1, 0)).getUTCDate();
+  return { ...escalar(h.dados, dias / diasAnt), usados: [h.mes] };
+}
+
 export type LinhaDre =
   | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda; sinal?: -1 }
   | { tipo: "bi"; label: string; campo: keyof DadosBiDre; sinal?: -1 }

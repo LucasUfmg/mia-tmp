@@ -277,18 +277,28 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia (meta = mesmo dia da semana anterior fechado); 'mes' = fim do mês (meta = mês anterior fechado).",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia (meta = mesmo dia da semana anterior fechado); 'mes' = fim do mês (meta = mês anterior fechado). Para QUALQUER outro período futuro, informe horas (próximas N horas) ou dias (próximos N dias) ou ate (data YYYY-MM-DD).",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
+        horas: z.number().positive().optional().describe("Próximas N horas"),
+        dias: z.number().positive().optional().describe("Próximos N dias"),
+        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar de agora até o fim desta data"),
         postos: z.array(z.string()).optional(),
       }),
-      execute: async ({ periodo, postos }) => {
+      execute: async ({ periodo, horas, dias, ate, postos }) => {
         const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
           "../projecao-visao"
         );
         const referencia = hojeSaoPaulo();
         const corte = corteAgora();
-        const mensal = periodo === "mes";
+        // Converte o período livre em minutos futuros.
+        let minutos: number | undefined;
+        if (horas) minutos = horas * 60;
+        else if (dias) minutos = dias * 1440;
+        else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
+        const livre = minutos !== undefined;
+        // Até 1 dia: média por minuto de hoje; acima: média diária do mês.
+        const mensal = livre ? (minutos as number) > 1440 : periodo === "mes";
         const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
         const ibms = await resolverIbms(escopo, postos);
         const em = escopoMeta(referencia, mensal);
@@ -300,11 +310,30 @@ export function criarFerramentas(escopo: Escopo) {
             getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
           ).catch(() => null),
         ]);
-        const fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
+        let fator: number;
+        let fatorMeta = 1;
+        let rotulo: string;
+        if (livre) {
+          const m = minutos as number;
+          if (mensal) {
+            const dec = Number(referencia.slice(8, 10)) - 1 + corte / 1440;
+            const diasMetaMes = Number(em.data.slice(8, 10));
+            fator = dec > 0 ? m / 1440 / dec : 0;
+            fatorMeta = m / 1440 / diasMetaMes;
+          } else {
+            fator = corte > 0 ? m / corte : 0;
+            fatorMeta = m / 1440;
+          }
+          rotulo = `próximas ${Math.round((m / 60) * 10) / 10} horas${ate ? ` (até ${ate})` : ""}`;
+        } else {
+          fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
+          rotulo = mensal ? "fim do mês" : "fim do dia";
+        }
         return {
           corte: formatCorte(corte),
-          meta: em.label,
-          indicadores: montarProjecao(dados, fator, meta).map((i) => ({
+          periodoProjetado: rotulo,
+          meta: livre ? `${em.label}, proporcional ao período` : em.label,
+          indicadores: montarProjecao(dados, fator, meta, fatorMeta).map((i) => ({
             indicador: i.label,
             realizado: r2(i.realizado),
             projecao: r2(i.projecao),
@@ -314,7 +343,6 @@ export function criarFerramentas(escopo: Escopo) {
         };
       },
     }),
-
     indicadores_contabeis: tool({
       description:
         "Indicadores financeiros contábeis lançados no painel (/contabil): ROE, ROIC, margem líquida, margem EBITDA, receita líquida, lucro líquido, EBITDA, EBIT, PL médio, capital investido, NOPAT e WACC. Use para perguntas contábeis/financeiras, não operacionais.",
@@ -360,12 +388,16 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções (aba Projeções do painel) de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final: fim do mês, próximos 3 meses e próximos 6 meses, pela média diária do mês corrente.",
-      inputSchema: z.object({ postos: z.array(z.string()).optional() }),
-      execute: async ({ postos }) => {
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período futuro informe dias (próximos N dias; meses ≈ 30 dias cada) ou ate (data YYYY-MM-DD).",
+      inputSchema: z.object({
+        postos: z.array(z.string()).optional(),
+        dias: z.number().positive().optional(),
+        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+      }),
+      execute: async ({ postos, dias, ate }) => {
         const { lerProjecoes } = await import("./contabil.server");
         const ibms = await resolverIbms(escopo, postos);
-        return lerProjecoes(ibms ? { ibms } : {});
+        return lerProjecoes({ ...(ibms ? { ibms } : {}), ...(dias ? { dias } : {}), ...(ate ? { ate } : {}) });
       },
     }),
   };
