@@ -243,6 +243,49 @@ export function deslocarAnos(data: string, anos: number): string {
   return `${a - anos}-${String(m).padStart(2, "0")}-${String(Math.min(d, ultimo)).padStart(2, "0")}`;
 }
 
+/** Desloca uma data YYYY-MM-DD em `meses` (ajusta fim de mês: 31/03 − 1 mês = 28/02). */
+export function deslocarMeses(data: string, meses: number): string {
+  const [a, m, d] = data.split("-").map(Number) as [number, number, number];
+  const alvo = new Date(Date.UTC(a, m - 1 + meses, 1));
+  const ultimo = new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth(), Math.min(d, ultimo))).toISOString().slice(0, 10);
+}
+
+/**
+ * Período de comparação (meta) de [inicio, fim], pela duração:
+ * até 7 dias → −7 dias; 8 a 31 dias → mês anterior; 32 a 364 dias → período imediatamente anterior
+ * (mesma duração); 365 dias ou mais → ano anterior.
+ */
+export function periodoDeComparacao(inicio: string, fim: string): { ini: string; fim: string; regra: string } {
+  const t = (x: string) => new Date(`${x}T00:00:00Z`).getTime();
+  const iso = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  const dias = Math.round((t(fim) - t(inicio)) / 86_400_000) + 1;
+  const ultimoDoMes = (x: string) => {
+    const [a, m] = x.split("-").map(Number) as [number, number];
+    return iso(Date.UTC(a, m, 0));
+  };
+  const mesInteiro = inicio.endsWith("-01") && ultimoDoMes(fim) === fim;
+  if (dias <= 7) return { ini: iso(t(inicio) - 7 * 86_400_000), fim: iso(t(fim) - 7 * 86_400_000), regra: dias <= 1 ? "mesmo dia da semana anterior" : "semana anterior" };
+  if (dias <= 31) {
+    if (mesInteiro && inicio.slice(0, 7) === fim.slice(0, 7)) {
+      const ini = deslocarMeses(inicio, -1);
+      return { ini, fim: ultimoDoMes(ini), regra: "mês anterior" };
+    }
+    return { ini: deslocarMeses(inicio, -1), fim: deslocarMeses(fim, -1), regra: "mês anterior" };
+  }
+  if (dias < 365) {
+    if (mesInteiro) {
+      const [a1, m1] = inicio.split("-").map(Number) as [number, number];
+      const [a2, m2] = fim.split("-").map(Number) as [number, number];
+      const n = (a2 - a1) * 12 + (m2 - m1) + 1;
+      const ini = deslocarMeses(inicio, -n);
+      return { ini, fim: iso(t(inicio) - 86_400_000), regra: "período anterior de mesma duração" };
+    }
+    return { ini: iso(t(inicio) - dias * 86_400_000), fim: iso(t(inicio) - 86_400_000), regra: "período anterior de mesma duração" };
+  }
+  return { ini: deslocarAnos(inicio, 1), fim: deslocarAnos(fim, 1), regra: "ano anterior" };
+}
+
 /** Meses (YYYY-MM-01) cobertos por [inicio, fim] com a fração de dias de cada mês. */
 export function mesesDoIntervalo(inicio: string, fim: string): { mes: string; fracao: number }[] {
   const out: { mes: string; fracao: number }[] = [];

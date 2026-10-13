@@ -277,7 +277,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior fechado proporcional.",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior fechado proporcional.",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
         horas: z.number().positive().optional().describe("Próximas N horas"),
@@ -290,7 +290,7 @@ export function criarFerramentas(escopo: Escopo) {
         const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
           "../projecao-visao"
         );
-        const { deslocarAnos } = await import("../ebitda");
+        const { periodoDeComparacao } = await import("../ebitda");
         const referencia = hojeSaoPaulo();
         const corte = corteAgora();
         const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86_400_000).toISOString().slice(0, 10);
@@ -320,13 +320,12 @@ export function criarFerramentas(escopo: Escopo) {
         const ibms = await resolverIbms(escopo, postos);
         // Fallback: mês anterior fechado, proporcional à duração do período.
         const em = escopoMeta(referencia, true);
-        // Até 7 dias: semana anterior (−7 dias); acima: mesmo período do ano anterior.
-        const semanal = diffDias(pIni, pFim) <= 7;
-        const desloc = (x: string) => (semanal ? somarDias(x, -7) : deslocarAnos(x, 1));
+        // Meta: dia/semana −7 dias; mês → mês anterior; trimestre/semestre → período anterior; ano → ano anterior.
+        const comp = periodoDeComparacao(pIni, pFim);
         const historicoAnos = Promise.all(
           [1].map(() => {
-            const hFim = desloc(pFim);
-            const hIni = pIni === pFim ? undefined : desloc(pIni);
+            const hFim = comp.fim;
+            const hIni = pIni === pFim ? undefined : comp.ini;
             return comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
               getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
             )
@@ -365,7 +364,7 @@ export function criarFerramentas(escopo: Escopo) {
         if (comHist.length) {
           const porAno = comHist.map((a) => montarProjecao(a.x, fatorHist, null));
           metas = base.map((_, i) => porAno.reduce((s, p) => s + p[i]!.projecao, 0) / porAno.length);
-          origemMeta = `média do mesmo período em anos anteriores (${comHist.map((a) => a.rotulo).join("; ")})`;
+          origemMeta = `${comp.regra} (${comHist.map((a) => a.rotulo).join("; ")})`;
         } else if (fallback) {
           const diasPeriodo = livre ? (minutos as number) / 1440 : mensal ? diffDias(pIni, pFim) : 1;
           const fm = diasPeriodo / Number(em.data.slice(8, 10));
@@ -437,7 +436,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior proporcional.",
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional.",
       inputSchema: z.object({
         postos: z.array(z.string()).optional(),
         dias: z.number().positive().optional(),
