@@ -332,7 +332,7 @@ export function criarFerramentas(escopo: Escopo) {
               .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
               .catch(() => null);
             // Banco lento: desiste em 4 s e usa o mês anterior como meta.
-            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
+            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 2000))]);
           }),
         );
         const [dados, fallback, anos] = await Promise.all([
