@@ -277,27 +277,44 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia (meta = mesmo dia da semana anterior fechado); 'mes' = fim do mês (meta = mês anterior fechado). Para QUALQUER outro período futuro, informe horas (próximas N horas) ou dias (próximos N dias) ou ate (data YYYY-MM-DD).",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior fechado proporcional.",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
         horas: z.number().positive().optional().describe("Próximas N horas"),
         dias: z.number().positive().optional().describe("Próximos N dias"),
-        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar de agora até o fim desta data"),
+        de: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Início de um período futuro"),
+        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar até o fim desta data"),
         postos: z.array(z.string()).optional(),
       }),
-      execute: async ({ periodo, horas, dias, ate, postos }) => {
+      execute: async ({ periodo, horas, dias, de, ate, postos }) => {
         const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
           "../projecao-visao"
         );
+        const { deslocarAnos } = await import("../ebitda");
         const referencia = hojeSaoPaulo();
         const corte = corteAgora();
+        const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86_400_000).toISOString().slice(0, 10);
+        const diffDias = (a: string, b: string) => (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86_400_000 + 1;
         // Converte o período livre em minutos futuros.
         let minutos: number | undefined;
-        if (horas) minutos = horas * 60;
+        if (de) minutos = diffDias(de, ate ?? somarDias(de, Math.max(Math.ceil(dias ?? 1) - 1, 0))) * 1440;
+        else if (horas) minutos = horas * 60;
         else if (dias) minutos = dias * 1440;
         else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
         const livre = minutos !== undefined;
-        // Até 1 dia: média por minuto de hoje; acima: média diária do mês.
+        // Intervalo de datas do período projetado (para buscar o mesmo período nos anos anteriores).
+        let pIni = referencia, pFim = referencia, fatorHist = 1;
+        if (livre) {
+          const m = minutos as number;
+          pIni = de ?? referencia;
+          pFim = de ? somarDias(de, Math.round(m / 1440) - 1) : ate ?? somarDias(referencia, Math.max(Math.ceil(m / 1440) - 1, 0));
+          if (!de && m <= 1440) fatorHist = m / 1440;
+        } else if (periodo === "mes") {
+          pIni = primeiroDiaDoMes(referencia);
+          const [a, mm] = referencia.split("-").map(Number) as [number, number];
+          pFim = new Date(Date.UTC(a, mm, 0)).toISOString().slice(0, 10);
+        }
+
         const mensal = livre ? (minutos as number) > 1440 : periodo === "mes";
         const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
         const ibms = await resolverIbms(escopo, postos);
