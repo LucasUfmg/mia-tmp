@@ -283,7 +283,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
     // Busca todos os meses de comparação em paralelo (com limite de tempo por consulta).
     const fechados = await Promise.all(
-      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 2000))),
+      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 5000))),
     );
     for (const [i, x] of meses.entries()) {
       if (x.mes === mes) {
@@ -299,7 +299,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     if (completo && partes.length) {
       return { meta: metaCombinada(partes, 1), origem: `${comp.regra} (${hIni} a ${hFim})` };
     }
-    const ant = await buscarMes(mesAnterior);
+    const ant = await comLimite(buscarMes(mesAnterior), 2000);
     if (!ant) return { meta: null, origem: "sem histórico para meta" };
     const dias = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
     return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `sem histórico do mesmo período: mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
