@@ -335,15 +335,21 @@ export function criarFerramentas(escopo: Escopo) {
             return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 2000))]);
           }),
         );
-        const [dados, fallback, anos] = await Promise.all([
+        const [dados, anos] = await Promise.all([
           comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
             getIndicadores([referencia], ibms, corte, desde),
           ),
-          comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
-            getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
-          ).catch(() => null),
           historicoAnos,
         ]);
+        // Fallback só quando a comparação principal falhar, e com limite de 2 s.
+        const fallback = anos.some((a) => !!a)
+          ? null
+          : await Promise.race([
+              comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
+                getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
+              ).catch(() => null),
+              new Promise<null>((r) => setTimeout(() => r(null), 2000)),
+            ]);
         let fator: number;
         let rotulo: string;
         if (livre) {
