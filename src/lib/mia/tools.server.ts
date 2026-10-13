@@ -302,7 +302,7 @@ export function criarFerramentas(escopo: Escopo) {
         else if (dias) minutos = dias * 1440;
         else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
         const livre = minutos !== undefined;
-        // Intervalo de datas do período projetado (para buscar o mesmo período nos anos anteriores).
+        // Intervalo de datas do período projetado (para buscar o período de comparação).
         let pIni = referencia, pFim = referencia, fatorHist = 1;
         if (livre) {
           const m = minutos as number;
@@ -320,11 +320,14 @@ export function criarFerramentas(escopo: Escopo) {
         const ibms = await resolverIbms(escopo, postos);
         // Fallback: mês anterior fechado, proporcional à duração do período.
         const em = escopoMeta(referencia, true);
+        // Até 7 dias: semana anterior (−7 dias); acima: mesmo período do ano anterior.
+        const semanal = diffDias(pIni, pFim) <= 7;
+        const desloc = (x: string) => (semanal ? somarDias(x, -7) : deslocarAnos(x, 1));
         const historicoAnos = Promise.all(
-          [1, 2, 3].map((k) => {
-            const hFim = deslocarAnos(pFim, k);
-            const hIni = pIni === pFim ? undefined : deslocarAnos(pIni, k);
-            return comCache(chaveDeCache("mia:metaAno", { hIni, hFim, ibms }), false, () =>
+          [1].map(() => {
+            const hFim = desloc(pFim);
+            const hIni = pIni === pFim ? undefined : desloc(pIni);
+            return comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
               getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
             )
               .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))

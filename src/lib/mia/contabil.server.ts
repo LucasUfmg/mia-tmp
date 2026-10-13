@@ -244,7 +244,7 @@ export async function lerDetalheEbitda(opcoes: {
 }
 
 /**
- * Projeções contábeis. Meta = média do mesmo período do calendário nos anos anteriores;
+ * Projeções contábeis. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior;
  * sem histórico → mês anterior fechado proporcional à duração do período.
  */
 export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate?: string; de?: string }) {
@@ -274,24 +274,30 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
   const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
 
-  /** Meta do intervalo [inicio, fim]: média dos mesmos períodos em até 3 anos anteriores. */
+  /** Meta do intervalo [inicio, fim]: semana anterior ou mesmo período do ano anterior. */
   async function metaDoPeriodo(inicio: string, fim: string) {
-    const partesPorAno: { dados: DreConsolidada; fator: number }[][] = [];
-    const usados: string[] = [];
-    for (let k = 1; k <= 3; k++) {
-      const meses = mesesDoIntervalo(deslocarAnos(inicio, k), deslocarAnos(fim, k));
-      const partes: { dados: DreConsolidada; fator: number }[] = [];
-      let completo = true;
-      for (let i = 0; i < meses.length && completo; i += 2) {
-        const lote = await Promise.all(meses.slice(i, i + 2).map((x) => buscarMes(x.mes)));
-        lote.forEach((dados, j) => { if (dados) partes.push({ dados, fator: meses[i + j]!.fracao }); else completo = false; });
+    const diasP = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
+    // Até 7 dias: semana anterior (−7 dias); acima: mesmo período do ano anterior.
+    const semanal = diasP <= 7;
+    const desloc = (x: string) => semanal ? new Date(new Date(`${x}T00:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10) : deslocarAnos(x, 1);
+    const hIni = desloc(inicio), hFim = desloc(fim);
+    const meses = mesesDoIntervalo(hIni, hFim);
+    const partes: { dados: DreConsolidada; fator: number }[] = [];
+    let completo = true;
+    const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
+    for (const x of meses) {
+      if (x.mes === mes) {
+        // Mês corrente (parcial): usa a média diária realizada.
+        const diasNoMes = x.fracao * new Date(Date.UTC(ano, m, 0)).getUTCDate();
+        partes.push({ dados: base, fator: decorridos > 0 ? diasNoMes / decorridos : 0 });
+        continue;
       }
-      if (!completo || partes.length === 0) continue;
-      partesPorAno.push(partes);
-      usados.push(`${deslocarAnos(inicio, k)} a ${deslocarAnos(fim, k)}`);
+      const dados = await buscarMes(x.mes);
+      if (!dados) { completo = false; break; }
+      partes.push({ dados, fator: x.fracao });
     }
-    if (partesPorAno.length) {
-      return { meta: metaCombinada(partesPorAno.flat(), partesPorAno.length), origem: `média do mesmo período em anos anteriores (${usados.join("; ")})` };
+    if (completo && partes.length) {
+      return { meta: metaCombinada(partes, 1), origem: `${semanal ? "semana anterior" : "mesmo período do ano anterior"} (${hIni} a ${hFim})` };
     }
     const ant = await buscarMes(mesAnterior);
     if (!ant) return { meta: null, origem: "sem histórico para meta" };
@@ -343,7 +349,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   }
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora × duração do período. Meta = média do mesmo período em anos anteriores; sem histórico, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
