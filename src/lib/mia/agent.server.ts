@@ -87,7 +87,8 @@ export async function responderPergunta(contato: Contato, pergunta: string): Pro
         { role: "user" as const, content: pergunta },
       ],
       tools: criarFerramentas(escopo),
-      stopWhen: stepCountIs(50),
+      // Poucas etapas: cada consulta extra soma segundos e o WhatsApp tem tempo limite.
+      stopWhen: stepCountIs(5),
     });
 
     return await resultado.text;
