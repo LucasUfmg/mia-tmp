@@ -349,7 +349,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   }
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora × duração do período. Meta = média do mesmo período em anos anteriores; sem histórico, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
