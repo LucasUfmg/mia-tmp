@@ -89,9 +89,16 @@ export async function responderPergunta(contato: Contato, pergunta: string): Pro
       tools: criarFerramentas(escopo),
       // Poucas etapas: cada consulta extra soma segundos e o WhatsApp tem tempo limite.
       stopWhen: stepCountIs(5),
+      // Antes do limite do WhatsApp (~15 s): melhor avisar do que ficar mudo.
+      abortSignal: AbortSignal.timeout(13_000),
     });
 
-    return await resultado.text;
+    try {
+      return await resultado.text;
+    } catch (erro) {
+      console.warn("[Mia:agent] tempo esgotado", erro);
+      return "Ainda estou terminando esse cálculo 🙂 Me pergunte de novo em alguns segundos que já trago o número.";
+    }
   });
 
   const resposta = texto.trim() || "Não consegui apurar esse número agora. Pode repetir a pergunta?";

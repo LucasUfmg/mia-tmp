@@ -322,17 +322,20 @@ export function criarFerramentas(escopo: Escopo) {
         const em = escopoMeta(referencia, true);
         // Meta: dia/semana −7 dias; mês → mês anterior; trimestre/semestre → período anterior; ano → ano anterior.
         const comp = periodoDeComparacao(pIni, pFim);
+        const hIniComp = pIni === pFim ? undefined : comp.ini;
+        // Quando a comparação já é o mês anterior fechado, não repete a mesma consulta no fallback.
+        const mesmoQueFallback = hIniComp === em.desde && comp.fim === em.data;
         const historicoAnos = Promise.all(
           [1].map(() => {
             const hFim = comp.fim;
-            const hIni = pIni === pFim ? undefined : comp.ini;
+            const hIni = hIniComp;
             const consulta = comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
               getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
             )
               .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
               .catch(() => null);
-            // Banco lento: desiste em 4 s e usa o mês anterior como meta.
-            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 2000))]);
+            // Uma única espera (5 s) — a consulta continua e fica em cache para as próximas.
+            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 5000))]);
           }),
         );
         const [dados, anos] = await Promise.all([
@@ -341,8 +344,8 @@ export function criarFerramentas(escopo: Escopo) {
           ),
           historicoAnos,
         ]);
-        // Fallback só quando a comparação principal falhar, e com limite de 2 s.
-        const fallback = anos.some((a) => !!a)
+        // Fallback só quando a comparação principal for outro período e falhar (limite 2 s).
+        const fallback = anos.some((a) => !!a) || mesmoQueFallback
           ? null
           : await Promise.race([
               comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
