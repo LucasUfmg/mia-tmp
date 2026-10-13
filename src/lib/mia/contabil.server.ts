@@ -154,14 +154,18 @@ export async function lerDetalheEbitda(opcoes: {
       valores,
     };
   });
+  // Filtra o escopo ANTES de consultar o BI: Rede = 1 consulta, não uma por posto.
+  const escopo = filtrarEscopo(
+    linhas as unknown as Lancamento[],
+    opcoes.ibms ?? [],
+    meses,
+  ) as unknown as typeof linhas;
 
   const { receitaCustoDoBi } = await import("../receita-custo.server");
   const mesCorrente = mesReferencia();
   let falhaBi = false;
   await Promise.all(
-    linhas
-      .filter((l) => meses.includes(l.mes))
-      .map(async (l) => {
+    escopo.map(async (l) => {
         try {
           const b = await receitaCustoDoBi({ mes: l.mes, ...(l.ibm !== "REDE" ? { ibm: l.ibm } : {}) });
           l.valores.receitaVendas = b.receita;
@@ -178,21 +182,13 @@ export async function lerDetalheEbitda(opcoes: {
              margemCombustivel: b.margemCombustivel,
            });
         } catch {
-          // Nunca usa valores antigos salvos: sinaliza falha do BI.
           l.valores.receitaVendas = 0;
           l.valores.custo = 0;
           falhaBi = true;
         }
-        // Mês corrente: despesas proporcionais aos dias (mesma regra do painel).
         if (l.mes === mesCorrente) l.valores = proporcionalizarDespesas(l.valores, fatorDiasDoMes(l.mes));
       }),
   );
-
-  const escopo = filtrarEscopo(
-    linhas as unknown as Lancamento[],
-    opcoes.ibms ?? [],
-    meses,
-  ) as unknown as typeof linhas;
 
   const periodoLabel = opcoes.periodo === "ano" ? `acumulado ${ano}` : rotuloMes(referencia);
   if (escopo.length === 0) {
