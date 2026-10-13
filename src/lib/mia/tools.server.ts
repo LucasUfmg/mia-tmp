@@ -302,7 +302,7 @@ export function criarFerramentas(escopo: Escopo) {
         else if (dias) minutos = dias * 1440;
         else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
         const livre = minutos !== undefined;
-        // Intervalo de datas do período projetado (para buscar o mesmo período nos anos anteriores).
+        // Intervalo de datas do período projetado (para buscar o período de comparação).
         let pIni = referencia, pFim = referencia, fatorHist = 1;
         if (livre) {
           const m = minutos as number;

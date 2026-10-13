@@ -244,7 +244,7 @@ export async function lerDetalheEbitda(opcoes: {
 }
 
 /**
- * Projeções contábeis. Meta = média do mesmo período do calendário nos anos anteriores;
+ * Projeções contábeis. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior;
  * sem histórico → mês anterior fechado proporcional à duração do período.
  */
 export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate?: string; de?: string }) {
@@ -274,7 +274,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
   const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
 
-  /** Meta do intervalo [inicio, fim]: média dos mesmos períodos em até 3 anos anteriores. */
+  /** Meta do intervalo [inicio, fim]: semana anterior ou mesmo período do ano anterior. */
   async function metaDoPeriodo(inicio: string, fim: string) {
     const diasP = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
     // Até 7 dias: semana anterior (−7 dias); acima: mesmo período do ano anterior.
