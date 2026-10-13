@@ -326,11 +326,13 @@ export function criarFerramentas(escopo: Escopo) {
           [1].map(() => {
             const hFim = comp.fim;
             const hIni = pIni === pFim ? undefined : comp.ini;
-            return comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
+            const consulta = comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
               getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
             )
               .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
               .catch(() => null);
+            // Banco lento: desiste em 4 s e usa o mês anterior como meta.
+            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 4000))]);
           }),
         );
         const [dados, fallback, anos] = await Promise.all([
