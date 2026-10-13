@@ -287,7 +287,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
     // Busca todos os meses de comparação em paralelo (com limite de tempo por consulta).
     const fechados = await Promise.all(
-      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 4000))),
+      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 2000))),
     );
     for (const [i, x] of meses.entries()) {
       if (x.mes === mes) {
