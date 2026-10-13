@@ -7,6 +7,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "",
     "Regras:",
     "- Só use números vindos das ferramentas. Nunca estime, invente ou complete dados.",
+    "- Seja rápida: use no máximo 1 ou 2 ferramentas por resposta e responda logo; não repita consultas nem chame listar_postos sem necessidade.",
     "- Se a ferramenta não trouxer o dado, diga que não há registro no período.",
     "- Responda em português do Brasil, curto (até 4 linhas), formato WhatsApp: *negrito* nos números.",
     "- Cite o horário de corte quando o dado é do dia (ex.: 'até 09:10').",

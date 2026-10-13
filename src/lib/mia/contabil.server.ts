@@ -254,6 +254,9 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   if (d.semCalculo) return { semCalculo: true as const, periodo: d.periodo };
   const base = { ...d._somas, ...calcularEbitda(d._somas) } as DreConsolidada;
 
+  // Consulta ao banco que demora demais vira "sem dados" e cai no fallback (mês anterior).
+  const comLimite = <T,>(p: Promise<T | null>, ms: number) =>
+    Promise.race([p, new Promise<null>((r) => setTimeout(() => r(null), ms))]);
   // Cache de meses fechados (null = sem dados).
   const cache = new Map<string, Promise<DreConsolidada | null>>();
   const buscarMes = (mm: string) => {
@@ -282,14 +285,18 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     const partes: { dados: DreConsolidada; fator: number }[] = [];
     let completo = true;
     const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
-    for (const x of meses) {
+    // Busca todos os meses de comparação em paralelo (com limite de tempo por consulta).
+    const fechados = await Promise.all(
+      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 4000))),
+    );
+    for (const [i, x] of meses.entries()) {
       if (x.mes === mes) {
         // Mês corrente (parcial): usa a média diária realizada.
         const diasNoMes = x.fracao * new Date(Date.UTC(ano, m, 0)).getUTCDate();
         partes.push({ dados: base, fator: decorridos > 0 ? diasNoMes / decorridos : 0 });
         continue;
       }
-      const dados = await buscarMes(x.mes);
+      const dados = fechados[i];
       if (!dados) { completo = false; break; }
       partes.push({ dados, fator: x.fracao });
     }
