@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, deslocarAnos, mesesDoIntervalo, metaCombinada, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, periodoDeComparacao, mesesDoIntervalo, metaCombinada, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -244,7 +244,7 @@ export async function lerDetalheEbitda(opcoes: {
 }
 
 /**
- * Projeções contábeis. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior;
+ * Projeções contábeis. Meta = dia/semana: −7 dias; mês: mês anterior; trimestre/semestre: período anterior; ano: ano anterior;
  * sem histórico → mês anterior fechado proporcional à duração do período.
  */
 export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate?: string; de?: string }) {
@@ -274,13 +274,10 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
   const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
 
-  /** Meta do intervalo [inicio, fim]: semana anterior ou mesmo período do ano anterior. */
+  /** Meta do intervalo [inicio, fim]: período de comparação conforme a duração (dia/semana/mês/período/ano). */
   async function metaDoPeriodo(inicio: string, fim: string) {
-    const diasP = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
-    // Até 7 dias: semana anterior (−7 dias); acima: mesmo período do ano anterior.
-    const semanal = diasP <= 7;
-    const desloc = (x: string) => semanal ? new Date(new Date(`${x}T00:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10) : deslocarAnos(x, 1);
-    const hIni = desloc(inicio), hFim = desloc(fim);
+    const comp = periodoDeComparacao(inicio, fim);
+    const hIni = comp.ini, hFim = comp.fim;
     const meses = mesesDoIntervalo(hIni, hFim);
     const partes: { dados: DreConsolidada; fator: number }[] = [];
     let completo = true;
@@ -297,7 +294,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
       partes.push({ dados, fator: x.fracao });
     }
     if (completo && partes.length) {
-      return { meta: metaCombinada(partes, 1), origem: `${semanal ? "semana anterior" : "mesmo período do ano anterior"} (${hIni} a ${hFim})` };
+      return { meta: metaCombinada(partes, 1), origem: `${comp.regra} (${hIni} a ${hFim})` };
     }
     const ant = await buscarMes(mesAnterior);
     if (!ant) return { meta: null, origem: "sem histórico para meta" };
@@ -349,7 +346,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   }
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora × duração do período. Meta = semana anterior (até 7 dias) ou mesmo período do ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta: dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
