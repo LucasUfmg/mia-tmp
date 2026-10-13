@@ -85,28 +85,16 @@ export const Route = createFileRoute("/api/public/whatsapp")({
           );
         }
 
-        // Perguntas com IA: responde ao Twilio na hora e envia a resposta depois pela API.
-        const numeroMia = String(form.get("To") ?? "");
-        const { enviarWhatsApp, emSegundoPlano } = await import("@/lib/mia/twilio.server");
-        const tarefa = (async () => {
-          let resposta: string;
-          try {
-            resposta = await responderPergunta(contato, corpo);
-          } catch (erro) {
-            console.error("[Mia:webhook]", erro);
-            resposta = "Tive um problema para consultar os dados agora. Tente de novo em alguns instantes.";
-          }
-          try {
-            await enviarWhatsApp(de, numeroMia, resposta);
-          } catch (erro) {
-            console.error("[Mia:twilio] falha no envio", erro);
-          }
-        })();
-        await emSegundoPlano(tarefa);
-        return new Response(
-          `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`,
-          { headers: { "Content-Type": "text/xml; charset=utf-8" } },
-        );
+        // Perguntas com IA: resposta síncrona (o Worker encerra tarefas após responder).
+        try {
+          const resposta = await responderPergunta(contato, corpo);
+          return twiml(resposta);
+        } catch (erro) {
+          console.error("[Mia:webhook]", erro);
+          return twiml(
+            "Tive um problema para consultar os dados agora. Tente de novo em alguns instantes.",
+          );
+        }
       },
     },
   },
