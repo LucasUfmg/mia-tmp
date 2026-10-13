@@ -318,45 +318,74 @@ export function criarFerramentas(escopo: Escopo) {
         const mensal = livre ? (minutos as number) > 1440 : periodo === "mes";
         const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
         const ibms = await resolverIbms(escopo, postos);
-        const em = escopoMeta(referencia, mensal);
-        const [dados, meta] = await Promise.all([
+        // Fallback: mês anterior fechado, proporcional à duração do período.
+        const em = escopoMeta(referencia, true);
+        const historicoAnos = Promise.all(
+          [1, 2, 3].map((k) => {
+            const hFim = deslocarAnos(pFim, k);
+            const hIni = pIni === pFim ? undefined : deslocarAnos(pIni, k);
+            return comCache(chaveDeCache("mia:metaAno", { hIni, hFim, ibms }), false, () =>
+              getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
+            )
+              .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
+              .catch(() => null);
+          }),
+        );
+        const [dados, fallback, anos] = await Promise.all([
           comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
             getIndicadores([referencia], ibms, corte, desde),
           ),
           comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
             getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
           ).catch(() => null),
+          historicoAnos,
         ]);
         let fator: number;
-        let fatorMeta = 1;
         let rotulo: string;
         if (livre) {
           const m = minutos as number;
           if (mensal) {
             const dec = Number(referencia.slice(8, 10)) - 1 + corte / 1440;
-            const diasMetaMes = Number(em.data.slice(8, 10));
             fator = dec > 0 ? m / 1440 / dec : 0;
-            fatorMeta = m / 1440 / diasMetaMes;
           } else {
             fator = corte > 0 ? m / corte : 0;
-            fatorMeta = m / 1440;
           }
-          rotulo = `próximas ${Math.round((m / 60) * 10) / 10} horas${ate ? ` (até ${ate})` : ""}`;
+          rotulo = `${Math.round((m / 60) * 10) / 10} horas (${pIni} a ${pFim})`;
         } else {
           fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
           rotulo = mensal ? "fim do mês" : "fim do dia";
         }
+        const base = montarProjecao(dados, fator, null);
+        const comHist = anos.filter((a): a is NonNullable<typeof a> => !!a);
+        let metas: (number | null)[];
+        let origemMeta: string;
+        if (comHist.length) {
+          const porAno = comHist.map((a) => montarProjecao(a.x, fatorHist, null));
+          metas = base.map((_, i) => porAno.reduce((s, p) => s + p[i]!.projecao, 0) / porAno.length);
+          origemMeta = `média do mesmo período em anos anteriores (${comHist.map((a) => a.rotulo).join("; ")})`;
+        } else if (fallback) {
+          const diasPeriodo = livre ? (minutos as number) / 1440 : mensal ? diffDias(pIni, pFim) : 1;
+          const fm = diasPeriodo / Number(em.data.slice(8, 10));
+          metas = montarProjecao(fallback, fm, null).map((p) => p.projecao);
+          origemMeta = `sem histórico do mesmo período: ${em.label}, proporcional a ${Math.round(diasPeriodo * 10) / 10} dias`;
+        } else {
+          metas = base.map(() => null);
+          origemMeta = "sem histórico para meta";
+        }
         return {
           corte: formatCorte(corte),
           periodoProjetado: rotulo,
-          meta: livre ? `${em.label}, proporcional ao período` : em.label,
-          indicadores: montarProjecao(dados, fator, meta, fatorMeta).map((i) => ({
-            indicador: i.label,
-            realizado: r2(i.realizado),
-            projecao: r2(i.projecao),
-            meta: i.meta === null ? null : r2(i.meta),
-            variacaoPct: i.variacaoPct === null ? null : r2(i.variacaoPct),
-          })),
+          origemMeta,
+          indicadores: base.map((i, k) => {
+            const mv = metas[k] ?? null;
+            return {
+              indicador: i.label,
+              realizado: r2(i.realizado),
+              projecao: r2(i.projecao),
+              meta: mv === null ? null : r2(mv),
+              variacaoPct: mv ? r2(((i.projecao - mv) / Math.abs(mv)) * 100) : null,
+            };
+          }),
         };
       },
     }),
