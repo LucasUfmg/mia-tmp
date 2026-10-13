@@ -236,6 +236,44 @@ export function metaPorDias(historico: { mes: string; dados: DreConsolidada }[],
   return { ...escalar(h.dados, dias / diasAnt), usados: [h.mes] };
 }
 
+/** Desloca uma data YYYY-MM-DD em `anos` (29/02 vira 28/02). */
+export function deslocarAnos(data: string, anos: number): string {
+  const [a, m, d] = data.split("-").map(Number) as [number, number, number];
+  const ultimo = new Date(Date.UTC(a - anos, m, 0)).getUTCDate();
+  return `${a - anos}-${String(m).padStart(2, "0")}-${String(Math.min(d, ultimo)).padStart(2, "0")}`;
+}
+
+/** Meses (YYYY-MM-01) cobertos por [inicio, fim] com a fração de dias de cada mês. */
+export function mesesDoIntervalo(inicio: string, fim: string): { mes: string; fracao: number }[] {
+  const out: { mes: string; fracao: number }[] = [];
+  let cur = new Date(`${inicio.slice(0, 7)}-01T00:00:00Z`);
+  const ini = new Date(`${inicio}T00:00:00Z`).getTime();
+  const fi = new Date(`${fim}T00:00:00Z`).getTime();
+  while (cur.getTime() <= fi) {
+    const a = cur.getUTCFullYear(), m = cur.getUTCMonth();
+    const primeiro = Date.UTC(a, m, 1), ultimoDia = new Date(Date.UTC(a, m + 1, 0)).getUTCDate();
+    const ultimo = Date.UTC(a, m, ultimoDia);
+    const dias = (Math.min(ultimo, fi) - Math.max(primeiro, ini)) / 86_400_000 + 1;
+    if (dias > 0) out.push({ mes: new Date(primeiro).toISOString().slice(0, 10), fracao: dias / ultimoDia });
+    cur = new Date(Date.UTC(a, m + 1, 1));
+  }
+  return out;
+}
+
+/** Soma DREs escaladas por fração (meses parciais) e divide por `divisor` (média entre anos). */
+export function metaCombinada(partes: { dados: DreConsolidada; fator: number }[], divisor: number): Indicadores {
+  const soma: Record<string, number> = {};
+  for (const p of partes) {
+    for (const [k, v] of Object.entries(escalar(p.dados, p.fator / divisor))) {
+      if (typeof v === "number") soma[k] = (soma[k] ?? 0) + v;
+    }
+  }
+  const r = soma as unknown as Indicadores;
+  r.ebitdaPorLitro = r.litros ? r.ebitda / r.litros : 0;
+  return r;
+}
+
+
 export type LinhaDre =
   | { tipo: "grupo" | "total"; label: string; campo: keyof ResultadoEbitda; sinal?: -1 }
   | { tipo: "bi"; label: string; campo: keyof DadosBiDre; sinal?: -1 }
