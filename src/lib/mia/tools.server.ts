@@ -277,69 +277,115 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia (meta = mesmo dia da semana anterior fechado); 'mes' = fim do mês (meta = mês anterior fechado). Para QUALQUER outro período futuro, informe horas (próximas N horas) ou dias (próximos N dias) ou ate (data YYYY-MM-DD).",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior fechado proporcional.",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
         horas: z.number().positive().optional().describe("Próximas N horas"),
         dias: z.number().positive().optional().describe("Próximos N dias"),
-        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar de agora até o fim desta data"),
+        de: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Início de um período futuro"),
+        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar até o fim desta data"),
         postos: z.array(z.string()).optional(),
       }),
-      execute: async ({ periodo, horas, dias, ate, postos }) => {
+      execute: async ({ periodo, horas, dias, de, ate, postos }) => {
         const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
           "../projecao-visao"
         );
+        const { deslocarAnos } = await import("../ebitda");
         const referencia = hojeSaoPaulo();
         const corte = corteAgora();
+        const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86_400_000).toISOString().slice(0, 10);
+        const diffDias = (a: string, b: string) => (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86_400_000 + 1;
         // Converte o período livre em minutos futuros.
         let minutos: number | undefined;
-        if (horas) minutos = horas * 60;
+        if (de) minutos = diffDias(de, ate ?? somarDias(de, Math.max(Math.ceil(dias ?? 1) - 1, 0))) * 1440;
+        else if (horas) minutos = horas * 60;
         else if (dias) minutos = dias * 1440;
         else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
         const livre = minutos !== undefined;
-        // Até 1 dia: média por minuto de hoje; acima: média diária do mês.
+        // Intervalo de datas do período projetado (para buscar o mesmo período nos anos anteriores).
+        let pIni = referencia, pFim = referencia, fatorHist = 1;
+        if (livre) {
+          const m = minutos as number;
+          pIni = de ?? referencia;
+          pFim = de ? somarDias(de, Math.round(m / 1440) - 1) : ate ?? somarDias(referencia, Math.max(Math.ceil(m / 1440) - 1, 0));
+          if (!de && m <= 1440) fatorHist = m / 1440;
+        } else if (periodo === "mes") {
+          pIni = primeiroDiaDoMes(referencia);
+          const [a, mm] = referencia.split("-").map(Number) as [number, number];
+          pFim = new Date(Date.UTC(a, mm, 0)).toISOString().slice(0, 10);
+        }
+
         const mensal = livre ? (minutos as number) > 1440 : periodo === "mes";
         const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
         const ibms = await resolverIbms(escopo, postos);
-        const em = escopoMeta(referencia, mensal);
-        const [dados, meta] = await Promise.all([
+        // Fallback: mês anterior fechado, proporcional à duração do período.
+        const em = escopoMeta(referencia, true);
+        const historicoAnos = Promise.all(
+          [1, 2, 3].map((k) => {
+            const hFim = deslocarAnos(pFim, k);
+            const hIni = pIni === pFim ? undefined : deslocarAnos(pIni, k);
+            return comCache(chaveDeCache("mia:metaAno", { hIni, hFim, ibms }), false, () =>
+              getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
+            )
+              .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
+              .catch(() => null);
+          }),
+        );
+        const [dados, fallback, anos] = await Promise.all([
           comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
             getIndicadores([referencia], ibms, corte, desde),
           ),
           comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
             getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
           ).catch(() => null),
+          historicoAnos,
         ]);
         let fator: number;
-        let fatorMeta = 1;
         let rotulo: string;
         if (livre) {
           const m = minutos as number;
           if (mensal) {
             const dec = Number(referencia.slice(8, 10)) - 1 + corte / 1440;
-            const diasMetaMes = Number(em.data.slice(8, 10));
             fator = dec > 0 ? m / 1440 / dec : 0;
-            fatorMeta = m / 1440 / diasMetaMes;
           } else {
             fator = corte > 0 ? m / corte : 0;
-            fatorMeta = m / 1440;
           }
-          rotulo = `próximas ${Math.round((m / 60) * 10) / 10} horas${ate ? ` (até ${ate})` : ""}`;
+          rotulo = `${Math.round((m / 60) * 10) / 10} horas (${pIni} a ${pFim})`;
         } else {
           fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
           rotulo = mensal ? "fim do mês" : "fim do dia";
         }
+        const base = montarProjecao(dados, fator, null);
+        const comHist = anos.filter((a): a is NonNullable<typeof a> => !!a);
+        let metas: (number | null)[];
+        let origemMeta: string;
+        if (comHist.length) {
+          const porAno = comHist.map((a) => montarProjecao(a.x, fatorHist, null));
+          metas = base.map((_, i) => porAno.reduce((s, p) => s + p[i]!.projecao, 0) / porAno.length);
+          origemMeta = `média do mesmo período em anos anteriores (${comHist.map((a) => a.rotulo).join("; ")})`;
+        } else if (fallback) {
+          const diasPeriodo = livre ? (minutos as number) / 1440 : mensal ? diffDias(pIni, pFim) : 1;
+          const fm = diasPeriodo / Number(em.data.slice(8, 10));
+          metas = montarProjecao(fallback, fm, null).map((p) => p.projecao);
+          origemMeta = `sem histórico do mesmo período: ${em.label}, proporcional a ${Math.round(diasPeriodo * 10) / 10} dias`;
+        } else {
+          metas = base.map(() => null);
+          origemMeta = "sem histórico para meta";
+        }
         return {
           corte: formatCorte(corte),
           periodoProjetado: rotulo,
-          meta: livre ? `${em.label}, proporcional ao período` : em.label,
-          indicadores: montarProjecao(dados, fator, meta, fatorMeta).map((i) => ({
-            indicador: i.label,
-            realizado: r2(i.realizado),
-            projecao: r2(i.projecao),
-            meta: i.meta === null ? null : r2(i.meta),
-            variacaoPct: i.variacaoPct === null ? null : r2(i.variacaoPct),
-          })),
+          origemMeta,
+          indicadores: base.map((i, k) => {
+            const mv = metas[k] ?? null;
+            return {
+              indicador: i.label,
+              realizado: r2(i.realizado),
+              projecao: r2(i.projecao),
+              meta: mv === null ? null : r2(mv),
+              variacaoPct: mv ? r2(((i.projecao - mv) / Math.abs(mv)) * 100) : null,
+            };
+          }),
         };
       },
     }),
@@ -388,16 +434,17 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período futuro informe dias (próximos N dias; meses ≈ 30 dias cada) ou ate (data YYYY-MM-DD).",
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior proporcional.",
       inputSchema: z.object({
         postos: z.array(z.string()).optional(),
         dias: z.number().positive().optional(),
+        de: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Início de um período futuro (ex.: 2026-12-01 para dezembro)"),
         ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       }),
-      execute: async ({ postos, dias, ate }) => {
+      execute: async ({ postos, dias, ate, de }) => {
         const { lerProjecoes } = await import("./contabil.server");
         const ibms = await resolverIbms(escopo, postos);
-        return lerProjecoes({ ...(ibms ? { ibms } : {}), ...(dias ? { dias } : {}), ...(ate ? { ate } : {}) });
+        return lerProjecoes({ ...(ibms ? { ibms } : {}), ...(dias ? { dias } : {}), ...(ate ? { ate } : {}), ...(de ? { de } : {}) });
       },
     }),
   };

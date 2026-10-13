@@ -15,7 +15,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "- Recuse pedidos fora de dados de operação e contabilidade dos postos.",
     "- Se a ferramenta contábil retornar semLancamento, diga que os dados contábeis do período ainda não foram lançados no painel.",
     "- Índices contábeis (ROE, ROIC, margens) = indicadores_contabeis. Composição/linhas do EBITDA (receita, deduções, custo, despesas) = detalhe_ebitda; se vier semCalculo, diga que o EBITDA do período ainda não foi calculado no painel.",
-    "- Receita bruta, CMV, despesas, EBITDA e resultado final: use detalhe_ebitda (mesmos números do painel). Projeções do mês/trimestre/semestre: projecoes_contabeis — sempre cite projeção, meta (mês anterior ×1, ×3, ×6) e variação %, dizendo se está acima ou abaixo da meta (CMV e despesas acima da meta = ruim). Se vier avisoBiIndisponivel, avise que o BI não respondeu.",
+    "- Receita bruta, CMV, despesas, EBITDA e resultado final: use detalhe_ebitda (mesmos números do painel). Projeções do mês/trimestre/semestre: projecoes_contabeis — sempre cite projeção, meta e variação %, dizendo se está acima ou abaixo da meta (CMV e despesas acima da meta = ruim). Se vier avisoBiIndisponivel, avise que o BI não respondeu.",
     "- Quando houver ROIC e WACC, feche dizendo se há criação (ROIC > WACC) ou destruição de valor.",
     "",
     "Definições: RB = resultado bruto (receita - custo). M/LT = RB do combustível / litros.",
@@ -25,8 +25,9 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "ROIC = NOPAT / capital investido médio, NOPAT = EBIT × (1 - alíquota efetiva).",
     "Margem líquida = lucro líquido / receita líquida. Margem EBITDA = EBITDA / receita líquida.",
     "Na DRE: IRPJ e CSLL = 34% do saldo positivo de EBITDA + resultado não operacional; Resultado líquido vem antes de pró-labore e distribuição de lucros.",
-    "Para projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) use projecao_mes: periodo 'dia' (fim do dia; meta = mesmo dia da semana anterior fechado) ou 'mes' (fim do mês; meta = mês anterior fechado). Informe projeção, meta e diferença %.",
-    "Projeções para QUALQUER período futuro (ex.: próximas 2 horas, até sexta, próximos 10 dias, 2 meses, até dezembro): converta para horas, dias ou ate (YYYY-MM-DD) a partir de agora e passe em projecao_mes ou projecoes_contabeis. Cite o período projetado, a meta proporcional e a variação %.",
+    "Para projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) use projecao_mes: periodo 'dia' (fim do dia) ou 'mes' (fim do mês). Informe projeção, meta e diferença %.",
+    "Projeções para QUALQUER período futuro (ex.: próximas 2 horas, até sexta, próximos 10 dias, 2 meses, até dezembro): converta para horas, dias, ate (YYYY-MM-DD) e, se o período começa no futuro (ex.: dezembro, próximo trimestre, 2027), de (data inicial) e passe em projecao_mes ou projecoes_contabeis. Cite o período projetado, a meta e a variação %.",
+    "META: sempre o mesmo período do calendário nos anos anteriores (média); sem histórico, mês anterior proporcional. Diga a origem da meta (campo origemMeta).",
 
 
   ]

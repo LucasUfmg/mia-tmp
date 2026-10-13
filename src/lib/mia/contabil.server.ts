@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, metaPorMeses, metaPorDias, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, deslocarAnos, mesesDoIntervalo, metaCombinada, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -243,60 +243,107 @@ export async function lerDetalheEbitda(opcoes: {
   };
 }
 
-/** Projeções do mês corrente (fim do mês, próximos 3 e 6 meses), iguais à aba Projeções. */
-export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate?: string }) {
+/**
+ * Projeções contábeis. Meta = média do mesmo período do calendário nos anos anteriores;
+ * sem histórico → mês anterior fechado proporcional à duração do período.
+ */
+export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate?: string; de?: string }) {
   const mes = mesReferencia();
-  const d = await lerDetalheEbitda({ periodo: "mes", mes: mes.slice(0, 7), ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
+  const filtro = opcoes.ibms ? { ibms: opcoes.ibms } : {};
+  const d = await lerDetalheEbitda({ periodo: "mes", mes: mes.slice(0, 7), ...filtro });
   if (d.semCalculo) return { semCalculo: true as const, periodo: d.periodo };
   const base = { ...d._somas, ...calcularEbitda(d._somas) } as DreConsolidada;
-  // Histórico: até 6 meses fechados anteriores com BI (mesma regra de meta da tela), 2 consultas por vez.
+
+  // Cache de meses fechados (null = sem dados).
+  const cache = new Map<string, Promise<DreConsolidada | null>>();
+  const buscarMes = (mm: string) => {
+    if (!cache.has(mm)) {
+      cache.set(mm, (async () => {
+        try {
+          const h = await lerDetalheEbitda({ periodo: "mes", mes: mm.slice(0, 7), ...filtro });
+          if (h.semCalculo || h.avisoBiIndisponivel) return null;
+          const dados = { ...h._somas, ...calcularEbitda(h._somas) } as DreConsolidada;
+          return dados.vendaCombustivel + dados.vendaMercadorias > 0 ? dados : null;
+        } catch { return null; }
+      })());
+    }
+    return cache.get(mm)!;
+  };
+
   const [ano, m] = mes.split("-").map(Number) as [number, number];
-  const anteriores = Array.from({ length: 1 }, (_, i) => new Date(Date.UTC(ano, m - 2 - i, 1)).toISOString().slice(0, 7)).reverse();
-  const historico: { mes: string; dados: DreConsolidada }[] = [];
-  for (let i = 0; i < anteriores.length; i += 2) {
-    const lote = await Promise.all(anteriores.slice(i, i + 2).map(async (mm) => {
-      try {
-        const h = await lerDetalheEbitda({ periodo: "mes", mes: mm, ...(opcoes.ibms ? { ibms: opcoes.ibms } : {}) });
-        if (h.semCalculo || h.avisoBiIndisponivel) return null;
-        const dados = { ...h._somas, ...calcularEbitda(h._somas) } as DreConsolidada;
-        return dados.vendaCombustivel + dados.vendaMercadorias > 0 ? { mes: `${mm}-01`, dados } : null;
-      } catch { return null; }
-    }));
-    for (const x of lote) if (x) historico.push(x);
+  const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
+  const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
+
+  /** Meta do intervalo [inicio, fim]: média dos mesmos períodos em até 3 anos anteriores. */
+  async function metaDoPeriodo(inicio: string, fim: string) {
+    const partesPorAno: { dados: DreConsolidada; fator: number }[][] = [];
+    const usados: string[] = [];
+    for (let k = 1; k <= 3; k++) {
+      const meses = mesesDoIntervalo(deslocarAnos(inicio, k), deslocarAnos(fim, k));
+      const partes: { dados: DreConsolidada; fator: number }[] = [];
+      let completo = true;
+      for (let i = 0; i < meses.length && completo; i += 2) {
+        const lote = await Promise.all(meses.slice(i, i + 2).map((x) => buscarMes(x.mes)));
+        lote.forEach((dados, j) => { if (dados) partes.push({ dados, fator: meses[i + j]!.fracao }); else completo = false; });
+      }
+      if (!completo || partes.length === 0) continue;
+      partesPorAno.push(partes);
+      usados.push(`${deslocarAnos(inicio, k)} a ${deslocarAnos(fim, k)}`);
+    }
+    if (partesPorAno.length) {
+      return { meta: metaCombinada(partesPorAno.flat(), partesPorAno.length), origem: `média do mesmo período em anos anteriores (${usados.join("; ")})` };
+    }
+    const ant = await buscarMes(mesAnterior);
+    if (!ant) return { meta: null, origem: "sem histórico para meta" };
+    const dias = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
+    return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `sem histórico do mesmo período: mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
   }
+
   const fmt = (r: ReturnType<typeof projetarDre>) => ({
     receitaBruta: r0(r.receitaBruta), cmv: r0(r.custoBi), resultadoOperacionalBruto: r0(r.resultadoBruto),
     despesasTotais: r0(r.despesasTotais), ebitda: r0(r.ebitda), resultadoFinal: r0(r.resultadoFinal),
     litrosVendidos: r0(r.litros), ebitdaPorLitro: Math.round(r.ebitdaPorLitro * 100) / 100,
   });
-  const comMeta = (p: ReturnType<typeof fmt>, mt: (ReturnType<typeof projetarDre> & { usados: string[] }) | null) => {
-    if (!mt) return { projecao: p, meta: null };
-    const meta = fmt(mt);
+  const comMeta = (p: ReturnType<typeof fmt>, mt: { meta: ReturnType<typeof projetarDre> | null; origem: string }, periodo: string) => {
+    if (!mt.meta) return { periodo, projecao: p, meta: null, origemMeta: mt.origem };
+    const meta = fmt(mt.meta);
     const variacaoPct = Object.fromEntries(Object.entries(p).map(([k, v]) => {
       const alvo = (meta as Record<string, number>)[k] ?? 0;
       return [k, alvo ? Math.round(((v - alvo) / Math.abs(alvo)) * 1000) / 10 : null];
     }));
-    return { projecao: p, meta, variacaoPct, mesesDaMeta: mt.usados.map((x) => x.slice(0, 7)) };
+    return { periodo, projecao: p, meta, variacaoPct, origemMeta: mt.origem };
   };
-  // Período livre: próximos N dias ou até uma data (fim do dia, horário de São Paulo).
-  let diasLivre = opcoes.dias;
-  if (opcoes.ate) {
-    const fim = new Date(`${opcoes.ate}T23:59:59-03:00`).getTime();
-    diasLivre = Math.max((fim - Date.now()) / 86_400_000, 0);
+
+  const hoje = new Date(Date.now() - 3 * 3_600_000).toISOString().slice(0, 10);
+  const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86_400_000).toISOString().slice(0, 10);
+  let projecoes: Record<string, unknown>;
+  if (opcoes.dias !== undefined || opcoes.ate || opcoes.de) {
+    const inicio = opcoes.de ?? hoje;
+    let diasLivre: number;
+    let fim: string;
+    if (opcoes.de) {
+      fim = opcoes.ate ?? somarDias(opcoes.de, Math.max(Math.ceil(opcoes.dias ?? 1) - 1, 0));
+      diasLivre = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
+    } else if (opcoes.ate) {
+      fim = opcoes.ate;
+      diasLivre = Math.max((new Date(`${opcoes.ate}T23:59:59-03:00`).getTime() - Date.now()) / 86_400_000, 0);
+    } else {
+      diasLivre = opcoes.dias as number;
+      fim = somarDias(hoje, Math.max(Math.ceil(diasLivre) - 1, 0));
+    }
+    projecoes = {
+      [`${Math.round(diasLivre * 10) / 10} dias (${inicio} a ${fim})`]: comMeta(fmt(projetarDreDias(base, mes, diasLivre)), await metaDoPeriodo(inicio, fim), `${inicio} a ${fim}`),
+    };
+  } else {
+    projecoes = {};
+    for (const h of horizontesProjecao) {
+      const fim = new Date(Date.UTC(ano, m - 1 + h.meses, 0)).toISOString().slice(0, 10);
+      projecoes[h.label] = comMeta(fmt(projetarDre(base, mes, h.meses)), await metaDoPeriodo(mes, fim), `${mes} a ${fim}`);
+    }
   }
-  const projecoes = diasLivre !== undefined
-    ? {
-        [`Próximos ${Math.round(diasLivre * 10) / 10} dias${opcoes.ate ? ` (até ${opcoes.ate})` : ""}`]: comMeta(
-          fmt(projetarDreDias(base, mes, diasLivre)),
-          metaPorDias(historico, diasLivre, mes),
-        ),
-      }
-    : Object.fromEntries(
-        horizontesProjecao.map((h) => [h.label, comMeta(fmt(projetarDre(base, mes, h.meses)), metaPorMeses(historico, h.meses, mes))]),
-      );
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora; projeção fim do mês = realizado + média diária × dias restantes; 3/6 meses = fim do mês × 3/6. Meta = mês anterior (×1, ×3, ×6). CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta = média do mesmo período em anos anteriores; sem histórico, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
