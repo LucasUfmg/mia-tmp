@@ -8,7 +8,7 @@ import {
   rotuloMes,
   type Lancamento,
 } from "../contabil";
-import { calcularEbitda, metaPorMeses, metaPorDias, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
+import { calcularEbitda, deslocarAnos, mesesDoIntervalo, metaCombinada, fatorDiasDoMes, horizontesProjecao, linhasEbitda, projetarDre, projetarDreDias, proporcionalizarDespesas, type DreConsolidada, type LinhaEbitdaChave } from "../ebitda";
 
 const COLUNAS =
   "id, ibm, mes, receita_liquida, lucro_liquido, ebitda, ebit, aliquota_efetiva, pl_inicial, pl_final, divida_financeira, caixa, wacc";
@@ -286,7 +286,7 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
         const lote = await Promise.all(meses.slice(i, i + 2).map((x) => buscarMes(x.mes)));
         lote.forEach((dados, j) => { if (dados) partes.push({ dados, fator: meses[i + j]!.fracao }); else completo = false; });
       }
-      if (!completo || partes.length === 0) { if (k === 1) continue; else break; }
+      if (!completo || partes.length === 0) continue;
       partesPorAno.push(partes);
       usados.push(`${deslocarAnos(inicio, k)} a ${deslocarAnos(fim, k)}`);
     }

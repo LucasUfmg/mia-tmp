@@ -388,16 +388,17 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período futuro informe dias (próximos N dias; meses ≈ 30 dias cada) ou ate (data YYYY-MM-DD).",
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta = média do mesmo período em anos anteriores (origemMeta); sem histórico, mês anterior proporcional.",
       inputSchema: z.object({
         postos: z.array(z.string()).optional(),
         dias: z.number().positive().optional(),
+        de: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Início de um período futuro (ex.: 2026-12-01 para dezembro)"),
         ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       }),
-      execute: async ({ postos, dias, ate }) => {
+      execute: async ({ postos, dias, ate, de }) => {
         const { lerProjecoes } = await import("./contabil.server");
         const ibms = await resolverIbms(escopo, postos);
-        return lerProjecoes({ ...(ibms ? { ibms } : {}), ...(dias ? { dias } : {}), ...(ate ? { ate } : {}) });
+        return lerProjecoes({ ...(ibms ? { ibms } : {}), ...(dias ? { dias } : {}), ...(ate ? { ate } : {}), ...(de ? { de } : {}) });
       },
     }),
   };
