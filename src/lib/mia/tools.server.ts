@@ -302,6 +302,12 @@ export function criarFerramentas(escopo: Escopo) {
         else if (horas) minutos = horas * 60;
         else if (dias) minutos = dias * 1440;
         else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
+        // Mês futuro: nunca excede o acumulado já decorrido no mês atual (mesmo dia/hora).
+        const mesFuturo = !!de && de.slice(0, 7) > referencia.slice(0, 7);
+        if (mesFuturo && minutos !== undefined) {
+          const decorridos = (Number(referencia.slice(8, 10)) - 1) * 1440 + corte;
+          minutos = Math.min(minutos, decorridos);
+        }
         const livre = minutos !== undefined;
         // Intervalo de datas do período projetado (para buscar o período de comparação).
         let pIni = referencia, pFim = referencia, fatorHist = 1;
