@@ -314,8 +314,19 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
       diasLivre = opcoes.dias as number;
       fim = somarDias(hoje, Math.max(Math.ceil(diasLivre) - 1, 0));
     }
+    // Mês futuro: limita ao mesmo acumulado de dias já decorrido no mês atual; meta = meta atual (mesma régua) nesses dias.
+    if (inicio.slice(0, 7) > mes.slice(0, 7)) {
+      const [ai, mi] = inicio.split("-").map(Number) as [number, number];
+      const ultimo = new Date(Date.UTC(ai, mi, 0)).getUTCDate();
+      const capFim = `${inicio.slice(0, 8)}${String(Math.min(Number(hoje.slice(8, 10)), ultimo)).padStart(2, "0")}`;
+      if (fim > capFim) fim = capFim;
+      const diasCap = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
+      diasLivre = Math.max(Math.min(diasLivre, diasCap), 0);
+    }
+    const mtLivre = await metaDoPeriodo(inicio, fim);
+    if (inicio.slice(0, 7) > mes.slice(0, 7) && mtLivre.meta) mtLivre.origem = `meta atual (mês anterior ${mesAnterior.slice(0, 7)}) no mesmo acumulado de ${Math.round(diasLivre)} dias do mês atual`;
     projecoes = {
-      [`${Math.round(diasLivre * 10) / 10} dias (${inicio} a ${fim})`]: comMeta(fmt(projetarDreDias(base, mes, diasLivre)), await metaDoPeriodo(inicio, fim), `${inicio} a ${fim}`),
+      [`${Math.round(diasLivre * 10) / 10} dias (${inicio} a ${fim})`]: comMeta(fmt(projetarDreDias(base, mes, diasLivre)), mtLivre, `${inicio} a ${fim}`),
     };
   } else {
     projecoes = {};
