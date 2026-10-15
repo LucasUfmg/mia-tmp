@@ -278,7 +278,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior fechado proporcional.",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta igual ao BI (origemMeta): dia = mesmo dia da semana anterior; demais = mês anterior fechado proporcional.",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
         horas: z.number().positive().optional().describe("Próximas N horas"),
@@ -321,43 +321,20 @@ export function criarFerramentas(escopo: Escopo) {
         const ibms = await resolverIbms(escopo, postos);
         // Fallback: mês anterior fechado, proporcional à duração do período.
         const em = escopoMeta(referencia, true);
-        // Meta: dia/semana −7 dias; mês → mês anterior; trimestre/semestre → período anterior; ano → ano anterior.
-        const comp = periodoDeComparacao(pIni, pFim);
-        const hIniComp = pIni === pFim ? undefined : comp.ini;
-        // Quando a comparação já é o mês anterior fechado, não repete a mesma consulta no fallback.
-        const mesmoQueFallback = hIniComp === em.desde && comp.fim === em.data;
-        const historicoAnos = Promise.all(
-          [1].map(() => {
-            const hFim = comp.fim;
-            const hIni = hIniComp;
-            const chave = chaveDeCache("mia:metaAnt", { hIni, hFim, ibms });
-            const buscar = () => getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni);
-            const consulta = comCache(chave, false, () =>
-              periodoFechado(hFim) ? comCachePersistente(chave, buscar) : buscar(),
-            )
-              .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
-              .catch(() => null);
-            // Uma única espera (5 s) — a consulta continua e fica em cache para as próximas.
-            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
-          }),
-        );
-        const [dados, anos] = await Promise.all([
+        // Meta igual ao BI: até 1 dia → mesmo dia da semana anterior fechado; acima → mês anterior fechado proporcional.
+        const emMeta = mensal ? em : escopoMeta(referencia, false);
+        const chaveMeta = chaveDeCache("mia:meta", { em: emMeta, ibms });
+        const [dados, metaBase] = await Promise.all([
           comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
             getIndicadores([referencia], ibms, corte, desde),
           ),
-          historicoAnos,
+          Promise.race([
+            comCache(chaveMeta, false, () =>
+              comCachePersistente(chaveMeta, () => getIndicadores([emMeta.data], ibms, MINUTOS_DIA_FECHADO, emMeta.desde)),
+            ).catch(() => null),
+            new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+          ]),
         ]);
-        // Fallback só quando a comparação principal for outro período e falhar (limite 2 s).
-        const fallback = anos.some((a) => !!a) || mesmoQueFallback
-          ? null
-          : await Promise.race([
-              comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
-                comCachePersistente(chaveDeCache("mia:meta", { em, ibms }), () =>
-                  getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
-                ),
-              ).catch(() => null),
-              new Promise<null>((r) => setTimeout(() => r(null), 1500)),
-            ]);
         let fator: number;
         let rotulo: string;
         if (livre) {
@@ -374,21 +351,19 @@ export function criarFerramentas(escopo: Escopo) {
           rotulo = mensal ? "fim do mês" : "fim do dia";
         }
         const base = montarProjecao(dados, fator, null);
-        const comHist = anos.filter((a): a is NonNullable<typeof a> => !!a);
         let metas: (number | null)[];
         let origemMeta: string;
-        if (comHist.length) {
-          const porAno = comHist.map((a) => montarProjecao(a.x, fatorHist, null));
-          metas = base.map((_, i) => porAno.reduce((s, p) => s + p[i]!.projecao, 0) / porAno.length);
-          origemMeta = `${comp.regra} (${comHist.map((a) => a.rotulo).join("; ")})`;
-        } else if (fallback) {
-          const diasPeriodo = livre ? (minutos as number) / 1440 : mensal ? diffDias(pIni, pFim) : 1;
-          const fm = diasPeriodo / Number(em.data.slice(8, 10));
-          metas = montarProjecao(fallback, fm, null).map((p) => p.projecao);
-          origemMeta = `sem histórico do mesmo período: ${em.label}, proporcional a ${Math.round(diasPeriodo * 10) / 10} dias`;
+        if (metaBase && metaBase.combustivel.litros > 0) {
+          let fm = 1;
+          if (livre) {
+            const diasPeriodo = (minutos as number) / 1440;
+            fm = mensal ? diasPeriodo / Number(em.data.slice(8, 10)) : diasPeriodo;
+          } else if (!mensal) fm = fatorHist;
+          metas = montarProjecao(metaBase, fm, null).map((p) => p.projecao);
+          origemMeta = livre ? `${emMeta.label}, proporcional ao período` : emMeta.label;
         } else {
           metas = base.map(() => null);
-          origemMeta = "sem histórico para meta";
+          origemMeta = "meta indisponível no BI";
         }
         return {
           corte: formatCorte(corte),
@@ -452,7 +427,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional.",
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta igual ao BI: mês anterior × N; períodos livres = mês anterior proporcional.",
       inputSchema: z.object({
         postos: z.array(z.string()).optional(),
         dias: z.number().positive().optional(),

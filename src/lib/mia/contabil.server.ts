@@ -274,36 +274,12 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
   const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
 
-  /** Meta do intervalo [inicio, fim]: período de comparação conforme a duração (dia/semana/mês/período/ano). */
+  /** Meta igual à do BI: mês anterior fechado, proporcional à duração do período (sem varrer histórico). */
   async function metaDoPeriodo(inicio: string, fim: string) {
-    const comp = periodoDeComparacao(inicio, fim);
-    const hIni = comp.ini, hFim = comp.fim;
-    const meses = mesesDoIntervalo(hIni, hFim);
-    const partes: { dados: DreConsolidada; fator: number }[] = [];
-    let completo = true;
-    const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
-    // Busca todos os meses de comparação em paralelo (com limite de tempo por consulta).
-    const fechados = await Promise.all(
-      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 1500))),
-    );
-    for (const [i, x] of meses.entries()) {
-      if (x.mes === mes) {
-        // Mês corrente (parcial): usa a média diária realizada.
-        const diasNoMes = x.fracao * new Date(Date.UTC(ano, m, 0)).getUTCDate();
-        partes.push({ dados: base, fator: decorridos > 0 ? diasNoMes / decorridos : 0 });
-        continue;
-      }
-      const dados = fechados[i];
-      if (!dados) { completo = false; break; }
-      partes.push({ dados, fator: x.fracao });
-    }
-    if (completo && partes.length) {
-      return { meta: metaCombinada(partes, 1), origem: `${comp.regra} (${hIni} a ${hFim})` };
-    }
-    const ant = await comLimite(buscarMes(mesAnterior), 1500);
-    if (!ant) return { meta: null, origem: "sem histórico para meta" };
+    const ant = await comLimite(buscarMes(mesAnterior), 3000);
+    if (!ant) return { meta: null, origem: "mês anterior sem dados do BI" };
     const dias = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
-    return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `sem histórico do mesmo período: mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
+    return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
   }
 
   const fmt = (r: ReturnType<typeof projetarDre>) => ({
@@ -345,12 +321,17 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     projecoes = {};
     for (const h of horizontesProjecao) {
       const fim = new Date(Date.UTC(ano, m - 1 + h.meses, 0)).toISOString().slice(0, 10);
-      projecoes[h.label] = comMeta(fmt(projetarDre(base, mes, h.meses)), await metaDoPeriodo(mes, fim), `${mes} a ${fim}`);
+      // Idêntico à aba Projeções do BI: meta = mês anterior × N.
+      const ant = await comLimite(buscarMes(mesAnterior), 3000);
+      const mt = ant
+        ? { meta: metaCombinada([{ dados: ant, fator: h.meses }], 1), origem: `mês anterior (${mesAnterior.slice(0, 7)}) × ${h.meses}` }
+        : { meta: null, origem: "mês anterior sem dados do BI" };
+      projecoes[h.label] = comMeta(fmt(projetarDre(base, mes, h.meses)), mt, `${mes} a ${fim}`);
     }
   }
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora × duração do período. Meta: dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta (igual ao BI): mês anterior fechado × N; períodos livres = mês anterior proporcional aos dias. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
