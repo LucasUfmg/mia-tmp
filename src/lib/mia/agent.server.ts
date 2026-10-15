@@ -90,14 +90,14 @@ export async function responderPergunta(contato: Contato, pergunta: string): Pro
       // Poucas etapas: cada consulta extra soma segundos e o WhatsApp tem tempo limite.
       stopWhen: stepCountIs(5),
       // Antes do limite do WhatsApp (~15 s): melhor avisar do que ficar mudo.
-      abortSignal: AbortSignal.timeout(13_000),
+      abortSignal: AbortSignal.timeout(8_000),
     });
 
     try {
       return await resultado.text;
     } catch (erro) {
       console.warn("[Mia:agent] tempo esgotado", erro);
-      return "Ainda estou terminando esse cálculo 🙂 Me pergunte de novo em alguns segundos que já trago o número.";
+      return "Por enquanto não consegui trazer essa resposta a tempo 🙏 O volume de dados é grande — tente de novo em instantes que já devo ter o número.";
     }
   });
 
