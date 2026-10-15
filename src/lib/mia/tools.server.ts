@@ -278,7 +278,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecao_mes: tool({
       description:
-        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior fechado proporcional.",
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta igual ao BI (origemMeta): dia = mesmo dia da semana anterior; demais = mês anterior fechado proporcional.",
       inputSchema: z.object({
         periodo: z.enum(["dia", "mes"]).default("mes"),
         horas: z.number().positive().optional().describe("Próximas N horas"),
@@ -321,43 +321,224 @@ export function criarFerramentas(escopo: Escopo) {
         const ibms = await resolverIbms(escopo, postos);
         // Fallback: mês anterior fechado, proporcional à duração do período.
         const em = escopoMeta(referencia, true);
-        // Meta: dia/semana −7 dias; mês → mês anterior; trimestre/semestre → período anterior; ano → ano anterior.
-        const comp = periodoDeComparacao(pIni, pFim);
-        const hIniComp = pIni === pFim ? undefined : comp.ini;
-        // Quando a comparação já é o mês anterior fechado, não repete a mesma consulta no fallback.
-        const mesmoQueFallback = hIniComp === em.desde && comp.fim === em.data;
-        const historicoAnos = Promise.all(
-          [1].map(() => {
-            const hFim = comp.fim;
-            const hIni = hIniComp;
-            const chave = chaveDeCache("mia:metaAnt", { hIni, hFim, ibms });
-            const buscar = () => getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni);
-            const consulta = comCache(chave, false, () =>
-              periodoFechado(hFim) ? comCachePersistente(chave, buscar) : buscar(),
-            )
-              .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
-              .catch(() => null);
-            // Uma única espera (5 s) — a consulta continua e fica em cache para as próximas.
-            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
-          }),
-        );
-        const [dados, anos] = await Promise.all([
+        // Meta igual ao BI: até 1 dia → mesmo dia da semana anterior fechado; acima → mês anterior fechado proporcional.
+        const emMeta = mensal ? em : escopoMeta(referencia, false);
+        const chaveMeta = chaveDeCache("mia:meta", { em: emMeta, ibms });
+        const [dados, metaBase] = await Promise.all([
           comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
             getIndicadores([referencia], ibms, corte, desde),
           ),
-          historicoAnos,
+          Promise.race([
+            comCache(chaveMeta, false, () =>
+              comCachePersistente(chaveMeta, () => getIndicadores([emMeta.data], ibms, MINUTOS_DIA_FECHADO, emMeta.desde)),
+            ).catch(() => null),
+            new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+          ]),
         ]);
-        // Fallback só quando a comparação principal for outro período e falhar (limite 2 s).
-        const fallback = anos.some((a) => !!a) || mesmoQueFallback
-          ? null
-          : await Promise.race([
-              comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
-                comCachePersistente(chaveDeCache("mia:meta", { em, ibms }), () =>
-                  getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
-                ),
-              ).catch(() => null),
-              new Promise<null>((r) => setTimeout(() => r(null), 1500)),
-            ]);
+        let fator: number;
+        let rotulo: string;
+        if (livre) {
+          const m = minutos as number;
+          if (mensal) {
+            const dec = Number(referencia.slice(8, 10)) - 1 + corte / 1440;
+            fator = dec > 0 ? m / 1440 / dec : 0;
+          } else {
+            fator = corte > 0 ? m / corte : 0;
+          }
+          rotulo = `${Math.round((m / 60) * 10) / 10} horas (${pIni} a ${pFim})`;
+        } else {
+          fator = mensal ? fatorMes(referencia, corte) : fatorDia(corte);
+          rotulo = mensal ? "fim do mês" : "fim do dia";
+        }
+        const base = montarProjecao(dados, fator, null);
+        let metas: (number | null)[];
+        let origemMeta: string;
+        if (metaBase && metaBase.combustivel.litros > 0) {
+          let fm = 1;
+          if (livre) {
+            const diasPeriodo = (minutos as number) / 1440;
+            fm = mensal ? diasPeriodo / Number(em.data.slice(8, 10)) : diasPeriodo;
+          } else if (!mensal) fm = fatorHist;
+          metas = montarProjecao(metaBase, fm, null).map((p) => p.projecao);
+          origemMeta = livre ? `${emMeta.label}, proporcional ao período` : emMeta.label;
+        } else {
+          metas = base.map(() => null);
+          origemMeta = "meta indisponível no BI";
+        }
+        return {
+          corte: formatCorte(corte),
+          dias: datas.map((d) => ({
+            data: d,
+            litros: r0(litrosPorData[d] ?? 0),
+            produtos: r0(produtoPorData[d] ?? 0),
+          })),
+        };
+      },
+    }),
+
+    ranking_postos: tool({
+      description:
+        "Ranking dos postos no dia ou no mês: litros, faturamento e M/LT de cada um. Use para 'qual posto vendeu mais/menos'.",
+      inputSchema: z.object({
+        escopo: escopoEnum,
+        ordem: z.enum(["maiores", "menores"]),
+        limite: z.number().int().min(1).max(10),
+      }),
+      execute: async ({ escopo: tipo, ordem, limite }) => {
+        const { referencia, corte, corteTexto, desde } = periodo(tipo);
+        const [linhas, lojas] = await Promise.all([
+          comCache(chaveDeCache("mia:postos", { referencia, corte, desde }), false, () =>
+            getIndicadoresPorPosto([referencia], corte, desde),
+          ),
+          lojasPermitidas(escopo),
+        ]);
+        const nomes = new Map(lojas.map((l) => [l.ibm, l.nome]));
+        const filtradas = linhas.filter((l) => nomes.has(l.ibm));
+        const ordenadas = [...filtradas].sort((a, b) =>
+          ordem === "maiores" ? b.litros - a.litros : a.litros - b.litros,
+        );
+        return {
+          corte: corteTexto,
+          postos: ordenadas.slice(0, limite).map((l) => ({
+            posto: nomes.get(l.ibm) ?? l.ibm,
+            litros: r0(l.litros),
+            faturamento: r0(l.receita),
+            mlt: r2(l.mlt),
+            tmc: r2(l.tmc),
+          })),
+        };
+      },
+    }),
+
+    distribuicao: tool({
+      description:
+        "Distribuição por tipo de combustível ou por grupo de produto no dia ou no mês (receita, resultado bruto e índice).",
+      inputSchema: z.object({
+        tipo: z.enum(["combustivel", "produto"]),
+        escopo: escopoEnum,
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ tipo, escopo: quando, postos }) => {
+        const { referencia, corte, corteTexto, desde } = periodo(quando);
+        const ibms = await resolverIbms(escopo, postos);
+        const itens = await comCache(
+          chaveDeCache("mia:dist", { tipo, referencia, corte, desde, ibms }),
+          false,
+          () =>
+            tipo === "combustivel"
+              ? getCategoriasCombustivel([referencia], ibms, corte, desde)
+              : getCategoriasProduto([referencia], ibms, corte, desde),
+        );
+        return {
+          corte: corteTexto,
+          categorias: itens.map((c) => ({
+            nome: c.nome,
+            receita: r0(c.receita),
+            resultadoBruto: r0(c.lucroBruto),
+            lbPercent: r2(c.lb),
+            indice: r2(c.indice),
+          })),
+        };
+      },
+    }),
+
+    ranking_vendedores: tool({
+      description:
+        "Ranking de vendas de combustível por funcionário (frentista) no dia ou no mês: litros, faturamento, M/LT e TMC. Use para 'quem vendeu mais/menos'.",
+      inputSchema: z.object({
+        escopo: escopoEnum,
+        ordem: z.enum(["maiores", "menores"]),
+        limite: z.number().int().min(1).max(10),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ escopo: tipo, ordem, limite, postos }) => {
+        const { referencia, corte, corteTexto, desde } = periodo(tipo);
+        const ibms = await resolverIbms(escopo, postos);
+        const [linhas, lojas] = await Promise.all([
+          comCache(
+            chaveDeCache("mia:vendedores", { referencia, corte, desde, ibms, ordem, limite }),
+            false,
+            () => getRankingVendedores([referencia], ibms, corte, desde, limite, ordem),
+          ),
+          lojasPermitidas(escopo),
+        ]);
+        const nomes = new Map(lojas.map((l) => [l.ibm, l.nome]));
+        return {
+          corte: corteTexto,
+          vendedores: linhas
+            .filter((l) => nomes.has(l.ibm))
+            .map((l) => ({
+              vendedor: l.nome,
+              posto: nomes.get(l.ibm) ?? l.ibm,
+              litros: r0(l.litros),
+              faturamento: r0(l.receita),
+              mlt: r2(l.mlt),
+              tmc: r2(l.tmc),
+              atendimentos: l.atendimentos,
+            })),
+        };
+      },
+    }),
+
+    projecao_mes: tool({
+      description:
+        "Projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) com meta e diferença %. periodo 'dia' = fim do dia; 'mes' = fim do mês. Para QUALQUER outro período informe horas, dias, ate (YYYY-MM-DD) e/ou de (início de período futuro). Meta igual ao BI (origemMeta): dia = mesmo dia da semana anterior; demais = mês anterior fechado proporcional.",
+      inputSchema: z.object({
+        periodo: z.enum(["dia", "mes"]).default("mes"),
+        horas: z.number().positive().optional().describe("Próximas N horas"),
+        dias: z.number().positive().optional().describe("Próximos N dias"),
+        de: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Início de um período futuro"),
+        ate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Projetar até o fim desta data"),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ periodo, horas, dias, de, ate, postos }) => {
+        const { montarProjecao, escopoMeta, fatorDia, fatorMes, MINUTOS_DIA_FECHADO } = await import(
+          "../projecao-visao"
+        );
+        const { periodoDeComparacao } = await import("../ebitda");
+        const referencia = hojeSaoPaulo();
+        const corte = corteAgora();
+        const somarDias = (data: string, n: number) => new Date(new Date(`${data}T00:00:00Z`).getTime() + n * 86_400_000).toISOString().slice(0, 10);
+        const diffDias = (a: string, b: string) => (new Date(`${b}T00:00:00Z`).getTime() - new Date(`${a}T00:00:00Z`).getTime()) / 86_400_000 + 1;
+        // Converte o período livre em minutos futuros.
+        let minutos: number | undefined;
+        if (de) minutos = diffDias(de, ate ?? somarDias(de, Math.max(Math.ceil(dias ?? 1) - 1, 0))) * 1440;
+        else if (horas) minutos = horas * 60;
+        else if (dias) minutos = dias * 1440;
+        else if (ate) minutos = Math.max((new Date(`${ate}T23:59:59-03:00`).getTime() - Date.now()) / 60000, 0);
+        const livre = minutos !== undefined;
+        // Intervalo de datas do período projetado (para buscar o período de comparação).
+        let pIni = referencia, pFim = referencia, fatorHist = 1;
+        if (livre) {
+          const m = minutos as number;
+          pIni = de ?? referencia;
+          pFim = de ? somarDias(de, Math.round(m / 1440) - 1) : ate ?? somarDias(referencia, Math.max(Math.ceil(m / 1440) - 1, 0));
+          if (!de && m <= 1440) fatorHist = m / 1440;
+        } else if (periodo === "mes") {
+          pIni = primeiroDiaDoMes(referencia);
+          const [a, mm] = referencia.split("-").map(Number) as [number, number];
+          pFim = new Date(Date.UTC(a, mm, 0)).toISOString().slice(0, 10);
+        }
+
+        const mensal = livre ? (minutos as number) > 1440 : periodo === "mes";
+        const desde = mensal ? primeiroDiaDoMes(referencia) : undefined;
+        const ibms = await resolverIbms(escopo, postos);
+        // Fallback: mês anterior fechado, proporcional à duração do período.
+        const em = escopoMeta(referencia, true);
+        // Meta igual ao BI: até 1 dia → mesmo dia da semana anterior fechado; acima → mês anterior fechado proporcional.
+        const emMeta = mensal ? em : escopoMeta(referencia, false);
+        const chaveMeta = chaveDeCache("mia:meta", { em: emMeta, ibms });
+        const [dados, metaBase] = await Promise.all([
+          comCache(chaveDeCache("mia:ind", { referencia, corte, desde, ibms }), false, () =>
+            getIndicadores([referencia], ibms, corte, desde),
+          ),
+          Promise.race([
+            comCache(chaveMeta, false, () =>
+              comCachePersistente(chaveMeta, () => getIndicadores([emMeta.data], ibms, MINUTOS_DIA_FECHADO, emMeta.desde)),
+            ).catch(() => null),
+            new Promise<null>((r) => setTimeout(() => r(null), 3000)),
+          ]),
+        ]);
         let fator: number;
         let rotulo: string;
         if (livre) {
@@ -452,7 +633,7 @@ export function criarFerramentas(escopo: Escopo) {
 
     projecoes_contabeis: tool({
       description:
-        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta (origemMeta): dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional.",
+        "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta igual ao BI: mês anterior × N; períodos livres = mês anterior proporcional.",
       inputSchema: z.object({
         postos: z.array(z.string()).optional(),
         dias: z.number().positive().optional(),

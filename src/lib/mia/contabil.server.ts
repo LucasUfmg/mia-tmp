@@ -321,12 +321,17 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
     projecoes = {};
     for (const h of horizontesProjecao) {
       const fim = new Date(Date.UTC(ano, m - 1 + h.meses, 0)).toISOString().slice(0, 10);
-      projecoes[h.label] = comMeta(fmt(projetarDre(base, mes, h.meses)), await metaDoPeriodo(mes, fim), `${mes} a ${fim}`);
+      // Idêntico à aba Projeções do BI: meta = mês anterior × N.
+      const ant = await comLimite(buscarMes(mesAnterior), 3000);
+      const mt = ant
+        ? { meta: metaCombinada([{ dados: ant, fator: h.meses }], 1), origem: `mês anterior (${mesAnterior.slice(0, 7)}) × ${h.meses}` }
+        : { meta: null, origem: "mês anterior sem dados do BI" };
+      projecoes[h.label] = comMeta(fmt(projetarDre(base, mes, h.meses)), mt, `${mes} a ${fim}`);
     }
   }
   return {
     semCalculo: false as const,
-    base: `média diária de ${d.periodo} até agora × duração do período. Meta: dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período anterior de mesma duração; ano = ano anterior; sem dados, mês anterior proporcional. CMV e despesas acima da meta = pior.`,
+    base: `média diária de ${d.periodo} até agora × duração do período. Meta (igual ao BI): mês anterior fechado × N; períodos livres = mês anterior proporcional aos dias. CMV e despesas acima da meta = pior.`,
     realizado: { receitaBruta: r0(base.receitaBruta), resultadoOperacionalBruto: d.resultadoOperacionalBruto, despesasTotais: d.despesasTotais, ebitda: d.ebitda, resultadoFinal: d.resultadoFinal, litrosVendidos: r0(base.litrosVendidos || 0), ebitdaPorLitro: base.litrosVendidos ? Math.round((d.ebitda / base.litrosVendidos) * 100) / 100 : null },
     projecoes,
     ...(d.avisoBiIndisponivel ? { avisoBiIndisponivel: d.avisoBiIndisponivel } : {}),
