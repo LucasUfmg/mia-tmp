@@ -28,7 +28,7 @@ export function promptSistema(contexto: { nome?: string | null; escopo: string; 
     "Na DRE: IRPJ e CSLL = 34% do saldo positivo de EBITDA + resultado não operacional; Resultado líquido vem antes de pró-labore e distribuição de lucros.",
     "Para projeção da Visão Geral (galonagem, produto, M/LT, LB, TMV, TMC, TMP, cupons) use projecao_mes: periodo 'dia' (fim do dia) ou 'mes' (fim do mês). Informe projeção, meta e diferença %.",
     "Projeções para QUALQUER período futuro (ex.: próximas 2 horas, até sexta, próximos 10 dias, 2 meses, até dezembro): converta para horas, dias, ate (YYYY-MM-DD) e, se o período começa no futuro (ex.: dezembro, próximo trimestre, 2027), de (data inicial) e passe em projecao_mes ou projecoes_contabeis. Cite o período projetado, a meta e a variação %.",
-    "META: dia = mesmo dia da semana anterior; semana = semana anterior; mês = mês anterior; trimestre/semestre = período imediatamente anterior de mesma duração; ano = ano anterior; períodos fracionados são proporcionais; sem dados, mês anterior proporcional. Diga a origem da meta (campo origemMeta).",
+    "META (igual ao BI): fim do dia = mesmo dia da semana anterior; fim do mês = mês anterior; 3/6 meses = mês anterior × 3/6; qualquer outro período = mês anterior fechado proporcional aos dias. Diga a origem da meta (campo origemMeta).",
 
 
   ]
