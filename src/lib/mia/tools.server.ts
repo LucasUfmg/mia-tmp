@@ -1,3 +1,4 @@
+import { comCachePersistente, periodoFechado } from "./cache-persistente.server";
 import { tool } from "ai";
 import { z } from "zod";
 
@@ -329,13 +330,15 @@ export function criarFerramentas(escopo: Escopo) {
           [1].map(() => {
             const hFim = comp.fim;
             const hIni = hIniComp;
-            const consulta = comCache(chaveDeCache("mia:metaAnt", { hIni, hFim, ibms }), false, () =>
-              getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni),
+            const chave = chaveDeCache("mia:metaAnt", { hIni, hFim, ibms });
+            const buscar = () => getIndicadores([hFim], ibms, MINUTOS_DIA_FECHADO, hIni);
+            const consulta = comCache(chave, false, () =>
+              periodoFechado(hFim) ? comCachePersistente(chave, buscar) : buscar(),
             )
               .then((x) => (x && x.combustivel.litros > 0 ? { x, rotulo: hIni ? `${hIni} a ${hFim}` : hFim } : null))
               .catch(() => null);
             // Uma única espera (5 s) — a consulta continua e fica em cache para as próximas.
-            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 5000))]);
+            return Promise.race([consulta, new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
           }),
         );
         const [dados, anos] = await Promise.all([
@@ -349,9 +352,11 @@ export function criarFerramentas(escopo: Escopo) {
           ? null
           : await Promise.race([
               comCache(chaveDeCache("mia:meta", { em, ibms }), false, () =>
-                getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
+                comCachePersistente(chaveDeCache("mia:meta", { em, ibms }), () =>
+                  getIndicadores([em.data], ibms, MINUTOS_DIA_FECHADO, em.desde),
+                ),
               ).catch(() => null),
-              new Promise<null>((r) => setTimeout(() => r(null), 2000)),
+              new Promise<null>((r) => setTimeout(() => r(null), 1500)),
             ]);
         let fator: number;
         let rotulo: string;
