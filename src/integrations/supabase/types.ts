@@ -302,6 +302,24 @@ export type Database = {
         }
         Relationships: []
       }
+      mia_cache_periodos: {
+        Row: {
+          chave: string
+          created_at: string
+          dados: Json | null
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          dados?: Json | null
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          dados?: Json | null
+        }
+        Relationships: []
+      }
       mia_contatos: {
         Row: {
           ativo: boolean

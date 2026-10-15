@@ -15,6 +15,13 @@
       "when": 1791307942616,
       "tag": "0001_add_manual_service_sales",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792084977616,
+      "tag": "0002_mia_cache_periodos",
+      "breakpoints": true
     }
   ]
 }
