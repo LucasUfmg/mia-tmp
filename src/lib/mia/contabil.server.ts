@@ -274,36 +274,12 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const mesAnterior = new Date(Date.UTC(ano, m - 2, 1)).toISOString().slice(0, 10);
   const diasMesAnterior = new Date(Date.UTC(ano, m - 1, 0)).getUTCDate();
 
-  /** Meta do intervalo [inicio, fim]: período de comparação conforme a duração (dia/semana/mês/período/ano). */
+  /** Meta igual à do BI: mês anterior fechado, proporcional à duração do período (sem varrer histórico). */
   async function metaDoPeriodo(inicio: string, fim: string) {
-    const comp = periodoDeComparacao(inicio, fim);
-    const hIni = comp.ini, hFim = comp.fim;
-    const meses = mesesDoIntervalo(hIni, hFim);
-    const partes: { dados: DreConsolidada; fator: number }[] = [];
-    let completo = true;
-    const decorridos = (Date.now() - 3 * 3_600_000 - new Date(`${mes}T00:00:00Z`).getTime()) / 86_400_000;
-    // Busca todos os meses de comparação em paralelo (com limite de tempo por consulta).
-    const fechados = await Promise.all(
-      meses.map((x) => (x.mes === mes ? Promise.resolve(null) : comLimite(buscarMes(x.mes), 1500))),
-    );
-    for (const [i, x] of meses.entries()) {
-      if (x.mes === mes) {
-        // Mês corrente (parcial): usa a média diária realizada.
-        const diasNoMes = x.fracao * new Date(Date.UTC(ano, m, 0)).getUTCDate();
-        partes.push({ dados: base, fator: decorridos > 0 ? diasNoMes / decorridos : 0 });
-        continue;
-      }
-      const dados = fechados[i];
-      if (!dados) { completo = false; break; }
-      partes.push({ dados, fator: x.fracao });
-    }
-    if (completo && partes.length) {
-      return { meta: metaCombinada(partes, 1), origem: `${comp.regra} (${hIni} a ${hFim})` };
-    }
-    const ant = await comLimite(buscarMes(mesAnterior), 1500);
-    if (!ant) return { meta: null, origem: "sem histórico para meta" };
+    const ant = await comLimite(buscarMes(mesAnterior), 3000);
+    if (!ant) return { meta: null, origem: "mês anterior sem dados do BI" };
     const dias = (new Date(`${fim}T00:00:00Z`).getTime() - new Date(`${inicio}T00:00:00Z`).getTime()) / 86_400_000 + 1;
-    return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `sem histórico do mesmo período: mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
+    return { meta: metaCombinada([{ dados: ant, fator: dias / diasMesAnterior }], 1), origem: `mês anterior (${mesAnterior.slice(0, 7)}) proporcional a ${Math.round(dias)} dias` };
   }
 
   const fmt = (r: ReturnType<typeof projetarDre>) => ({
