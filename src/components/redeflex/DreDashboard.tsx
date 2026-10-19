@@ -258,7 +258,7 @@ function formatarInstante(valor: string) {
 }
 
 function MemoCells() { return <><th className="px-3 py-2 text-right">Valor</th><th className="px-3 py-2 text-right">AV</th></>; }
-function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 ? "text-wa" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(valor, receita))}</td></>; }
+function ValueCells({ valor, receita }: { valor: number; receita: number }) { return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 ? "text-wa" : ""}`}>{moeda(valor)}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{percentual(razao(Math.abs(valor), Math.abs(receita)))}</td></>; }
 function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas: { mes: string; dados: DreConsolidada }[] }) {
   const destaque = linha.tipo === "total";
   const grupo = linha.tipo === "grupo";
@@ -281,7 +281,7 @@ function DreRow({ linha, colunas }: { linha: (typeof linhasDre)[number]; colunas
 }
 
 function ValuePair({ dados, metrica, valor, exibir }: { mes: string; dados: DreConsolidada; metrica: boolean; valor: number; exibir: string }) {
-  return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(valor, dados.receitaBruta))}</td></>;
+  return <><td className={`px-3 py-2.5 text-right font-mono text-xs ${valor < 0 ? "text-destructive" : valor > 0 && !metrica ? "text-wa" : ""}`}>{exibir}</td><td className="px-3 py-2.5 text-right text-xs text-muted-foreground">{metrica ? "—" : percentual(razao(Math.abs(valor), Math.abs(dados.receitaBruta)))}</td></>;
 }
 function Projecoes({ calculos, selecao, mes, biStatus }: { calculos: Ebitda[]; selecao: string[]; mes: string; biStatus: "ok" | "carregando" | "erro" }) {
   const base = useMemo(() => consolidarEbitda(calculos, selecao, [mes]), [calculos, selecao, mes]);
