@@ -34,7 +34,7 @@ export const TEXTO_AJUDA = [
   "• Quanto vendi de produto hoje?",
   "• E comparado com a semana passada?",
   "• Qual meu ebitda hoje?",
-  "• Me de a DRE atualizada",
+  "• Me de a DRE gerencial",
   "",
   "Digite *resumo* para o panorama do dia.",
 ].join("\n");
