@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { atualizarDreSnapshot } from "@/lib/dre-snapshot.functions";
 import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
@@ -78,11 +79,21 @@ function Contabil() {
   const ano = anoDoMes(mes);
   const queryClient = useQueryClient();
   const [atualizando, setAtualizando] = useState(false);
+  const gravarConsolidado = () =>
+    void atualizarDreSnapshot({
+      data: { mes: mes.slice(0, 7), ...(selecao.length ? { ibms: selecao } : {}) },
+    }).catch(() => undefined);
+  useEffect(() => {
+    // Grava o consolidado da DRE para a Mia responder na hora.
+    gravarConsolidado();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mes, selecao.join(",")]);
   const atualizarDados = async () => {
     setAtualizando(true);
     forcarBi = true;
     try {
       await queryClient.refetchQueries({ queryKey: ["contabil"], type: "active" });
+      gravarConsolidado();
     } finally {
       forcarBi = false;
       setAtualizando(false);
