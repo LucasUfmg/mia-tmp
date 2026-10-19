@@ -431,6 +431,45 @@ export function criarFerramentas(escopo: Escopo) {
       },
     }),
 
+    dre_gerencial: tool({
+      description:
+        "DRE Gerencial pronta, igual à aba Contábil do BI: receita bruta (combustível, mercadorias, serviços), CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro, IRPJ/CSLL, resultado líquido e resultado final. Use PRIMEIRO para qualquer pergunta sobre DRE, EBITDA, despesas ou resultado. Não recalcule: repasse os números como vieram.",
+      inputSchema: z.object({
+        periodo: z.enum(["mes", "ano"]).default("mes"),
+        mes: z.string().regex(/^\d{4}-\d{2}$/).optional().describe("'YYYY-MM'; vazio = mês corrente"),
+        postos: z.array(z.string()).optional(),
+      }),
+      execute: async ({ periodo, mes, postos }) => {
+        const { lerDetalheEbitda } = await import("./contabil.server");
+        const ibms = await resolverIbms(escopo, postos);
+        const ler = () => lerDetalheEbitda({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) }) as Promise<Record<string, unknown>>;
+        const d = await comCache(chaveDeCache("mia:dreGerencial", { periodo, mes, ibms }), false, ler);
+        if (d["semCalculo"]) return { semLancamento: true, periodo: d["periodo"] };
+        const n = (k: string) => Number(d[k] ?? 0);
+        const litros = n("litrosVendidos");
+        return {
+          periodo: d["periodo"],
+          ...(d["observacao"] ? { observacao: d["observacao"] } : {}),
+          ...(d["avisoBiIndisponivel"] ? { avisoBiIndisponivel: d["avisoBiIndisponivel"] } : {}),
+          receitaBruta: n("vendaCombustivel") + n("vendaMercadorias") + n("vendaServicos"),
+          vendaCombustivel: n("vendaCombustivel"),
+          vendaMercadorias: n("vendaMercadorias"),
+          vendaServicos: n("vendaServicos"),
+          cmv: n("custoCombustivel") + n("custoMercadoria"),
+          resultadoOperacionalBruto: n("resultadoOperacionalBruto"),
+          despesasTotais: n("despesasTotais"),
+          ebitda: n("ebitda"),
+          ebitdaPorLitro: litros ? r2(n("ebitda") / litros) : null,
+          litrosVendidos: litros,
+          irpjCsll: n("irpjCsll"),
+          resultadoLiquido: n("resultadoLiquido"),
+          resultadoFinal: n("resultadoFinal"),
+          margemCombustivelPercent: d["margemCombustivelPercent"],
+          margemProdutoPercent: d["margemProdutoPercent"],
+        };
+      },
+    }),
+
     projecoes_contabeis: tool({
       description:
         "Projeções contábeis de receita bruta, CMV, resultado operacional bruto, despesas totais, EBITDA, EBITDA por litro e resultado final pela média diária do mês corrente. Sem parâmetros: fim do mês, próximos 3 e 6 meses. Para QUALQUER outro período informe dias, ate (YYYY-MM-DD) e/ou de (início, para períodos futuros como 'dezembro' = de 2026-12-01 ate 2026-12-31). Meta igual ao BI: mês anterior × N; períodos livres = mês anterior proporcional.",
