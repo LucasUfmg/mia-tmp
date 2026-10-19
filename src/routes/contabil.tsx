@@ -2,7 +2,13 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { atualizarDreSnapshot } from "@/lib/dre-snapshot.functions";
 import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BookOpen, Calculator, Plus, Sigma } from "lucide-react";
+import { BookOpen, Calculator, ChevronDown, Plus, Sigma } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
@@ -69,7 +75,15 @@ export const Route = createFileRoute("/contabil")({
 function Contabil() {
   const mesAtual = mesReferencia();
   const [selecao, setSelecao] = useState<string[]>([]);
-  const [mes, setMes] = useState(mesAtual);
+  // Meses selecionados (agrupados). O último é a referência do período.
+  const [mesesSel, setMesesSel] = useState<string[]>([mesAtual]);
+  const mes = mesesSel[mesesSel.length - 1] ?? mesAtual;
+  const alternarMesSel = (m: string) =>
+    setMesesSel((atuais) =>
+      atuais.includes(m)
+        ? atuais.length === 1 ? atuais : atuais.filter((x) => x !== m)
+        : [...atuais, m].sort(),
+    );
   const [visao, setVisao] = useState<"mes" | "ano">("mes");
   const [dialogo, setDialogo] = useState(false);
   const [dialogoEbitda, setDialogoEbitda] = useState(false);
@@ -138,14 +152,15 @@ function Contabil() {
   // Geral) e são mesclados às despesas salvas. Meses futuros não são pedidos.
   const mesCorrente = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
   const mesesPrioritarios = useMemo(() => {
-    const escopo = visao === "mes" ? [mes] : mesesDoAno(ano).filter((m) => m <= mes);
+    const escopo = visao === "mes" ? mesesSel : mesesDoAno(ano).filter((m) => m <= mes);
     const primeiro = escopo[0] ?? mes;
     const [a, m] = primeiro.split("-").map(Number) as [number, number];
-    const anterior = new Date(Date.UTC(a, m - 2, 1)).toISOString().slice(0, 10);
+    const n = visao === "mes" ? mesesSel.length : 1;
+    const anteriores = Array.from({ length: n }, (_, i) => new Date(Date.UTC(a, m - 2 - i, 1)).toISOString().slice(0, 10));
     // Acumulado do ano: compara com o mesmo período do ano anterior.
     const anoAnt = visao === "ano" ? escopo.map(menosUmAno) : [];
-    return new Set([...escopo, anterior, ...anoAnt]);
-  }, [visao, mes, ano]);
+    return new Set([...escopo, ...anteriores, ...anoAnt]);
+  }, [visao, mes, ano, mesesSel]);
   const pares = useMemo(() => {
     const [a, m] = mes.split("-").map(Number) as [number, number];
     const ultimos12 = new Date(Date.UTC(a, m - 13, 1)).toISOString().slice(0, 10);
@@ -199,7 +214,7 @@ function Contabil() {
     [tarefas, versao, mesCorrente],
   );
   // Cards/DRE esperam só os meses escolhidos; gráficos chegam depois.
-  const escolhido = (m: string) => (visao === "mes" ? m === mes : m.slice(0, 4) === ano && m <= mes);
+  const escolhido = (m: string) => (visao === "mes" ? mesesSel.includes(m) : m.slice(0, 4) === ano && m <= mes);
   const prioritarias = tarefas.map((p, i) => ({ p, q: consultas[i] })).filter((x) => !x.p.mesmo && escolhido(x.p.mes));
   const carregandoBi = prioritarias.some((x) => x.q?.isPending);
   const erroBi = !carregandoBi && prioritarias.some((x) => x.q?.isError);
@@ -265,7 +280,7 @@ function Contabil() {
   }, [mesmoPeriodoPronto, doBiMesmoPeriodo, calculosComAnterior, mesCorrente]);
 
   const mesesAno = useMemo(() => mesesDoAno(ano), [ano]);
-  const mesesEscopo = visao === "mes" ? [mes] : mesesAno.filter((m) => m <= mes);
+  const mesesEscopo = visao === "mes" ? mesesSel : mesesAno.filter((m) => m <= mes);
 
   // Acumulado do ano: mesmo período do ano anterior. O mês equivalente ao
   // corrente é cortado no mesmo dia/hora, com despesas proporcionais.
@@ -376,7 +391,7 @@ function Contabil() {
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
               <MultiStoreFilter value={selecao} onChange={setSelecao} lojas={lojas} />
               <div className="flex items-center gap-2">
-                <Select value={ano} onValueChange={(v) => setMes(`${v}-${mes.slice(5, 7)}-01`)}>
+                <Select value={ano} onValueChange={(v) => setMesesSel((atuais) => atuais.map((m) => `${v}${m.slice(4)}`))}>
                   <SelectTrigger className="w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
@@ -388,18 +403,26 @@ function Contabil() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={mes} onValueChange={setMes}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="min-w-[130px] justify-between">
+                      {mesesSel.length === 1 ? rotuloMes(mesesSel[0]!) : `${mesesSel.length} meses`}
+                      <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
                     {mesesAno.map((m) => (
-                      <SelectItem key={m} value={m}>
+                      <DropdownMenuCheckboxItem
+                        key={m}
+                        checked={mesesSel.includes(m)}
+                        onSelect={(e) => e.preventDefault()}
+                        onCheckedChange={() => alternarMesSel(m)}
+                      >
                         {rotuloMes(m)}
-                      </SelectItem>
+                      </DropdownMenuCheckboxItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </div>
@@ -409,7 +432,7 @@ function Contabil() {
         <p className="mt-3 text-xs text-muted-foreground">
           {escopo} ·{" "}
           {visao === "mes"
-            ? rotuloMes(mes)
+            ? mesesSel.map(rotuloMes).join(" + ")
             : `acumulado de ${rotuloMes(mesesEscopo[0] ?? mes)} a ${rotuloMes(mes)}`}
           {isPending ? " · carregando lançamentos…" : ""}
         </p>
