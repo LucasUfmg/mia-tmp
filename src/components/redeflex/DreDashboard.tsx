@@ -99,7 +99,6 @@ function Card({ icon: Icon, label, valor, detalhe, variacao, inverter, comparaca
 const tooltipStyle = { borderRadius: 8, border: "1px solid var(--border)", fontSize: 12 };
 
 export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", onRecarregarBi, carregandoTudo = false, selecao, meses, mesAtual, lojas, periodoDados, comparacaoAnual, onAtualizar, atualizando = false }: Props) {
-  const [mesesDre, setMesesDre] = useState<string[]>([mesAtual]);
   const [metrica, setMetrica] = useState<"resultado" | "ebitda" | "receita" | "despesas" | "margem">("resultado");
   const consolidado = useMemo(() => consolidarEbitda(calculos, selecao, meses), [calculos, selecao, meses]);
   // Evolução: todos os meses até o selecionado que tenham dados (últimos 12).
@@ -119,7 +118,13 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
       return { mes: m.mes, receitaBruta: c.receitaBruta, resultadoFinal: m.resultadoFinal };
     });
   }, [mensais, calculosMesmoPeriodo, selecao]);
-  const mesesAnt = useMemo(() => meses.length > 1 ? meses.slice(0, -1) : meses.map(mesAnterior), [meses]);
+  // Período anterior com a mesma quantidade de meses (imediatamente antes do primeiro).
+  const mesesAnt = useMemo(() => {
+    const lista: string[] = [];
+    let m = meses[0] ?? mesAtual;
+    for (let i = 0; i < Math.max(meses.length, 1); i++) { m = mesAnterior(m); lista.unshift(m); }
+    return lista;
+  }, [meses, mesAtual]);
   // Mês corrente (parcial): compara com o mês anterior cortado no mesmo dia/hora.
   // Despesas seguem do mês inteiro (são fixas).
   const mesCorrenteSp = `${new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit" }).format(new Date())}-01`;
@@ -144,8 +149,9 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
     { icon: Landmark, label: "Resultado final", valor: moeda(consolidado.resultadoFinal), detalhe: consolidado.resultadoFinal >= 0 ? "Resultado positivo" : "Resultado negativo", variacao: varia(consolidado.resultadoFinal, anterior.resultadoFinal) },
   ];
 
-  const alternarMes = (mes: string) => setMesesDre((atuais) => atuais.includes(mes) ? (atuais.length === 1 ? atuais : atuais.filter((m) => m !== mes)) : [...atuais, mes].sort());
-  const colunasDre = mesesDre.map((mes) => ({ mes, dados: consolidarEbitda(calculos, selecao, [mes]) }));
+  // DRE: uma única coluna com o período selecionado (meses agrupados).
+  const rotuloPeriodo = meses.length === 1 ? rotuloMes(meses[0]!) : `${rotuloMes(meses[0]!)} a ${rotuloMes(meses[meses.length - 1]!)} (${meses.length} meses)`;
+  const colunasDre = [{ mes: meses.join(","), dados: consolidado }];
   const nomePosto = (ibm: string) => lojas.find((loja) => loja.ibm === ibm)?.nome ?? ibm;
   const porPosto = useMemo(() => {
     const baseReceita = consolidado.receitaBruta > 0 ? consolidado.receitaBruta / Math.max(lojas.length, 1) : 1_250_000;
@@ -218,9 +224,8 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
       </TabsContent>
 
       <TabsContent value="dre" className="mt-5 space-y-4">
-        <div className="flex flex-wrap gap-2">{meses.map((mes) => <Button key={mes} size="sm" variant={mesesDre.includes(mes) ? "default" : "outline"} onClick={() => alternarMes(mes)}>{rotuloMes(mes)}</Button>)}</div>
-         <p className="flex items-center gap-2 text-xs text-muted-foreground"><span className="inline-block h-3 w-3 rounded-sm border border-border bg-bi-soft" />Verde = dados do BI</p>
-        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloMes(mes)}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
+         <p className="flex items-center gap-2 text-xs text-muted-foreground"><span className="inline-block h-3 w-3 rounded-sm border border-border bg-bi-soft" />Verde = dados do BI · Período: {rotuloPeriodo}</p>
+        <section className="card-elevated overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-border text-[10px] uppercase tracking-[0.08em] text-muted-foreground"><th className="sticky left-0 bg-card px-5 py-3 text-left">Linha</th>{colunasDre.map(({ mes }) => <th key={mes} colSpan={2} className="px-3 py-3 text-right">{rotuloPeriodo}</th>)}</tr><tr className="border-b border-border text-[10px] text-muted-foreground"><th className="sticky left-0 bg-card" />{colunasDre.map(({ mes }) => <MemoCells key={mes} />)}</tr></thead><tbody>{linhasDre.map((linha, indice) => <DreRow key={`${linha.label}-${indice}`} linha={linha} colunas={colunasDre} />)}</tbody></table></section>
       </TabsContent>
 
       <TabsContent value="projecoes" className="mt-5 space-y-4">
