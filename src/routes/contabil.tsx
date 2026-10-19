@@ -3,12 +3,6 @@ import { useEffect, useMemo, useState } from "react";
 import { atualizarDreSnapshot } from "@/lib/dre-snapshot.functions";
 import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Calculator, ChevronDown, Plus, Sigma } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import logoRedeFlex from "@/assets/redeflex-logo.jpg";
 import { Sidebar } from "@/components/redeflex/Sidebar";
 import { MultiStoreFilter } from "@/components/redeflex/MultiStoreFilter";
@@ -85,6 +79,7 @@ function Contabil() {
         : [...atuais, m].sort(),
     );
   const [visao, setVisao] = useState<"mes" | "ano">("mes");
+  const [listaMeses, setListaMeses] = useState(false);
   const [dialogo, setDialogo] = useState(false);
   const [dialogoEbitda, setDialogoEbitda] = useState(false);
   const [edicao, setEdicao] = useState<{ ibm: string; mes: string } | null>(null);
@@ -403,26 +398,25 @@ function Contabil() {
                     ))}
                   </SelectContent>
                 </Select>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="min-w-[130px] justify-between">
-                      {mesesSel.length === 1 ? rotuloMes(mesesSel[0]!) : `${mesesSel.length} meses`}
-                      <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    {mesesAno.map((m) => (
-                      <DropdownMenuCheckboxItem
-                        key={m}
-                        checked={mesesSel.includes(m)}
-                        onSelect={(e) => e.preventDefault()}
-                        onCheckedChange={() => alternarMesSel(m)}
-                      >
-                        {rotuloMes(m)}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="relative">
+                  <Button variant="outline" className="min-w-[130px] justify-between" onClick={() => setListaMeses((v) => !v)} aria-expanded={listaMeses}>
+                    {mesesSel.length === 1 ? rotuloMes(mesesSel[0]!) : `${mesesSel.length} meses`}
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
+                  </Button>
+                  {listaMeses && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setListaMeses(false)} />
+                      <div className="absolute right-0 z-50 mt-1 w-44 rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-md">
+                        {mesesAno.map((m) => (
+                          <label key={m} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                            <input type="checkbox" checked={mesesSel.includes(m)} onChange={() => alternarMesSel(m)} className="accent-[var(--brand)]" />
+                            {rotuloMes(m)}
+                          </label>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
