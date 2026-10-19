@@ -152,15 +152,17 @@ export function DreDashboard({ calculos, calculosMesmoPeriodo, biStatus = "ok", 
   // DRE: uma única coluna com o período selecionado (meses agrupados).
   const rotuloPeriodo = meses.length === 1 ? rotuloMes(meses[0]!) : `${rotuloMes(meses[0]!)} a ${rotuloMes(meses[meses.length - 1]!)} (${meses.length} meses)`;
   // Vários meses: uma coluna por mês, lado a lado, e o total do período no fim.
-  const colunasDre = useMemo(
-    () => meses.length > 1
-      ? [
-          ...meses.map((m) => ({ mes: m, rotulo: rotuloMes(m), dados: consolidarEbitda(calculos, selecao, [m]) })),
-          { mes: "total", rotulo: `Total (${meses.length} meses)`, dados: consolidado },
-        ]
-      : [{ mes: meses.join(","), rotulo: rotuloPeriodo, dados: consolidado }],
-    [meses, calculos, selecao, consolidado, rotuloPeriodo],
-  );
+  // Com o mês corrente no meio, todos são cortados no mesmo dia/hora.
+  const dreMesmoPeriodo = meses.length > 1 && meses.includes(mesCorrenteSp);
+  const dreAguardando = dreMesmoPeriodo && !calculosMesmoPeriodo;
+  const colunasDre = useMemo(() => {
+    if (meses.length <= 1) return [{ mes: meses.join(","), rotulo: rotuloPeriodo, dados: consolidado }];
+    const base = dreMesmoPeriodo && calculosMesmoPeriodo ? calculosMesmoPeriodo : calculos;
+    return [
+      ...meses.map((m) => ({ mes: m, rotulo: rotuloMes(m), dados: consolidarEbitda(base, selecao, [m]) })),
+      { mes: "total", rotulo: "Total", dados: consolidarEbitda(base, selecao, meses) },
+    ];
+  }, [meses, calculos, calculosMesmoPeriodo, dreMesmoPeriodo, selecao, consolidado, rotuloPeriodo]);
   const nomePosto = (ibm: string) => lojas.find((loja) => loja.ibm === ibm)?.nome ?? ibm;
   const porPosto = useMemo(() => {
     const baseReceita = consolidado.receitaBruta > 0 ? consolidado.receitaBruta / Math.max(lojas.length, 1) : 1_250_000;
