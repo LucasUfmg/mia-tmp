@@ -21,8 +21,7 @@ function escolherModelo(pergunta: string): string {
 /** Atalhos sem IA: comandos frequentes respondidos por template (custo zero). */
 export function atalho(pergunta: string): "resumo" | "ajuda" | null {
   const t = pergunta.trim().toLowerCase();
-  if (["ajuda", "menu", "oi", "olá", "ola", "bom dia", "boa tarde", "boa noite"].includes(t))
-    return "ajuda";
+  if (["ajuda", "menu", "oi", "olá", "ola", "bom dia", "boa tarde", "boa noite"].includes(t)) return "ajuda";
   if (["resumo", "hoje", "status"].includes(t)) return "resumo";
   return null;
 }
@@ -32,10 +31,10 @@ export const TEXTO_AJUDA = [
   "",
   "Pode perguntar do jeito que você falaria com o gerente. Por exemplo:",
   "• Quanto vendi de combustível hoje?",
-  "• Como está minha margem?",
+  "• Quanto vendi de produto hoje?",
   "• E comparado com a semana passada?",
-  "• Qual posto vendeu menos hoje?",
-  "• Projeção do mês",
+  "• Qual meu ebitda hoje?",
+  "• Me de a DRE atualizada",
   "",
   "Digite *resumo* para o panorama do dia.",
 ].join("\n");
