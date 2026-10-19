@@ -440,10 +440,9 @@ export function criarFerramentas(escopo: Escopo) {
         postos: z.array(z.string()).optional(),
       }),
       execute: async ({ periodo, mes, postos }) => {
-        const { lerDetalheEbitda } = await import("./contabil.server");
+        const { lerSnapshot } = await import("./dre-snapshot.server");
         const ibms = await resolverIbms(escopo, postos);
-        const ler = () => lerDetalheEbitda({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) }) as Promise<Record<string, unknown>>;
-        const d = await comCache(chaveDeCache("mia:dreGerencial", { periodo, mes, ibms }), false, ler);
+        const d = (await lerSnapshot({ periodo, ...(mes ? { mes } : {}), ...(ibms ? { ibms } : {}) })) as Record<string, unknown>;
         if (d["semCalculo"]) return { semLancamento: true, periodo: d["periodo"] };
         const n = (k: string) => Number(d[k] ?? 0);
         const litros = n("litrosVendidos");

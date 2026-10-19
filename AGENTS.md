@@ -18,3 +18,4 @@
 - Never persist ERP credentials from the access portal until a secure backend exists; why: they are third-party secrets.
 - Contábil busca Receita/CMV do BI com uma consulta curta por posto/mês (mesmo formato da Visão Geral), em fila limitada; agregações anuais únicas estouram o tempo limite.
 - O fechamento da DRE calcula IRPJ/CSLL automaticamente em 34% do saldo positivo após o resultado não operacional; retiradas vêm depois do resultado líquido.
+- A Mia lê a DRE Gerencial do consolidado gravado em `dre_snapshots` (gravado pela aba Contábil e regravado quando vence no mês corrente); why: recalcular BI a cada pergunta estoura o tempo do WhatsApp.

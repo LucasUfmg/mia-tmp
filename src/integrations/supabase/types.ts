@@ -233,6 +233,24 @@ export type Database = {
         }
         Relationships: []
       }
+      dre_snapshots: {
+        Row: {
+          atualizado_em: string
+          chave: string
+          dados: Json
+        }
+        Insert: {
+          atualizado_em?: string
+          chave: string
+          dados: Json
+        }
+        Update: {
+          atualizado_em?: string
+          chave?: string
+          dados?: Json
+        }
+        Relationships: []
+      }
       fzap_config: {
         Row: {
           base_url: string | null
