@@ -35,7 +35,7 @@ export function Sidebar() {
   return (
     <>
     <MobileNav />
-    <div className="h-16 w-0 lg:hidden" aria-hidden />
+    <style>{"@media (max-width:1023px){body{padding-bottom:4.5rem}}"}</style>
     <aside className="hidden w-[268px] shrink-0 flex-col bg-sidebar px-5 py-7 text-sidebar-foreground lg:flex">
       <div className="px-2">
         <img
@@ -93,5 +93,6 @@ export function Sidebar() {
         <p className="mt-1.5 text-xs text-sidebar-foreground/60">Períodos: diário e mensal (on-time)</p>
       </div>
     </aside>
+    </>
   );
 }
