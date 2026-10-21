@@ -17,5 +17,5 @@
 - Keep the Mia portal branded only as "Portal da Mia" (no RedeFlex mention or logo); users always start at `/` and the flow ends by redirecting to `/bi`; why: the portal is the entry point of the product.
 - Never persist ERP credentials from the access portal until a secure backend exists; why: they are third-party secrets.
 - Contábil busca Receita/CMV do BI com uma consulta curta por posto/mês (mesmo formato da Visão Geral), em fila limitada; agregações anuais únicas estouram o tempo limite.
-- O fechamento da DRE calcula IRPJ/CSLL automaticamente em 34% do saldo positivo após o resultado não operacional; retiradas vêm depois do resultado líquido.
+- O fechamento da DRE calcula IRPJ/CSLL como 6% do EBITDA positivo (estimativa gerencial provisória); retiradas vêm depois do resultado líquido.
 - A Mia lê a DRE Gerencial do consolidado gravado em `dre_snapshots` (gravado pela aba Contábil e regravado quando vence no mês corrente); why: recalcular BI a cada pergunta estoura o tempo do WhatsApp.
