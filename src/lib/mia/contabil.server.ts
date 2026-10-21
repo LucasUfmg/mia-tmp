@@ -1,4 +1,3 @@
-import { comCachePersistente } from "./cache-persistente.server";
 /** Leitura dos lançamentos contábeis (tela /contabil) para o agente Mia. */
 import { clienteContabil } from "../contabil.server";
 import {
@@ -258,14 +257,15 @@ export async function lerProjecoes(opcoes: { ibms?: string[]; dias?: number; ate
   const cache = new Map<string, Promise<DreConsolidada | null>>();
   const buscarMes = (mm: string) => {
     if (!cache.has(mm)) {
-      cache.set(mm, comCachePersistente(`mia:dreMes:${mm}:${JSON.stringify(filtro)}`, async () => {
+      // Sem cache persistente: despesas do mês anterior podem ser lançadas depois.
+      cache.set(mm, (async () => {
         try {
           const h = await lerDetalheEbitda({ periodo: "mes", mes: mm.slice(0, 7), ...filtro });
           if (h.semCalculo || h.avisoBiIndisponivel) return null;
           const dados = { ...h._somas, ...calcularEbitda(h._somas) } as DreConsolidada;
           return dados.vendaCombustivel + dados.vendaMercadorias > 0 ? dados : null;
         } catch { return null; }
-      }));
+      })());
     }
     return cache.get(mm)!;
   };
