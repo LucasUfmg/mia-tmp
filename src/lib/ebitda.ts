@@ -141,7 +141,7 @@ export function calcularEbitda(v: Record<LinhaEbitdaChave, number> & Partial<Dad
   const ebitda = resultadoOperacional - despesasTotais;
   const totalNaoOperacional = s("receitasFinanceiras") + s("receitasDiversas") + s("receitaFinanceiraDistribuidora") + s("despesasFinanceiras") + s("despesasNaoContabeis") + s("despesaFinanceiraDistribuidora") + s("bonusContrato");
   const baseIrpjCsll = ebitda + totalNaoOperacional;
-  const totalIrpjCsll = Math.max(baseIrpjCsll, 0) * 0.34;
+  const totalIrpjCsll = Math.max(ebitda, 0) * 0.06;
   const resultadoLiquido = baseIrpjCsll - totalIrpjCsll;
   const resultadoFinal = resultadoLiquido - Math.abs(s("socios")) - Math.abs(s("distribuicaoLucros"));
   return { receitaBruta, totalReceita, totalImpostos, custoTotal, resultadoBruto, resultadoOperacional, despesasTotais, ebitda, ebit: ebitda, totalNaoOperacional, totalIrpjCsll, resultadoLiquido, resultadoFinal, lucroLiquido: resultadoLiquido, receitaLiquida: totalReceita - totalImpostos };
@@ -353,7 +353,7 @@ export const linhasDre: LinhaDre[] = [
   { tipo: "total", label: "EBITDA", campo: "ebitda" },
   { tipo: "grupo", label: "Receitas e Despesas Não Operacionais", campo: "totalNaoOperacional" },
   ...(["receitasFinanceiras", "receitasDiversas", "receitaFinanceiraDistribuidora", "despesasFinanceiras", "despesasNaoContabeis", "despesaFinanceiraDistribuidora", "bonusContrato"] as LinhaEbitdaChave[]).map((chave) => ({ tipo: "manual" as const, label: linhasEbitda.find((l) => l.chave === chave)?.label ?? chave, chave })),
-  { tipo: "grupo", label: "IRPJ e CSLL (34%)", campo: "totalIrpjCsll", sinal: -1 },
+  { tipo: "grupo", label: "IRPJ e CSLL (6% do EBITDA)", campo: "totalIrpjCsll", sinal: -1 },
   { tipo: "total", label: "Resultado líquido", campo: "resultadoLiquido" },
   { tipo: "manual", label: "Retirada pró-labore", chave: "socios" },
   { tipo: "manual", label: "Distribuição de lucros", chave: "distribuicaoLucros" },
